@@ -2,23 +2,63 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// IMPORTANT: This file runs on the server only.
-// It uses the SERVICE ROLE key, which bypasses RLS.
-// Never expose this key to the browser.
+// Server-only Supabase client (SERVICE ROLE bypasses RLS)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// GET: list latest widgets (dev utility)
 export async function GET() {
   const { data, error } = await supabase
     .from("widgets")
     .select("id,business_id,cta_text,position,created_at")
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(10);
 
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
   return NextResponse.json({ ok: true, widgets: data ?? [] });
+}
+
+// POST: create a widget (dev utility)
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as {
+      business_id: string;
+      theme_color?: string;
+      icon?: string;
+      cta_text?: string;
+      position?: "left" | "right";
+      prefill_message?: string;
+      prechat_enabled?: boolean;
+    };
+
+    if (!body?.business_id) {
+      return NextResponse.json({ ok: false, error: "business_id is required" }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from("widgets")
+      .insert({
+        business_id: body.business_id,
+        theme_color: body.theme_color ?? "#22c55e",
+        icon: body.icon ?? "whatsapp",
+        cta_text: body.cta_text ?? "Chat on WhatsApp",
+        position: body.position ?? "right",
+        prefill_message: body.prefill_message ?? "Hi! I have a quick question.",
+        prechat_enabled: body.prechat_enabled ?? false,
+      })
+      .select("id,business_id,cta_text,position,created_at")
+      .single();
+
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, widget: data });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message ?? "Unknown error" }, { status: 500 });
+  }
 }
