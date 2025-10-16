@@ -1,0 +1,26 @@
+# Folders
+node_modules
+.next
+.vercel
+build
+dist
+coverage
+out
+
+# Generated lockfiles
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Env & logs
+.env
+.env.*
+*.log
+
+# Static assets (don’t format)
+public/**/*.svg
+public/**/*.ico
+public/**/*.png
+public/**/*.jpg
+public/**/*.jpeg
+public/**/*.webp
