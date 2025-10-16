@@ -62,3 +62,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message ?? "Unknown error" }, { status: 500 });
   }
 }
+
+// DELETE: remove a widget by id (dev utility)
+// Usage: DELETE /api/dev/widgets?id=<widget_id>
+export async function DELETE(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "id is required" }, { status: 400 });
+  }
+
+  const { error } = await supabase.from("widgets").delete().eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, id });
+}
