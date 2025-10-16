@@ -20,7 +20,10 @@ export async function POST(req: Request) {
     const body = (await req.json()) as Body;
 
     if (!body?.business_id) {
-      return NextResponse.json({ ok: false, error: "business_id is required" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "business_id is required" },
+        { status: 400 }
+      );
     }
 
     const referrer = req.headers.get("referer") ?? null;
@@ -42,7 +45,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true, lead: data });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? "Unknown error" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

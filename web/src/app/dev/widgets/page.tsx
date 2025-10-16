@@ -1,4 +1,5 @@
 // src/app/dev/widgets/page.tsx
+import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 type Widget = {
@@ -15,9 +16,11 @@ export default async function Page() {
 
   if (!json?.ok) {
     return (
-      <main className="space-y-4 p-8">
+      <main className="p-8 space-y-4">
         <h1 className="text-2xl font-semibold">Dev: Widgets</h1>
-        <pre className="rounded bg-red-50 p-4 text-red-600">{JSON.stringify(json, null, 2)}</pre>
+        <pre className="text-red-600 bg-red-50 p-4 rounded">
+{JSON.stringify(json, null, 2)}
+        </pre>
       </main>
     );
   }
@@ -25,31 +28,23 @@ export default async function Page() {
   const widgets: Widget[] = json.widgets ?? [];
 
   return (
-    <main className="space-y-6 p-8">
+    <main className="p-8 space-y-6">
       <h1 className="text-2xl font-semibold">Dev: Widgets</h1>
       <p className="text-sm text-gray-600">Listing the latest widgets from Supabase.</p>
 
       <ul className="space-y-3">
         {widgets.map((w) => (
-          <li key={w.id} className="rounded border p-3">
-            <div>
-              <span className="font-mono text-xs">{w.id}</span>
-            </div>
-            <div>
-              CTA: <strong>{w.cta_text ?? "—"}</strong>
-            </div>
+          <li key={w.id} className="border rounded p-3">
+            <div><span className="font-mono text-xs">{w.id}</span></div>
+            <div>CTA: <strong>{w.cta_text ?? "—"}</strong></div>
             <div>Position: {w.position ?? "—"}</div>
             <div className="text-xs text-gray-500">Business: {w.business_id}</div>
-            <div className="text-xs text-gray-500">
-              Created: {new Date(w.created_at).toLocaleString()}
-            </div>
+            <div className="text-xs text-gray-500">Created: {new Date(w.created_at).toLocaleString()}</div>
           </li>
         ))}
       </ul>
 
-      <a href="/" className="text-blue-600 underline">
-        ← Back to Home
-      </a>
+      <Link href="/" className="text-blue-600 underline">← Back to Home</Link>
     </main>
   );
 }

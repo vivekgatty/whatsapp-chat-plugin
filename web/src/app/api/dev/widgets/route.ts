@@ -22,18 +22,20 @@ export async function GET() {
   return NextResponse.json({ ok: true, widgets: data ?? [] });
 }
 
+type CreateWidgetBody = {
+  business_id: string;
+  theme_color?: string;
+  icon?: string;
+  cta_text?: string;
+  position?: "left" | "right";
+  prefill_message?: string;
+  prechat_enabled?: boolean;
+};
+
 // POST: create a widget (dev utility)
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as {
-      business_id: string;
-      theme_color?: string;
-      icon?: string;
-      cta_text?: string;
-      position?: "left" | "right";
-      prefill_message?: string;
-      prechat_enabled?: boolean;
-    };
+    const body = (await req.json()) as CreateWidgetBody;
 
     if (!body?.business_id) {
       return NextResponse.json({ ok: false, error: "business_id is required" }, { status: 400 });
@@ -58,8 +60,9 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ ok: true, widget: data });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message ?? "Unknown error" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 
