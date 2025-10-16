@@ -28,13 +28,9 @@ export async function GET(req: Request) {
   );
 
   // Join widgets -> businesses (to get wa_number)
-  const sel =
-    "id,theme_color,position,prefill_message,cta_text,businesses:business_id(wa_number)";
+  const sel = "id,theme_color,position,prefill_message,cta_text,businesses:business_id(wa_number)";
 
-  const base = supabase
-    .from("widgets")
-    .select(sel)
-    .order("created_at", { ascending: false });
+  const base = supabase.from("widgets").select(sel).order("created_at", { ascending: false });
 
   const { data, error } = widgetId
     ? await base.eq("id", widgetId).limit(1).maybeSingle()

@@ -7,7 +7,7 @@ const WIDGET_ID = "3e7ec6a9-bd9e-40a9-86fd-d1d09c84bbbf"; // your current widget
 
 export default function Page() {
   return (
-    <main className="p-8 space-y-4">
+    <main className="space-y-4 p-8">
       <h1 className="text-2xl font-semibold">Dev: Widget Preview</h1>
       <p className="text-sm text-gray-500">
         This page loads <code>/api/widget.js?id={WIDGET_ID}</code> and should inject a floating
