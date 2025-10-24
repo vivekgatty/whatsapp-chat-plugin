@@ -1,22 +1,8 @@
-// src/lib/supabase/server.ts
-import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-type CookieOptions = {
-  path?: string;
-  maxAge?: number;
-  expires?: Date;
-  domain?: string;
-  sameSite?: "lax" | "strict" | "none";
-  httpOnly?: boolean;
-  secure?: boolean;
-};
-
-/**
- * Server-side Supabase client for App Router.
- * Keeps auth state in cookies; works in server actions/route handlers.
- */
-export const createClient = () => {
+export function getServerSupabase(): SupabaseClient {
   const cookieStore = cookies();
 
   return createServerClient(
@@ -27,13 +13,13 @@ export const createClient = () => {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set(name, value, options);
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
         },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set(name, "", { ...options, maxAge: 0 });
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
         },
       },
     }
   );
-};
+}

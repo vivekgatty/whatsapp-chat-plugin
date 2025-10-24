@@ -70,10 +70,9 @@ export async function GET(req: Request) {
 
     // Prepare daily buckets
     const days = lastNDays(7);
-    const daily: Record<string, { widget_view: number; chat_click: number }> =
-      Object.fromEntries(
-        days.map((d) => [d, { widget_view: 0, chat_click: 0 }])
-      );
+    const daily: Record<string, { widget_view: number; chat_click: number }> = Object.fromEntries(
+      days.map((d) => [d, { widget_view: 0, chat_click: 0 }])
+    );
 
     let totalViews = 0;
     let totalClicks = 0;

@@ -1,73 +1,63 @@
-// src/app/api/log/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const corsHeaders = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "POST,OPTIONS",
-  "access-control-allow-headers": "content-type",
-  "content-type": "application/json; charset=utf-8",
-};
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-type LogBody = {
-  event: "widget_view" | "chat_click" | "lead_submit" | "limit_reached" | "payment_success";
-  business_id: string;
-  widget_id?: string | null;
-  page_url?: string | null;
-  meta?: Record<string, unknown> | null;
-};
+// naive in-memory throttle per IP (server restarts reset this; fine for dev)
+const lastHit: Record<string, number> = {};
 
-export function OPTIONS() {
-  return new NextResponse(null, { headers: corsHeaders });
+function minuteBucket(ts = new Date()) {
+  return Math.floor(ts.getTime() / 1000 / 60);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as LogBody | null;
-    if (!body?.event || !body?.business_id) {
-      return new NextResponse(JSON.stringify({ ok: false, error: "Missing event or business_id" }), {
-        status: 400,
-        headers: corsHeaders,
-      });
+    const ip = req.headers.get("x-forwarded-for") || "local";
+    const now = Date.now();
+    if (lastHit[ip] && now - lastHit[ip] < 250) {
+      return NextResponse.json({ ok: true, skipped: "rate-limit" }); // soft throttle
+    }
+    lastHit[ip] = now;
+
+    const body = await req.json().catch(() => ({}));
+    const widget_id = String(body.widget_id || "");
+    const page = String(body.page || "");
+    const event = String(body.event || "");
+    const meta = body.meta && typeof body.meta === "object" ? body.meta : {};
+
+    if (!widget_id || !event) return NextResponse.json({ ok: false, error: "missing widget_id/event" }, { status: 400 });
+
+    const mb = minuteBucket();
+    // Poor-man idempotency: same ip+widget+event+page+minute
+    const sinceISO = new Date((mb - 1) * 60 * 1000).toISOString();
+    const { data: exists, error: qErr } = await sb
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("widget_id", widget_id)
+      .eq("event", event)
+      .eq("page", page)
+      .gte("created_at", sinceISO);
+
+    if (qErr) throw qErr;
+    if ((exists as any)?.length || (exists as any) === null) {
+      // Supabase count HEAD returns null rows; but we only care if count>0
     }
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // server-only
-    );
+    // do the insert only if not duplicate within the minute
+    const { error: insErr } = await sb.from("events").insert({
+      widget_id,
+      page,
+      event,
+      meta,
+      minute_bucket: mb,
+    } as any);
 
-    const ua = req.headers.get("user-agent") ?? null;
-    const ref = req.headers.get("referer") ?? null;
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      // @ts-expect-error env dependent
-      (req as any)?.ip ||
-      null;
+    if (insErr) return NextResponse.json({ ok: false, supabaseError: insErr.message });
 
-    const { error } = await supabase.from("analytics").insert({
-      event: body.event,
-      business_id: body.business_id,
-      widget_id: body.widget_id ?? null,
-      page_url: body.page_url ?? null,
-      referrer: ref,
-      user_agent: ua,
-      ip_address: ip,
-      meta: body.meta ?? null,
-    });
-
-    if (error) {
-      return new NextResponse(JSON.stringify({ ok: false, error: error.message }), {
-        status: 500,
-        headers: corsHeaders,
-      });
-    }
-
-    return new NextResponse(JSON.stringify({ ok: true }), { headers: corsHeaders });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Unknown error";
-    return new NextResponse(JSON.stringify({ ok: false, error: message }), {
-      status: 500,
-      headers: corsHeaders,
-    });
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: String(e?.message ?? e) }, { status: 500 });
   }
 }

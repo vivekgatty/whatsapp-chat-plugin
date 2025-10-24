@@ -18,17 +18,11 @@ type Body = Partial<{
   prefill_message: string;
 }>;
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const id = params.id;
     if (!id) {
-      return NextResponse.json(
-        { ok: false, error: "Missing widget id in path" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Missing widget id in path" }, { status: 400 });
     }
 
     const body = (await req.json()) as Body;
@@ -42,10 +36,7 @@ export async function PATCH(
     if (typeof body.prefill_message === "string") updates.prefill_message = body.prefill_message;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { ok: false, error: "No allowed fields provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "No allowed fields provided" }, { status: 400 });
     }
 
     const { data, error } = await supabase

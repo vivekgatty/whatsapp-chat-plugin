@@ -12,9 +12,12 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,md,json,html,yml,yaml}\""
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.7.0",
-    "@supabase/supabase-js": "^2.75.0",
+    "@supabase/supabase-js": "^2.76.1",
+    "googleapis": "^164.1.0",
     "next": "15.5.5",
+    "razorpay": "^2.9.6",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },

@@ -74,9 +74,7 @@ export default async function Page() {
         <Card title="CTR" value={ctr} />
       </div>
 
-      <h2 style={{ marginTop: 24, fontSize: 18, fontWeight: 600 }}>
-        Last 7 days
-      </h2>
+      <h2 style={{ marginTop: 24, fontSize: 18, fontWeight: 600 }}>Last 7 days</h2>
 
       <div style={{ overflowX: "auto", marginTop: 8 }}>
         <table
@@ -123,9 +121,7 @@ export default async function Page() {
           <tbody>
             {data.daily?.map((d) => (
               <tr key={d.date}>
-                <td style={{ padding: "8px 10px", borderBottom: "1px solid #222" }}>
-                  {d.date}
-                </td>
+                <td style={{ padding: "8px 10px", borderBottom: "1px solid #222" }}>{d.date}</td>
                 <td
                   style={{
                     padding: "8px 10px",
@@ -151,9 +147,8 @@ export default async function Page() {
       </div>
 
       <div style={{ marginTop: 16, opacity: 0.7, fontSize: 13 }}>
-        Using <code>/api/dev/metrics?business_id=…</code>. In production, the
-        dashboard will use the signed-in user’s tenant to resolve{" "}
-        <code>business_id</code> automatically.
+        Using <code>/api/dev/metrics?business_id=…</code>. In production, the dashboard will use the
+        signed-in user’s tenant to resolve <code>business_id</code> automatically.
       </div>
 
       <div style={{ marginTop: 16 }}>
