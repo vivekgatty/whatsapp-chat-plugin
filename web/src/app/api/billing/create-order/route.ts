@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from "next/server";
-import { getRazorpay } from "../../../lib/razorpay";
+import { getRazorpay } from '../../../../lib/razorpay';
 
 type Body = {
   amount: number;        // INR (e.g. 499)
