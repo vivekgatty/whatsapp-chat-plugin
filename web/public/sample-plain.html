@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Widget Sample (Plain)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        padding: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Widget Sample (Plain)</h1>
+    <p>This is a static page served from /public.</p>
+
+    <!-- Replace the id and attributes as needed -->
+    <script
+      src="/api/widget.js"
+      data-id="REPLACE_WITH_YOUR_WIDGET_ID"
+      data-position="right"
+      data-theme-color="#10b981"
+      data-icon="whatsapp"
+      data-cta-text="Chat on WhatsApp"
+      data-prefill-message="Hey! I'd like to know more."
+      async
+    ></script>
+  </body>
+</html>

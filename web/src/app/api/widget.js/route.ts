@@ -1,112 +1,295 @@
-// src/app/api/widget.js/route.ts
+// /api/widget.js – serves a hostable, cacheable JS snippet (pure JS output)
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
-type WidgetJoin = {
-  id: string | null;
-  theme_color: string | null;
-  position: "left" | "right" | null;
-  prefill_message: string | null;
-  cta_text: string | null;
-  businesses: { wa_number: string | null } | null;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const runtime = "nodejs";
+
+function buildWidgetJs(serverCfg: Record<string, any>): string {
+  const INJECT = JSON.stringify(serverCfg || {});
+  return `(()=>{try{
+if(typeof window==='undefined'||typeof document==='undefined'){return;}
+
+var CFG = ${INJECT};
+
+var el = document.currentScript;
+if(!el){
+  var scripts = document.getElementsByTagName('script');
+  if(scripts && scripts.length){ el = scripts[scripts.length - 1]; }
+}
+var ds = (el && el.dataset) ? el.dataset : {};
+var qp = {};
+try{
+  var src = el && el.src ? el.src : '';
+  if(src){
+    var u = new URL(src, location.href);
+    u.searchParams.forEach(function(v,k){ qp[k] = v; });
+  }
+}catch(e){}
+
+// helper to know if a key was set via data-* or query (these take precedence)
+function hasDsOrQp(key){
+  return (ds && ds[key] != null && ds[key] !== "") || (qp && qp[key] != null && qp[key] !== "");
+}
+
+function pick(key, fallback){
+  if(ds && ds[key] != null && ds[key] !== "") return ds[key];
+  if(qp && qp[key] != null && qp[key] !== "") return qp[key];
+  if(CFG && CFG[key] != null && CFG[key] !== "") return CFG[key];
+  return fallback;
+}
+
+// Initial config from data/query/server (remote config merges later)
+CFG = {
+  id:              pick('id', null),
+  wa_number:       pick('waNumber', null),
+  theme_color:     pick('themeColor', '#10b981'),
+  icon:            pick('icon', 'whatsapp'),
+  cta_text:        pick('ctaText', 'Chat with us on WhatsApp'),
+  prefill_message: pick('prefillMessage', "Hey! I'd like to know more."),
+  position:        pick('position', 'right'),
+  v:               pick('v', null),
+  prechat:         pick('prechat', 'off'),
+  require_name:    String(pick('requireName','on')).toLowerCase()==='on',
+  require_message: String(pick('requireMessage','off')).toLowerCase()==='on'
 };
 
-/**
- * Public embed script.
- * Usage: <script src="https://<your-domain>/api/widget.js?id=<WIDGET_ID>" async></script>
- * If ?id is missing, we fall back to the most-recent widget (dev convenience).
- */
-export async function GET(req: Request) {
-  // --- 1) Read widget (and business WA number) on the server
-  const url = new URL(req.url);
-  const widgetId = url.searchParams.get("id");
+// map camelCase -> our internal snake_case keys
+function applyRemote(remote){
+  try{
+    if(!remote) return;
+    // only apply if NOT overridden by data-* or query
+    if(!hasDsOrQp('waNumber')       && remote.waNumber       != null) CFG.wa_number       = remote.waNumber;
+    if(!hasDsOrQp('themeColor')     && remote.themeColor     != null) CFG.theme_color     = remote.themeColor;
+    if(!hasDsOrQp('icon')           && remote.icon           != null) CFG.icon            = remote.icon;
+    if(!hasDsOrQp('ctaText')        && remote.ctaText        != null) CFG.cta_text        = remote.ctaText;
+    if(!hasDsOrQp('prefillMessage') && remote.prefillMessage != null) CFG.prefill_message = remote.prefillMessage;
+    if(!hasDsOrQp('position')       && remote.position       != null) CFG.position        = remote.position;
+    if(!hasDsOrQp('prechat')        && remote.prechat        != null) CFG.prechat         = remote.prechat;
+    if(!hasDsOrQp('requireName')    && remote.requireName    != null) CFG.require_name    = !!remote.requireName;
+    if(!hasDsOrQp('requireMessage') && remote.requireMessage != null) CFG.require_message = !!remote.requireMessage;
+    if(!hasDsOrQp('v')              && remote.v              != null) CFG.v               = remote.v;
+  }catch(e){}
+}
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    // SERVICE ROLE is OK here: runs server-side only; never shipped to browser.
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+var _apiBase = (function(){
+  try{
+    var s = el && el.src ? el.src : '';
+    return new URL(s || '/', location.href).origin;
+  }catch(e){ return ''; }
+})();
 
-  // Join widgets -> businesses (to get wa_number)
-  const sel = "id,theme_color,position,prefill_message,cta_text,businesses:business_id(wa_number)";
+function sendAnalytics(event, meta){
+  try{
+    if(!CFG || !CFG.id){ return; }
+    var payload = {
+      wid: CFG.id,
+      event_type: String(event || 'impression'),
+      meta: Object.assign({ referrer: document.referrer || null }, meta || {})
+    };
+    fetch((_apiBase||'') + '/api/analytics', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }catch(e){}
+}
 
-  const base = supabase.from("widgets").select(sel).order("created_at", { ascending: false });
+// ---- UI bootstrap (runs after remote config merge) ----
+function initUI(){
+  // === bubble ===
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.setAttribute('aria-label', (CFG.cta_text || 'Chat on WhatsApp'));
 
-  const { data, error } = widgetId
-    ? await base.eq("id", widgetId).limit(1).maybeSingle()
-    : await base.limit(1).maybeSingle();
+  var side = (CFG.position === 'left') ? 'left:24px;' : 'right:24px;';
+  btn.style.cssText = [
+    'position:fixed',
+    'z-index:2147483647',
+    'bottom:24px',
+    side,
+    'width:56px',
+    'height:56px',
+    'display:inline-flex',
+    'align-items:center',
+    'justify-content:center',
+    'border-radius:9999px',
+    'border:none',
+    'background:' + (CFG.theme_color || '#10b981'),
+    'color:#fff',
+    'box-shadow:0 8px 24px rgba(0,0,0,.18)',
+    'cursor:pointer',
+    'transition:transform .08s ease, filter .12s ease'
+  ].join(';');
 
-  const row = (data ?? null) as unknown as WidgetJoin | null;
+  btn.onmouseenter = function(){ btn.style.filter='brightness(1.08)'; };
+  btn.onmouseleave = function(){ btn.style.filter=''; };
+  btn.onmousedown  = function(){ btn.style.transform='scale(.96)'; };
+  btn.onmouseup    = function(){ btn.style.transform=''; };
 
-  // Basic fallback if not found
-  const waNumber = row?.businesses?.wa_number ?? "+919876543210";
+  btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.52 3.48A11.5 11.5 0 0 0 2.1 16.9L1 22.5l5.72-1.5A11.5 11.5 0 0 0 20.52 3.48Zm-8.9 15.87a9.5 9.5 0 1 1 7.18-2.8 9.47 9.47 0 0 1-7.18 2.8Zm5.01-6.73c-.27-.13-1.58-.78-1.82-.86s-.42-.13-.6.13-.69.86-.84 1.04-.31.2-.57.07a7.75 7.75 0 0 1-2.24-1.38 8.4 8.4 0 0 1-1.56-1.93c-.16-.27 0-.41.12-.54.12-.12.27-.31.4-.47.13-.16.18-.27.27-.45.09-.18.04-.34-.02-.47-.07-.13-.6-1.45-.82-1.99-.22-.53-.44-.46-.6-.46h-.51c-.16 0-.41.06-.62.31s-.81.79-.81 1.93c0 1.14.83 2.24.95 2.39a9.54 9.54 0 0 0 3.5 3.3c.49.27.87.43 1.17.55.49.18.94.16 1.29.1.39-.06 1.2-.49 1.37-.96.17-.47.17-.87.12-.96-.05-.09-.22-.15-.49-.28Z"/></svg>';
 
-  const config = {
-    id: row?.id ?? null,
-    theme: row?.theme_color ?? "#10b981",
-    position: row?.position ?? "right",
-    cta: row?.cta_text ?? "Chat on WhatsApp",
-    prefill: row?.prefill_message ?? "Hi! I have a quick question.",
-    wa: String(waNumber),
-    error: error?.message ?? null,
+  // === prechat panel (if enabled) ===
+  var panel = null, nameInput = null, msgInput = null, submitBtn = null;
+  if(String(CFG.prechat).toLowerCase()==='on'){
+    panel = document.createElement('div');
+    panel.setAttribute('role','dialog');
+    panel.setAttribute('aria-label','Chat form');
+    panel.style.cssText = [
+      'position:fixed',
+      'z-index:2147483647',
+      'bottom:92px',
+      (CFG.position==='left' ? 'left:24px;' : 'right:24px;'),
+      'width:320px',
+      'background:#0b1220',
+      'color:#e5ecf5',
+      'border-radius:16px',
+      'box-shadow:0 16px 48px rgba(0,0,0,.25)',
+      'padding:16px',
+      'display:none'
+    ].join(';');
+
+    nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Your name';
+    nameInput.setAttribute('data-wcp-name','');
+    nameInput.style.cssText = [
+      'width:100%','box-sizing:border-box','margin:0 0 10px 0',
+      'padding:10px 12px','border-radius:10px','border:1px solid #21304a',
+      'background:#0f172a','color:#e5ecf5','outline:none'
+    ].join(';');
+    panel.appendChild(nameInput);
+
+    msgInput = document.createElement('textarea');
+    msgInput.placeholder = "Hi! I'd like to know more.";
+    msgInput.setAttribute('data-wcp-message','');
+    msgInput.rows = 4;
+    msgInput.style.cssText = [
+      'width:100%','box-sizing:border-box','margin:0 0 12px 0',
+      'padding:10px 12px','border-radius:10px','border:1px solid #21304a',
+      'background:#0f172a','color:#e5ecf5','outline:none','resize:vertical'
+    ].join(';');
+    panel.appendChild(msgInput);
+
+    submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.textContent = 'Open WhatsApp';
+    submitBtn.style.cssText = [
+      'display:inline-flex','align-items:center','justify-content:center',
+      'height:40px','padding:0 14px','border:none','border-radius:10px',
+      'background:' + (CFG.theme_color || '#10b981'),'color:#fff',
+      'cursor:pointer'
+    ].join(';');
+    panel.appendChild(submitBtn);
+    document.body.appendChild(panel);
+  }
+
+  function readNameMessage(){
+    var name = '';
+    var msg  = '';
+    try{
+      if(nameInput && typeof nameInput.value==='string' && nameInput.value.trim()){
+        name = nameInput.value.trim();
+      }else{
+        var ns = ['input[data-wcp-name]','input[name="wcp_name"]','input[placeholder="Your name"]','input[aria-label="Your name"]'];
+        for(var i=0;i<ns.length;i++){ var n=document.querySelector(ns[i]); if(n && n.value && n.value.trim()){ name=n.value.trim(); break; } }
+      }
+      if(msgInput && typeof msgInput.value==='string' && msgInput.value.trim()){
+        msg = msgInput.value;
+      }else{
+        var ms = ['textarea[data-wcp-message]','textarea[name="wcp_message"]','textarea[placeholder]','textarea'];
+        for(var j=0;j<ms.length;j++){ var t=document.querySelector(ms[j]); if(t && t.value && t.value.trim()){ msg=t.value; break; } }
+      }
+    }catch(e){}
+    if(!msg){ msg = CFG.prefill_message || ''; }
+    return { name:name, message:msg };
+  }
+
+  function sendLead(){
+    try{
+      if(!CFG || !CFG.id){ return; }
+      var vals = readNameMessage();
+      fetch((_apiBase||'') + '/api/track-lead?wid=' + encodeURIComponent(CFG.id), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: vals.name || '', message: vals.message || '', source: 'widget' })
+      });
+    }catch(e){}
+  }
+
+  function openWhatsApp(){
+    var num = (CFG.wa_number || '').replace(/[^0-9]/g,'');
+    var msg = encodeURIComponent((readNameMessage().message) || '');
+    var url = 'https://api.whatsapp.com/send?' + (num ? ('phone=' + num + '&') : '') + (msg ? ('text=' + msg) : '');
+    window.open(url, '_blank', 'noopener');
+  }
+
+  // Bubble click
+  btn.onclick = function(){
+    try{
+      sendAnalytics('open', {});
+      if(String(CFG.prechat).toLowerCase()==='on' && panel){
+        panel.style.display = (panel.style.display==='none' || !panel.style.display) ? 'block' : 'none';
+        if(panel.style.display==='block' && msgInput && !msgInput.value){ msgInput.value = CFG.prefill_message || ''; }
+      }else{
+        sendLead();
+        openWhatsApp();
+      }
+    }catch(e){}
   };
 
-  // Sanitize phone for wa.me
-  const waDigits = config.wa.replace(/[^\d]/g, "");
-  const waHref = `https://wa.me/${waDigits}?text=${encodeURIComponent(config.prefill)}`;
+  // Prechat submit (if present)
+  if(submitBtn){
+    submitBtn.onclick = function(){
+      var vals = readNameMessage();
+      if(CFG.require_name && !vals.name){ if(nameInput && nameInput.focus) nameInput.focus(); return; }
+      if(CFG.require_message && !vals.message){ if(msgInput && msgInput.focus) msgInput.focus(); return; }
+      sendLead();
+      openWhatsApp();
+    };
+  }
 
-  // --- 2) Emit client-side script that injects the bubble
-  const payload = { ...config, waHref };
+  document.body.appendChild(btn);
+  sendAnalytics('impression', { position: CFG.position, v: CFG.v, prechat: CFG.prechat });
+}
 
-  const js = `(() => {
-    try {
-      if (typeof window === 'undefined' || typeof document === 'undefined') return;
-      var CFG = ${JSON.stringify(payload)};
-      if (CFG.error) { console.warn('[WCP] config error:', CFG.error); }
+// Fetch remote config (non-blocking fail-safe), then init UI
+(function(){
+  try{
+    if(!CFG || !CFG.id){ initUI(); return; }
+    var url = ((_apiBase||'')) + '/api/widget-config/' + encodeURIComponent(CFG.id);
+    if(CFG.v != null){ url += '?v=' + encodeURIComponent(CFG.v); }
+    fetch(url, { method:'GET' })
+      .then(function(r){ return r.json().catch(function(){ return {}; }); })
+      .then(function(j){
+        if(j && j.ok && j.config){ applyRemote(j.config); }
+      })
+      .catch(function(){})
+      .finally(function(){ initUI(); });
+  }catch(e){ initUI(); }
+})();
+}catch(e){/* swallow */}})();`;
+}
 
-      // Avoid double-inject
-      if (document.getElementById('wcp-bubble')) return;
+export async function GET(req: Request) {
+  let serverCfg: Record<string, any> = {};
+  try {
+    const u = new URL(req.url);
+    const id = u.searchParams.get("id");
+    const prechat = u.searchParams.get("prechat");
+    const waNumber = u.searchParams.get("waNumber");
+    if (id) serverCfg.id = id;
+    if (prechat) serverCfg.prechat = prechat;
+    if (waNumber) serverCfg.waNumber = waNumber;
+  } catch (_) {}
 
-      // Create styles
-      var bubble = document.createElement('button');
-      bubble.id = 'wcp-bubble';
-      bubble.type = 'button';
-      bubble.setAttribute('aria-label', CFG.cta || 'WhatsApp chat');
-      bubble.style.position = 'fixed';
-      bubble.style.zIndex = '2147483647';
-      bubble.style.bottom = '24px';
-      bubble.style[CFG.position === 'left' ? 'left' : 'right'] = '24px';
-      bubble.style.width = '56px';
-      bubble.style.height = '56px';
-      bubble.style.borderRadius = '9999px';
-      bubble.style.border = 'none';
-      bubble.style.cursor = 'pointer';
-      bubble.style.background = CFG.theme || '#10b981';
-      bubble.style.boxShadow = '0 10px 15px rgba(0,0,0,.2), 0 4px 6px rgba(0,0,0,.2)';
-      bubble.style.display = 'flex';
-      bubble.style.alignItems = 'center';
-      bubble.style.justifyContent = 'center';
-
-      // Simple WhatsApp icon (inline SVG)
-      bubble.innerHTML = '<svg viewBox="0 0 32 32" width="28" height="28" fill="#fff" aria-hidden="true"><path d="M19.11 17.4c-.3-.16-1.79-.88-2.06-.98-.27-.1-.46-.16-.65.16-.19.32-.75.98-.92 1.18-.17.19-.34.22-.64.08-.3-.16-1.24-.46-2.36-1.47-.87-.78-1.46-1.74-1.63-2.04-.17-.3-.02-.47.13-.63.13-.13.3-.34.44-.51.14-.17.19-.3.3-.49.1-.19.05-.37-.03-.52-.08-.16-.65-1.56-.9-2.14-.24-.57-.49-.49-.65-.49-.16 0-.35-.02-.54-.02-.19 0-.5.07-.76.37-.26.3-1 1-1 2.42 0 1.42 1.03 2.8 1.18 2.99.16.19 2.03 3.09 4.92 4.21.69.3 1.23.48 1.65.62.69.22 1.32.19 1.82.11.55-.08 1.79-.73 2.04-1.43.25-.7.25-1.3.17-1.43-.08-.13-.27-.2-.57-.35z"/><path d="M26.02 5.98C23.21 3.17 19.7 1.66 16 1.66 8.65 1.66 2.65 7.66 2.65 15c0 2.33.61 4.59 1.77 6.59L2 30l8.6-2.26a13.07 13.07 0 0 0 5.4 1.19h0c7.35 0 13.35-6 13.35-13.35 0-3.57-1.39-6.93-3.93-9.4zM16 27.19h0c-1.73 0-3.42-.46-4.9-1.34l-.35-.21-5.1 1.35 1.36-4.97-.23-.38a11.83 11.83 0 0 1-1.71-6c0-6.53 5.32-11.85 11.85-11.85 3.16 0 6.12 1.23 8.35 3.46a11.76 11.76 0 0 1 3.48 8.39c0 6.53-5.32 11.85-11.85 11.85z"/></svg>';
-
-      bubble.addEventListener('click', function() {
-        if (!CFG.waHref) return;
-        try { window.open(CFG.waHref, '_blank', 'noopener'); }
-        catch (e) { location.href = CFG.waHref; }
-      });
-
-      document.body.appendChild(bubble);
-      console.log('[WCP] bubble injected', CFG);
-    } catch (e) {
-      console.error('[WCP] widget error', e);
-    }
-  })();`;
-
+  const js = buildWidgetJs(serverCfg);
   return new NextResponse(js, {
+    status: 200,
     headers: {
-      "content-type": "application/javascript; charset=utf-8",
-      "cache-control": "public, max-age=300",
+      "content-type": "text/javascript; charset=utf-8",
+      "cache-control": "public, max-age=0, s-maxage=31536000, stale-while-revalidate=86400",
+      "x-robots-tag": "noindex"
     },
   });
 }
