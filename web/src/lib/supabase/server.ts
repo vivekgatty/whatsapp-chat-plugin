@@ -13,3 +13,6 @@ export function createClient(): SupabaseClient {
     cookies: () => cookieStore,
   });
 }
+
+// Back-compat for older imports
+export const getServerSupabase = createClient;
