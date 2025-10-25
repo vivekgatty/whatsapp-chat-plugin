@@ -5,10 +5,6 @@ import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-// Ensure this route renders dynamically so Next.js doesn't try to prerender it
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading…</div>}>
@@ -40,7 +36,6 @@ function LoginInner() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        // send the magic link to our server callback
         emailRedirectTo: redirectTo,
         shouldCreateUser: true,
       },
@@ -53,7 +48,6 @@ function LoginInner() {
     }
 
     setStatus("sent");
-    // (Optional) remember email locally for convenience
     try {
       localStorage.setItem("wcp_last_email", email);
     } catch {}
