@@ -1,14 +1,21 @@
 // src/app/api/dev/widgets/[id]/route.ts
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// IMPORTANT: This is a dev-only endpoint that uses the SERVICE ROLE key.
-// Never expose this in client code or ship it to prod without auth.
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-);
+// Ensure this runs on Node runtime and never gets statically evaluated
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// DEV-ONLY: service role client (do not expose to browser)
+function getAdminSupabase(): SupabaseClient {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url) throw new Error("SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL is missing");
+  if (!key) throw new Error("SUPABASE_SERVICE_ROLE is missing");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
 
 type Body = Partial<{
   theme_color: string;
@@ -18,10 +25,12 @@ type Body = Partial<{
   prefill_message: string;
 }>;
 
-// 👇 Only change: loosen the 2nd arg type so Next's checker is happy
-export async function PATCH(req: Request, ctx: any) {
+export async function PATCH(
+  req: NextRequest,
+  context: { params: { id: string } }
+) {
   try {
-    const id = ctx?.params?.id as string | undefined;
+    const id = context.params?.id;
     if (!id) {
       return NextResponse.json(
         { ok: false, error: "Missing widget id in path" },
@@ -31,7 +40,7 @@ export async function PATCH(req: Request, ctx: any) {
 
     const body = (await req.json()) as Body;
 
-    // Very light validation
+    // Allow only whitelisted fields
     const updates: Body = {};
     if (typeof body.theme_color === "string") updates.theme_color = body.theme_color;
     if (body.icon === "whatsapp" || body.icon === "message") updates.icon = body.icon;
@@ -45,6 +54,8 @@ export async function PATCH(req: Request, ctx: any) {
         { status: 400 }
       );
     }
+
+    const supabase = getAdminSupabase();
 
     const { data, error } = await supabase
       .from("widgets")
@@ -60,10 +71,8 @@ export async function PATCH(req: Request, ctx: any) {
     }
 
     return NextResponse.json({ ok: true, widget: data });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message ?? "Unknown error" },
-      { status: 500 }
-    );
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
