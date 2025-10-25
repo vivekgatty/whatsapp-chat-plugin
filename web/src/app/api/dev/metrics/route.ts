@@ -28,10 +28,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     let businessId = url.searchParams.get("business_id") || "";
 
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabase = createClient();
 
     // If no business_id is provided, fall back to the first widget's business
     if (!businessId) {
