@@ -1,9 +1,20 @@
+// src/app/api/log/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+// Ensure runtime eval (don’t read env at build time)
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// Build the admin client at request time
+function getAdminSupabase(): SupabaseClient {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url) throw new Error("SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL is missing");
+  if (!key) throw new Error("SUPABASE_SERVICE_ROLE is missing");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
 
 // naive in-memory throttle per IP (server restarts reset this; fine for dev)
 const lastHit: Record<string, number> = {};
@@ -14,6 +25,8 @@ function minuteBucket(ts = new Date()) {
 
 export async function POST(req: NextRequest) {
   try {
+    const sb = getAdminSupabase(); // <-- create inside handler
+
     const ip = req.headers.get("x-forwarded-for") || "local";
     const now = Date.now();
     if (lastHit[ip] && now - lastHit[ip] < 250) {
@@ -22,12 +35,14 @@ export async function POST(req: NextRequest) {
     lastHit[ip] = now;
 
     const body = await req.json().catch(() => ({}));
-    const widget_id = String(body.widget_id || "");
-    const page = String(body.page || "");
-    const event = String(body.event || "");
-    const meta = body.meta && typeof body.meta === "object" ? body.meta : {};
+    const widget_id = String((body as any).widget_id || "");
+    const page = String((body as any).page || "");
+    const event = String((body as any).event || "");
+    const meta = (body as any).meta && typeof (body as any).meta === "object" ? (body as any).meta : {};
 
-    if (!widget_id || !event) return NextResponse.json({ ok: false, error: "missing widget_id/event" }, { status: 400 });
+    if (!widget_id || !event) {
+      return NextResponse.json({ ok: false, error: "missing widget_id/event" }, { status: 400 });
+    }
 
     const mb = minuteBucket();
     // Poor-man idempotency: same ip+widget+event+page+minute
@@ -54,7 +69,9 @@ export async function POST(req: NextRequest) {
       minute_bucket: mb,
     } as any);
 
-    if (insErr) return NextResponse.json({ ok: false, supabaseError: insErr.message });
+    if (insErr) {
+      return NextResponse.json({ ok: false, supabaseError: insErr.message });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
