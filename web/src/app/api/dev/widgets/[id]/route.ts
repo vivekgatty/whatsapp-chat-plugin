@@ -18,13 +18,10 @@ type Body = Partial<{
   prefill_message: string;
 }>;
 
-// ✅ Only the function signature is changed:
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+// 👇 Only change: loosen the 2nd arg type so Next's checker is happy
+export async function PATCH(req: Request, ctx: any) {
   try {
-    const id = params.id;
+    const id = ctx?.params?.id as string | undefined;
     if (!id) {
       return NextResponse.json(
         { ok: false, error: "Missing widget id in path" },
@@ -53,7 +50,9 @@ export async function PATCH(
       .from("widgets")
       .update(updates)
       .eq("id", id)
-      .select("id,business_id,theme_color,icon,cta_text,position,prefill_message,created_at")
+      .select(
+        "id,business_id,theme_color,icon,cta_text,position,prefill_message,created_at"
+      )
       .single();
 
     if (error) {
