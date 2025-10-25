@@ -1,6 +1,8 @@
-﻿import { redirect } from "next/navigation";
+// web/src/app/page.tsx
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  redirect("/dashboard");
-  return null;
+  // choose one:
+  redirect("/login");
+  // redirect("/dashboard");
 }
