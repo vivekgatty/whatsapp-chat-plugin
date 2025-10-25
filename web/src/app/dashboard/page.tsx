@@ -1,80 +1,40 @@
-'use client';
+// web/src/app/dashboard/page.tsx
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { createServerClient } from "@supabase/ssr";
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+export default async function DashboardPage() {
+  const cookieStore = cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
+        },
+      },
+    }
+  );
 
-export default function DashboardPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
-  const [email, setEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setEmail(user?.email ?? null);
-    })();
-  }, [supabase]);
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login?redirectedFrom=/dashboard");
+  }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Dashboard</h1>
-        <div className="flex gap-2">
-          <Link
-            href="/dashboard/widget"
-            className="rounded border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800"
-          >
-            Widget settings →
-          </Link>
-          <button
-            onClick={signOut}
-            className="rounded bg-zinc-700 px-3 py-2 text-sm text-white hover:bg-zinc-600"
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-zinc-800 p-4">
-        {email ? (
-          <div className="text-zinc-300">
-            Signed in as <span className="text-emerald-400">{email}</span>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <div className="text-zinc-300">You are not signed in.</div>
-            <Link
-              href="/login"
-              className="rounded bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-500"
-            >
-              Go to login
-            </Link>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Link
-          href="/businessprofile"
-          className="rounded border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800"
-        >
-          Business profile
-        </Link>
-        <Link
-          href="/editbusinessprofile"
-          className="rounded border border-zinc-700 px-3 py-2 text-sm hover:bg-zinc-800"
-        >
-          Edit business profile
-        </Link>
-        {/* Add analytics link here later if needed */}
-      </div>
-    </div>
+    <main className="p-6">
+      <h1 className="text-2xl font-semibold mb-2">Dashboard</h1>
+      <p className="opacity-80 mb-6">
+        Welcome{user?.email ? `, ${user.email}` : ""}.
+      </p>
+      <a href="/auth/signout" className="underline text-emerald-500">Sign out</a>
+    </main>
   );
 }
