@@ -1,86 +1,41 @@
 // src/app/api/dev/widgets/route.ts
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Server-only Supabase client (SERVICE ROLE bypasses RLS)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Ensure this API runs at runtime (not statically analyzed at build)
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-// GET: list latest widgets (dev utility)
-export async function GET() {
-  const { data, error } = await supabase
-    .from("widgets")
-    .select("id,business_id,cta_text,position,created_at")
-    .order("created_at", { ascending: false })
-    .limit(10);
-
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ ok: true, widgets: data ?? [] });
+// DEV-ONLY: build the admin client at request time so env isn't read at build
+function getAdminSupabase(): SupabaseClient {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url) throw new Error("SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL is missing");
+  if (!key) throw new Error("SUPABASE_SERVICE_ROLE is missing");
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
-type CreateWidgetBody = {
-  business_id: string;
-  theme_color?: string;
-  icon?: string;
-  cta_text?: string;
-  position?: "left" | "right";
-  prefill_message?: string;
-  prechat_enabled?: boolean;
-};
-
-// POST: create a widget (dev utility)
-export async function POST(req: Request) {
+export async function GET() {
   try {
-    const body = (await req.json()) as CreateWidgetBody;
-
-    if (!body?.business_id) {
-      return NextResponse.json({ ok: false, error: "business_id is required" }, { status: 400 });
-    }
+    const supabase = getAdminSupabase();
 
     const { data, error } = await supabase
       .from("widgets")
-      .insert({
-        business_id: body.business_id,
-        theme_color: body.theme_color ?? "#22c55e",
-        icon: body.icon ?? "whatsapp",
-        cta_text: body.cta_text ?? "Chat on WhatsApp",
-        position: body.position ?? "right",
-        prefill_message: body.prefill_message ?? "Hi! I have a quick question.",
-        prechat_enabled: body.prechat_enabled ?? false,
-      })
-      .select("id,business_id,cta_text,position,created_at")
-      .single();
+      .select(
+        "id,business_id,theme_color,icon,cta_text,position,prefill_message,created_at"
+      )
+      .order("created_at", { ascending: false })
+      .limit(50);
 
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, widget: data });
+    return NextResponse.json({ ok: true, widgets: data ?? [] });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
-}
-
-// DELETE: remove a widget by id (dev utility)
-// Usage: DELETE /api/dev/widgets?id=<widget_id>
-export async function DELETE(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-
-  if (!id) {
-    return NextResponse.json({ ok: false, error: "id is required" }, { status: 400 });
-  }
-
-  const { error } = await supabase.from("widgets").delete().eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true, id });
 }
