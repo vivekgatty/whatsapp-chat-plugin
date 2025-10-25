@@ -1,46 +1,45 @@
 // src/app/auth/callback/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 
-function redirectWithMessage(origin: string, msg: string, to = "/login") {
-  const url = new URL(to, origin);
-  url.searchParams.set("message", msg);
-  return NextResponse.redirect(url);
-}
+export async function GET(req: Request) {
+  const { searchParams, origin } = new URL(req.url);
+  const code = searchParams.get("code");
+  const next = searchParams.get("redirectedFrom") || "/dashboard";
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const redirectedFrom = url.searchParams.get("redirectedFrom") || "/dashboard";
-
-  const supabase = createRouteHandlerClient({ cookies });
-
-  // Supabase may send either ?code=... (PKCE/OAuth style) or
-  // ?token_hash=...&email=... (email magic-link).
-  const code = url.searchParams.get("code");
-  const tokenHash = url.searchParams.get("token_hash");
-  const email = url.searchParams.get("email");
-
-  try {
-    if (code) {
-      // IMPORTANT: pass a string (not an object)
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) throw error;
-    } else if (tokenHash && email) {
-      // Magic link verification (email OTP)
-      const { error } = await supabase.auth.verifyOtp({
-        type: "email",
-        token_hash: tokenHash,
-        email,
-      });
-      if (error) throw error;
-    } else {
-      return redirectWithMessage(url.origin, "Missing code or token.");
-    }
-  } catch (err: any) {
-    return redirectWithMessage(url.origin, err?.message ?? "Login failed.");
+  if (!code) {
+    const url = new URL("/login", origin);
+    url.searchParams.set("redirectedFrom", next);
+    return NextResponse.redirect(url);
   }
 
-  // Session cookie is set — send them where they intended to go
-  return NextResponse.redirect(new URL(redirectedFrom, url.origin));
+  const cookieStore = cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
+        },
+      },
+    }
+  );
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    const url = new URL("/login", origin);
+    url.searchParams.set("error", error.message);
+    url.searchParams.set("redirectedFrom", next);
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.redirect(new URL(next, origin));
 }
