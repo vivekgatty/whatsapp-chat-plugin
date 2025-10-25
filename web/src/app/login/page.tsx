@@ -1,11 +1,23 @@
 // src/app/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
+// Ensure this route renders dynamically so Next.js doesn't try to prerender it
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading…</div>}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const supabase = createClientComponentClient();
   const search = useSearchParams();
   const redirectedFrom = search.get("redirectedFrom") || "/dashboard";
@@ -73,11 +85,7 @@ export default function LoginPage() {
             {status === "sending" ? "Sending…" : "Send magic link"}
           </button>
 
-          {error && (
-            <p className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
+          {error && <p className="text-sm text-red-400">{error}</p>}
         </form>
       ) : (
         <div className="rounded-md border border-zinc-700 p-4">
