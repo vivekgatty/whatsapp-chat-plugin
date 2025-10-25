@@ -1,13 +1,13 @@
 // src/app/api/dev/widgets/[id]/route.ts
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Ensure this runs on Node runtime and never gets statically evaluated
+// Ensure Node runtime & dynamic eval (prevents build-time env reads)
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// DEV-ONLY: service role client (do not expose to browser)
+// DEV-ONLY: service role client (never expose to browser)
 function getAdminSupabase(): SupabaseClient {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
@@ -25,12 +25,9 @@ type Body = Partial<{
   prefill_message: string;
 }>;
 
-export async function PATCH(
-  req: NextRequest,
-  context: { params: { id: string } }
-) {
+export async function PATCH(req: Request, context: any) {
   try {
-    const id = context.params?.id;
+    const id = context?.params?.id as string | undefined;
     if (!id) {
       return NextResponse.json(
         { ok: false, error: "Missing widget id in path" },
@@ -40,7 +37,7 @@ export async function PATCH(
 
     const body = (await req.json()) as Body;
 
-    // Allow only whitelisted fields
+    // allow only whitelisted fields
     const updates: Body = {};
     if (typeof body.theme_color === "string") updates.theme_color = body.theme_color;
     if (body.icon === "whatsapp" || body.icon === "message") updates.icon = body.icon;
