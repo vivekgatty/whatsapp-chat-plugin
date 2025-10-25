@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     let businessId = url.searchParams.get("business_id") || "";
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // If no business_id is provided, fall back to the first widget's business
     if (!businessId) {
