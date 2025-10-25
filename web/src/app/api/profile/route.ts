@@ -1,76 +1,91 @@
 // src/app/api/profile/route.ts
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-function supabaseServer() {
-  const cookieStore = await cookies()
-  return createServerClient(
+export const runtime = "nodejs";
+
+// Create a Supabase server client wired to Next.js cookies (Next 15: cookies() is async)
+async function getSupabase() {
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-        set: (name: string, value: string, options: any) =>
-          cookieStore.set({ name, value, ...options }),
-        remove: (name: string, options: any) =>
-          cookieStore.set({ name, value: '', ...options, maxAge: 0 }),
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          // Next 15 mutating cookies API
+          cookieStore.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
+        },
       },
     }
-  )
+  );
+
+  return supabase;
 }
 
+// GET: return the signed-in user's minimal profile (or null if not signed in)
 export async function GET() {
-  const supabase = supabaseServer()
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabase.auth.getUser()
-  if (userErr || !user) {
-    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  }
+  try {
+    const supabase = await getSupabase();
+    const { data: auth } = await supabase.auth.getUser();
+    const user = auth?.user ?? null;
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle()
+    if (!user) {
+      return NextResponse.json({ ok: true, profile: null });
+    }
 
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 400 })
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, full_name, company")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    return NextResponse.json({ ok: true, profile: profile ?? null });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "server error";
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, profile: data ?? null })
 }
 
-export async function PUT(req: Request) {
-  const supabase = supabaseServer()
-  const {
-    data: { user },
-    error: userErr,
-  } = await supabase.auth.getUser()
-  if (userErr || !user) {
-    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  }
+// POST: upsert a couple of common profile fields for the signed-in user
+export async function POST(req: Request) {
+  try {
+    const supabase = await getSupabase();
+    const { data: auth } = await supabase.auth.getUser();
+    const user = auth?.user ?? null;
 
-  const payload = await req.json().catch(() => ({} as any))
-  // Whitelist fields
-  const update = {
-    id: user.id,
-    company_name: typeof payload.company_name === 'string' ? payload.company_name : null,
-    category: typeof payload.category === 'string' ? payload.category : null,
-    wa_number: typeof payload.wa_number === 'string' ? payload.wa_number : null,
-    timezone: typeof payload.timezone === 'string' ? payload.timezone : null,
-    working_hours:
-      payload.working_hours && typeof payload.working_hours === 'object'
-        ? payload.working_hours
-        : null,
-    email: user.email ?? null, // keep email in sync (column already exists)
-    name: payload.name && typeof payload.name === 'string' ? payload.name : null,
-  }
+    if (!user) {
+      return NextResponse.json({ ok: false, error: "not authenticated" }, { status: 401 });
+    }
 
-  const { data, error } = await supabase.from('profiles').upsert(update).select('*').single()
-  if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 400 })
+    const body = (await req.json()) as Partial<{
+      full_name: string | null;
+      company: string | null;
+    }>;
+
+    const updates = {
+      id: user.id,
+      full_name: body.full_name ?? null,
+      company: body.company ?? null,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from("profiles").upsert(updates).select().single();
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "server error";
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, profile: data })
 }
