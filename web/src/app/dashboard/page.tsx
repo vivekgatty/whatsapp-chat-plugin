@@ -1,10 +1,13 @@
-// web/src/app/dashboard/page.tsx
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+﻿import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
+
+  // Read-only cookie adapter (NO set/remove here)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -13,28 +16,20 @@ export default async function DashboardPage() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: any) {
-          cookieStore.set({ name, value: "", ...options, maxAge: 0 });
-        },
       },
     }
   );
 
   const { data: { user } } = await supabase.auth.getUser();
+
   if (!user) {
     redirect("/login?redirectedFrom=/dashboard");
   }
 
   return (
-    <main className="p-6">
-      <h1 className="text-2xl font-semibold mb-2">Dashboard</h1>
-      <p className="opacity-80 mb-6">
-        Welcome{user?.email ? `, ${user.email}` : ""}.
-      </p>
-      <a href="/auth/signout" className="underline text-emerald-500">Sign out</a>
+    <main className="min-h-dvh max-w-3xl mx-auto p-6">
+      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <p className="mt-4 text-sm text-zinc-300">Signed in as <b>{user?.email}</b></p>
     </main>
   );
 }
