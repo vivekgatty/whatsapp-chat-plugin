@@ -1,7 +1,7 @@
 ﻿// src/app/api/business/save/route.ts
 import { NextResponse } from "next/server";
 // NOTE: relative path to avoid alias issues
-import { getSupabaseAdmin } from "../../../../lib/getSupabaseAdmin()";
+import { getSupabaseAdmin } from "../../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -71,4 +71,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || "server error" }, { status: 200 });
   }
 }
+
 

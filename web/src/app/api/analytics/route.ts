@@ -1,7 +1,7 @@
 ﻿// /api/analytics
 import { NextResponse } from "next/server";
 // Use a RELATIVE import to avoid alias issues
-import { getSupabaseAdmin } from "../../../lib/getSupabaseAdmin()";
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -61,4 +61,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 });
   }
 }
+
 
