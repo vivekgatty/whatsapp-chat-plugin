@@ -1,5 +1,4 @@
-﻿// src/app/login/page.tsx
-"use client";
+﻿"use client";
 
 import React, { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -7,7 +6,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loadingâ€¦</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading…</div>}>
       <LoginInner />
     </Suspense>
   );
@@ -16,12 +15,10 @@ export default function LoginPage() {
 function LoginInner() {
   const supabase = createClientComponentClient();
   const search = useSearchParams();
-  const redirectedFrom = search.get("redirectedFrom") || "/dashboard";
+  const next = search.get("next") || "/dashboard";
 
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
-    "idle"
-  );
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
@@ -29,14 +26,12 @@ function LoginInner() {
     setStatus("sending");
     setError(null);
 
-    const redirectTo = `${window.location.origin}/auth/callback?redirectedFrom=${encodeURIComponent(
-      redirectedFrom
-    )}`;
+    const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=${encodeURIComponent(next)}`;
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/dashboard`,
+        emailRedirectTo: redirectTo,
         shouldCreateUser: true,
       },
     });
@@ -48,9 +43,7 @@ function LoginInner() {
     }
 
     setStatus("sent");
-    try {
-      localStorage.setItem("wcp_last_email", email);
-    } catch {}
+    try { localStorage.setItem("wcp_last_email", email); } catch {}
   }
 
   return (
@@ -76,7 +69,7 @@ function LoginInner() {
             disabled={status === "sending"}
             className="rounded-md bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-white disabled:opacity-60"
           >
-            {status === "sending" ? "Sendingâ€¦" : "Send magic link"}
+            {status === "sending" ? "Sending…" : "Send magic link"}
           </button>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -85,12 +78,10 @@ function LoginInner() {
         <div className="rounded-md border border-zinc-700 p-4">
           <p className="text-emerald-400 font-medium mb-1">Check your email</p>
           <p className="text-sm text-zinc-300">
-            We sent a magic link to <b>{email}</b>. Click it to finish logging
-            in. Youâ€™ll land on <code>{redirectedFrom}</code>.
+            We sent a magic link to <b>{email}</b>. Click it to finish logging in. You’ll land on <code>{next}</code>.
           </p>
         </div>
       )}
     </main>
   );
 }
-

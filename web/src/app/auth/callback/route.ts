@@ -1,50 +1,39 @@
 ﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") || "/dashboard";
+  const code = url.searchParams.get("code");
 
-  // Prepare a response we can mutate cookies on
-  const res = NextResponse.redirect(new URL(next, url.origin));
-
-  if (!code) {
-    res.headers.set("location", new URL("/login?error=missing_code", url.origin).toString());
-    return res;
-  }
-
-  const cookieStore = await cookies(); // async in Next 15
+  const redirect = NextResponse.redirect(new URL(next, url.origin));
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name, value, options) {
-          res.cookies.set(name, value, options);
-        },
-        remove(name, options) {
-          res.cookies.set(name, "", { ...options, maxAge: 0 });
-        },
+        get(name: string) { return cookieStore.get(name)?.value; },
+        set(name: string, value: string, options: CookieOptions) { redirect.cookies.set(name, value, options as any); },
+        remove(name: string, options: CookieOptions) { redirect.cookies.set(name, "", { ...(options as any), maxAge: 0 }); },
       },
     }
   );
 
+  if (!code) {
+    return NextResponse.redirect(new URL(`/login?error=missing_code&redirectedFrom=${encodeURIComponent(next)}`, url.origin));
+  }
+
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    console.error("exchangeCodeForSession:", error);
-    res.headers.set(
-      "location",
-      new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin).toString()
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin)
     );
   }
 
-  return res;
+  return redirect;
 }
