@@ -1,25 +1,18 @@
 ﻿import { createClient } from "@supabase/supabase-js";
 
-/** Build the service-role Supabase client at request time. */
 export function getSupabaseAdmin() {
-  const url =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.SUPABASE_URL ||
-    "";
-
-  const serviceKey =
-    process.env.SUPABASE_SERVICE_ROLE ||
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||      // fallback if you used a different name
     "";
 
-  if (!url) {
-    throw new Error("SUPABASE URL missing. Add NEXT_PUBLIC_SUPABASE_URL in Vercel → Settings → Environment Variables.");
-  }
-  if (!serviceKey) {
-    throw new Error("Service Role key missing. Add SUPABASE_SERVICE_ROLE (or SUPABASE_SERVICE_ROLE_KEY) in Vercel env.");
+  if (!url || !key) {
+    throw new Error("Supabase admin envs missing: set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY");
   }
 
-  return createClient(url, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
+  // No session persistence needed in server routes
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
 }
