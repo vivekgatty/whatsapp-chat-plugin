@@ -1,4 +1,4 @@
-// src/app/login/page.tsx
+﻿// src/app/login/page.tsx
 "use client";
 
 import React, { Suspense, useState } from "react";
@@ -7,7 +7,7 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading…</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loadingâ€¦</div>}>
       <LoginInner />
     </Suspense>
   );
@@ -36,7 +36,7 @@ function LoginInner() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectTo,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/dashboard`,
         shouldCreateUser: true,
       },
     });
@@ -76,7 +76,7 @@ function LoginInner() {
             disabled={status === "sending"}
             className="rounded-md bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-white disabled:opacity-60"
           >
-            {status === "sending" ? "Sending…" : "Send magic link"}
+            {status === "sending" ? "Sendingâ€¦" : "Send magic link"}
           </button>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -86,10 +86,11 @@ function LoginInner() {
           <p className="text-emerald-400 font-medium mb-1">Check your email</p>
           <p className="text-sm text-zinc-300">
             We sent a magic link to <b>{email}</b>. Click it to finish logging
-            in. You’ll land on <code>{redirectedFrom}</code>.
+            in. Youâ€™ll land on <code>{redirectedFrom}</code>.
           </p>
         </div>
       )}
     </main>
   );
 }
+
