@@ -1,14 +1,14 @@
-﻿import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+﻿import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 /**
- * Read-only Supabase client for React Server Components.
- * Next.js 15 forbids mutating cookies during render, so set/remove are no-ops.
- * Route handlers (e.g. /auth/callback) should create their own client that
- * attaches cookies on the Response (see auth callback).
+ * Server-side Supabase client.
+ * - Reads cookies from Next 15's async cookies()
+ * - Only writes cookies when a NextResponse is provided (RSC-safe: no-ops otherwise)
  */
-export function createClient() {
-  const cookieStore = cookies(); // RSC-safe
+export async function createClient(res?: NextResponse) {
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,9 +18,13 @@ export function createClient() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        // No-ops to avoid "Cookies can only be modified..." in RSC.
-        set(_name: string, _value: string, _options: CookieOptions) {},
-        remove(_name: string, _options: CookieOptions) {},
+        set(name: string, value: string, options: CookieOptions) {
+          // In React Server Components there is no response to mutate: make write a no-op
+          if (res) res.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          if (res) res.cookies.set({ name, value: "", ...options });
+        },
       },
     }
   );
