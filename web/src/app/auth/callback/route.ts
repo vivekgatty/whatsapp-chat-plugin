@@ -8,17 +8,31 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") || "/dashboard";
-  if (!code) return NextResponse.redirect(new URL("/login?error=missing_code", url.origin));
 
-  const cookieStore = cookies();
+  // Prepare a response we can mutate cookies on
+  const res = NextResponse.redirect(new URL(next, url.origin));
+
+  if (!code) {
+    res.headers.set("location", new URL("/login?error=missing_code", url.origin).toString());
+    return res;
+  }
+
+  const cookieStore = await cookies(); // async in Next 15
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name) => cookieStore.get(name)?.value,
-        set: (name, value, options) => cookieStore.set({ name, value, ...options }),
-        remove: (name, options) => cookieStore.set({ name, value: "", ...options, maxAge: 0 }),
+        get(name) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name, value, options) {
+          res.cookies.set(name, value, options);
+        },
+        remove(name, options) {
+          res.cookies.set(name, "", { ...options, maxAge: 0 });
+        },
       },
     }
   );
@@ -26,7 +40,11 @@ export async function GET(req: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
     console.error("exchangeCodeForSession:", error);
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin));
+    res.headers.set(
+      "location",
+      new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin).toString()
+    );
   }
-  return NextResponse.redirect(new URL(next, url.origin));
+
+  return res;
 }
