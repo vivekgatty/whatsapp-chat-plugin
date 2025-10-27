@@ -1,43 +1,32 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   const url = new URL(req.url);
-  const redirectedFrom = url.searchParams.get("redirectedFrom") || "/dashboard";
+  const code = url.searchParams.get("code");
+  const next = url.searchParams.get("next") || "/dashboard";
+  if (!code) return NextResponse.redirect(new URL("/login?error=missing_code", url.origin));
 
-  // Prepare the redirect response up front (we'll attach cookies to it)
-  const res = NextResponse.redirect(new URL(redirectedFrom, url.origin));
-
-  // NOTE: In Next 15 this may be async; awaiting works across versions.
-  const cookieStore = await cookies();
-
+  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          res.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          res.cookies.set({ name, value: "", ...options });
-        },
+        get: (name) => cookieStore.get(name)?.value,
+        set: (name, value, options) => cookieStore.set({ name, value, ...options }),
+        remove: (name, options) => cookieStore.set({ name, value: "", ...options, maxAge: 0 }),
       },
     }
   );
 
-  const code = url.searchParams.get("code");
-  if (code) {
-    // Exchange the code for a session and set cookies on the response
-    await supabase.auth.exchangeCodeForSession(code);
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    console.error("exchangeCodeForSession:", error);
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin));
   }
-
-  return res;
+  return NextResponse.redirect(new URL(next, url.origin));
 }

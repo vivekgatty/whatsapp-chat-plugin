@@ -1,38 +1,22 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-
+import { createServerClient } from "@supabase/ssr";
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: Request) {
   const url = new URL(req.url);
-  const redirectTo = url.searchParams.get("redirect") ?? "/login";
-
-  // Prepare the redirect response (we'll attach cookies to it)
-  const res = NextResponse.redirect(new URL(redirectTo, url.origin));
-
-  // Next 15: cookies() is async in route handlers
-  const cookieStore = await cookies();
-
+  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          res.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          res.cookies.set({ name, value: "", ...options });
-        },
+        get: (name) => cookieStore.get(name)?.value,
+        set: (name, value, options) => cookieStore.set({ name, value, ...options }),
+        remove: (name, options) => cookieStore.set({ name, value: "", ...options, maxAge: 0 }),
       },
     }
   );
-
   await supabase.auth.signOut();
-  return res;
+  return NextResponse.redirect(new URL("/login", url.origin));
 }
