@@ -1,7 +1,7 @@
-// src/app/api/business/save/route.ts
+﻿// src/app/api/business/save/route.ts
 import { NextResponse } from "next/server";
 // NOTE: relative path to avoid alias issues
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { getSupabaseAdmin } from "../../../../lib/getSupabaseAdmin()";
 
 export const runtime = "nodejs";
 
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     };
     if (id) payload.id = id; // keep id only if provided
 
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdmin()
       .from("businesses")
       .upsert(payload, { onConflict: "id" });
 
@@ -71,3 +71,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || "server error" }, { status: 200 });
   }
 }
+

@@ -1,7 +1,7 @@
-// /api/analytics
+﻿// /api/analytics
 import { NextResponse } from "next/server";
 // Use a RELATIVE import to avoid alias issues
-import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { getSupabaseAdmin } from "../../../lib/getSupabaseAdmin()";
 
 export const runtime = "nodejs";
 
@@ -21,8 +21,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, warn: "missing wid" }, { status: 200 });
     }
 
-    // Look up widget → business
-    const { data: widget, error: werr } = await supabaseAdmin
+    // Look up widget â†’ business
+    const { data: widget, error: werr } = await getSupabaseAdmin()
       .from("widgets")
       .select("id,business_id")
       .eq("id", wid)
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
 
     const business_id = widget?.business_id || process.env.DEFAULT_BUSINESS_ID || null;
     if (!business_id) {
-      // Still no business id → we refuse to insert (keeps data isolated)
+      // Still no business id â†’ we refuse to insert (keeps data isolated)
       return NextResponse.json(
         { ok: false, warn: "Missing business_id after widget lookup" },
         { status: 200 }
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     }
 
     // Insert analytics row
-    const { error: ierr } = await supabaseAdmin.from("analytics").insert({
+    const { error: ierr } = await getSupabaseAdmin().from("analytics").insert({
       business_id,
       widget_id: wid,
       event_type,
@@ -61,3 +61,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 });
   }
 }
+

@@ -1,7 +1,7 @@
-// /api/track-lead
+﻿// /api/track-lead
 import { NextResponse } from "next/server";
 // Use a RELATIVE import to avoid alias issues
-import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { getSupabaseAdmin } from "../../../lib/getSupabaseAdmin()";
 
 export const runtime = "nodejs";
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     }
 
     // Widget -> business (graceful: allow 0 rows and use DEFAULT_BUSINESS_ID)
-    const { data: widget, error: werr } = await supabaseAdmin
+    const { data: widget, error: werr } = await getSupabaseAdmin()
       .from("widgets")
       .select("id,business_id")
       .eq("id", wid)
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     // Insert lead
-    const { error: lerr } = await supabaseAdmin.from("leads").insert({
+    const { error: lerr } = await getSupabaseAdmin().from("leads").insert({
       business_id,
       widget_id: wid,
       name,
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     }
 
     // Record 'lead' analytics (best-effort)
-    await supabaseAdmin.from("analytics").insert({
+    await getSupabaseAdmin().from("analytics").insert({
       business_id,
       widget_id: wid,
       event_type: "lead",
@@ -82,3 +82,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 });
   }
 }
+
