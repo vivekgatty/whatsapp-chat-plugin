@@ -8,12 +8,12 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
-  // raw ?next= might be "%2Fdashboard" – normalize to "/dashboard"
+  // next can arrive double-encoded: %252Fdashboard -> %2Fdashboard -> /dashboard
   const rawNext = url.searchParams.get("next") ?? "/dashboard";
   const nextPath = (() => {
     try {
-      const d = decodeURIComponent(rawNext);
-      return d.startsWith("/") ? d : "/dashboard";
+      const once = decodeURIComponent(rawNext);
+      return once.startsWith("/") ? once : "/dashboard";
     } catch {
       return rawNext.startsWith("/") ? rawNext : "/dashboard";
     }
@@ -21,13 +21,12 @@ export async function GET(req: Request) {
 
   const code = url.searchParams.get("code");
   if (!code) {
-    console.error("auth/callback: missing code");
     return NextResponse.redirect(
       new URL(`/login?error=missing_code&redirectedFrom=${encodeURIComponent(nextPath)}`, url.origin)
     );
   }
 
-  // Build the redirect *first* so we can attach cookies to it
+  // Create redirect FIRST so we can set cookies on it.
   const redirectRes = NextResponse.redirect(new URL(nextPath, url.origin));
   const cookieStore = await cookies();
 
@@ -36,9 +35,7 @@ export async function GET(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
+        get(name: string) { return cookieStore.get(name)?.value; },
         set(name: string, value: string, options: CookieOptions) {
           redirectRes.cookies.set(name, value, options as any);
         },
@@ -51,7 +48,6 @@ export async function GET(req: Request) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    console.error("auth/callback: exchange error", error.message);
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(nextPath)}`, url.origin)
     );

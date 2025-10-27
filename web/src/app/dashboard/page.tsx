@@ -13,10 +13,7 @@ export default async function DashboardPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        // no-ops in a server component (we don't mutate here)
+        get(name: string) { return cookieStore.get(name)?.value; },
         set(_n: string, _v: string, _o?: CookieOptions) {},
         remove(_n: string, _o?: CookieOptions) {},
       },
