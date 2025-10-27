@@ -1,8 +1,8 @@
 ﻿import { createClient as supaCreateClient } from "@supabase/supabase-js";
 
 /**
- * Admin client (server-only). Uses:
- *  - NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL as fallback)
+ * Admin client (server-only). Env names match your Vercel/env.local:
+ *  - NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL)
  *  - SUPABASE_SERVICE_ROLE
  */
 export function getSupabaseAdmin() {

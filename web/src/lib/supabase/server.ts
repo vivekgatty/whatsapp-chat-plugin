@@ -4,7 +4,6 @@ import { createClient as supaCreateClient } from "@supabase/supabase-js";
 
 /**
  * RSC/server-safe anon client for requests that do NOT need service role.
- * Uses NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) + NEXT_PUBLIC_SUPABASE_ANON_KEY.
  */
 export async function createClient(_res?: NextResponse) {
   const url =
