@@ -1,31 +1,33 @@
 ﻿import { cookies } from "next/headers";
-import type { NextResponse } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextResponse } from "next/server";
+import { createClient as supaCreateClient } from "@supabase/supabase-js";
 
 /**
- * Server-side Supabase client.
- * - Reads cookies from Next 15's async cookies()
- * - Only writes cookies when a NextResponse is provided (RSC-safe: no-ops otherwise)
+ * RSC/server-safe anon client for requests that do NOT need service role.
+ * Uses NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) + NEXT_PUBLIC_SUPABASE_ANON_KEY.
  */
-export async function createClient(res?: NextResponse) {
-  const cookieStore = await cookies();
+export async function createClient(_res?: NextResponse) {
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    process.env.SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          // In React Server Components there is no response to mutate: make write a no-op
-          if (res) res.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          if (res) res.cookies.set({ name, value: "", ...options });
-        },
-      },
-    }
-  );
+  if (!url || !anon) {
+    throw new Error(
+      "Public Supabase envs missing: set NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) and NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    );
+  }
+
+  // Avoid modifying cookies in RSC
+  const cookieStore = await cookies();
+  const c = {
+    get(name: string) { return cookieStore.get(name)?.value; },
+    set(_n: string, _v: string, _o?: any) {},
+    remove(_n: string, _o?: any) {},
+  };
+
+  return supaCreateClient(url, anon, {
+    auth: { persistSession: false },
+    cookies: c as any,
+  });
 }
