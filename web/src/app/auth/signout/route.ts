@@ -6,6 +6,8 @@ export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const url = new URL(req.url);
+  // Pre-create redirect and attach cookies to THIS response
+  const res = NextResponse.redirect(new URL("/login", url.origin));
   const store = await cookies();
 
   const supabase = createServerClient(
@@ -14,12 +16,16 @@ export async function POST(req: Request) {
     {
       cookies: {
         get(name: string) { return store.get(name)?.value; },
-        set(name: string, value: string, options: CookieOptions) { store.set({ name, value, ...options }); },
-        remove(name: string, options: CookieOptions) { store.set({ name, value: "", ...options, maxAge: 0 }); },
+        set(name: string, value: string, options: CookieOptions) {
+          res.cookies.set(name, value, options as any);
+        },
+        remove(name: string, options: CookieOptions) {
+          res.cookies.set(name, "", { ...(options as any), maxAge: 0 });
+        },
       },
     }
   );
 
   await supabase.auth.signOut();
-  return NextResponse.redirect(new URL("/login", url.origin));
+  return res;
 }

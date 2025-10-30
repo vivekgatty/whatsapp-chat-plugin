@@ -5,15 +5,18 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
+  const url  = new URL(req.url);
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") || "/dashboard";
 
   if (!code) {
-    return NextResponse.redirect(new URL(`/login?error=missing_code&redirectedFrom=${encodeURIComponent(next)}`, url.origin));
+    return NextResponse.redirect(
+      new URL(`/login?error=missing_code&redirectedFrom=${encodeURIComponent(next)}`, url.origin)
+    );
   }
 
-  // Next 15 returns a Promise here in your project → await it
+  // Pre-create the redirect response and WRITE COOKIES ON THIS RESPONSE
+  const res   = NextResponse.redirect(new URL(next, url.origin));
   const store = await cookies();
 
   const supabase = createServerClient(
@@ -22,17 +25,23 @@ export async function GET(req: Request) {
     {
       cookies: {
         get(name: string) { return store.get(name)?.value; },
-        set(name: string, value: string, options: CookieOptions) { store.set({ name, value, ...options }); },
-        remove(name: string, options: CookieOptions) { store.set({ name, value: "", ...options, maxAge: 0 }); },
+        set(name: string, value: string, options: CookieOptions) {
+          res.cookies.set(name, value, options as any);
+        },
+        remove(name: string, options: CookieOptions) {
+          res.cookies.set(name, "", { ...(options as any), maxAge: 0 });
+        },
       },
     }
   );
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin)
+    );
+  }
 
-  const dest = error
-    ? new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin)
-    : new URL(next, url.origin);
-
-  return NextResponse.redirect(dest);
+  // Return the SAME response that has the Set-Cookie headers
+  return res;
 }
