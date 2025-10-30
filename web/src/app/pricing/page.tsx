@@ -1,134 +1,64 @@
 ﻿import Link from "next/link";
+import PayButton from "../../components/PayButton";
 import { getSupabaseServer } from "../../lib/supabaseServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type Task = {
-  id: string;
-  area: string;    // Payments / API / Backend / Dashboard
-  layer: string;   // Backend / Frontend
-  title: string;
-  notes: string;
-};
-
-const TASKS: Task[] = [
-  {
-    id: "Day5-01",
-    area: "Payments",
-    layer: "Backend",
-    title: "Integrate Razorpay test Checkout",
-    notes: "Client checkout; test keys; success/failure routes"
-  },
-  {
-    id: "Day5-02",
-    area: "API",
-    layer: "Backend",
-    title: "Webhook verify signature & record payment",
-    notes: "HMAC verify; update subscriptions table"
-  },
-  {
-    id: "Day5-03",
-    area: "Backend",
-    layer: "Backend",
-    title: "Plan logic (Free vs Pro) & limits",
-    notes: "100 messages/month limit; quota counters"
-  },
-  {
-    id: "Day5-04",
-    area: "Dashboard",
-    layer: "Frontend",
-    title: "Auto-upgrade prompts when limit hit",
-    notes: "Banner/modal; CTA to upgrade"
-  },
-  {
-    id: "Day5-05",
-    area: "Dashboard",
-    layer: "Frontend",
-    title: "Billing page + invoices link",
-    notes: "Past invoices URL; update billing details"
-  },
-];
-
-function Pill({children}:{children: React.ReactNode}) {
-  return <span className="inline-block rounded-full border border-zinc-700 px-2 py-0.5 text-xs text-zinc-300">{children}</span>;
-}
-
 export default async function PricingPage() {
-  const supabase = await getSupabaseServer().catch(() => null);
-  let userEmail: string | null = null;
-  let plan: string | null = null;
-  let subStatus: string | null = null;
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  const email = user?.email ?? "guest";
 
+  // Optional: read current plan
+  let profile: any = null;
   try {
-    if (supabase) {
-      const { data: { user } } = await supabase.auth.getUser();
-      userEmail = user?.email ?? null;
-      if (user?.id) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("plan, subscription_status")
-          .eq("id", user.id)
-          .maybeSingle();
-        plan = data?.plan ?? null;
-        subStatus = data?.subscription_status ?? null;
-      }
-    }
+    profile = (await supabase.from("profiles").select("plan,subscription_status").eq("id", user?.id ?? "").maybeSingle()).data;
   } catch {}
 
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-8">
+    <main className="max-w-4xl mx-auto p-6 space-y-6">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold">Pricing</h1>
-          <p className="text-sm text-zinc-400 mt-1">Subscription management — Day 5 scope.</p>
+          <p className="text-sm text-zinc-400">Manage your subscription.</p>
+          <p className="text-xs text-zinc-500 mt-1">Signed in as {email}. Current plan: {profile?.plan ?? "free"} ({profile?.subscription_status ?? "not_subscribed"}).</p>
         </div>
         <Link href="/dashboard" className="px-3 py-2 rounded-md bg-emerald-600 text-white">Back to dashboard</Link>
       </header>
 
-      <section className="rounded-xl border border-zinc-700 p-5">
-        <h2 className="font-medium">Your plan</h2>
-        <p className="text-sm text-zinc-400 mt-1">
-          {userEmail ? <>Signed in as <span className="text-zinc-200">{userEmail}</span>.</> : "Not signed in."}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Pill>Plan: {plan ?? "Free (default)"}</Pill>
-          <Pill>Status: {subStatus ?? "not_subscribed"}</Pill>
+      <section className="grid gap-4 sm:grid-cols-2">
+        {/* Free */}
+        <div className="rounded-xl border border-zinc-700 p-5">
+          <h2 className="text-xl font-medium">Free</h2>
+          <p className="text-sm text-zinc-400 mt-1">₹0 / month · 100 messages/mo</p>
+          <ul className="mt-3 text-sm text-zinc-300 list-disc pl-5 space-y-1">
+            <li>WhatsApp button + pre-chat form</li>
+            <li>Basic analytics</li>
+            <li>Community support</li>
+          </ul>
+          <div className="mt-4 text-sm text-zinc-500">You are on this plan by default.</div>
         </div>
-      </section>
 
-      <section className="space-y-4">
-        <h2 className="font-medium">Day 5 — Tasks</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {TASKS.map(t => (
-            <div key={t.id} className="rounded-xl border border-zinc-700 p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{t.title}</h3>
-                <span className="text-xs text-zinc-400">{t.id}</span>
-              </div>
-              <div className="mt-2 flex gap-2">
-                <Pill>{t.area}</Pill>
-                <Pill>{t.layer}</Pill>
-              </div>
-              <p className="text-sm text-zinc-300 mt-3">{t.notes}</p>
-              {/* Buttons are placeholders to wire up when each task is implemented */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {t.id === "Day5-01" && (
-                  <button disabled className="px-3 py-1.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 cursor-not-allowed">
-                    Test Checkout (coming soon)
-                  </button>
-                )}
-                {t.id === "Day5-05" && (
-                  <button disabled className="px-3 py-1.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 cursor-not-allowed">
-                    View invoices (coming soon)
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+        {/* Pro */}
+        <div className="rounded-xl border border-zinc-700 p-5">
+          <h2 className="text-xl font-medium">Pro</h2>
+          <p className="text-sm text-zinc-400 mt-1">Intro offer: <span className="text-white font-semibold">₹1</span> (LIVE payment for validation)</p>
+          <ul className="mt-3 text-sm text-zinc-300 list-disc pl-5 space-y-1">
+            <li>Increased quotas</li>
+            <li>Priority processing</li>
+            <li>Early access features</li>
+          </ul>
+          <div className="mt-4">
+            {/* LIVE ₹1 subscribe */}
+            <PayButton amount={1} />
+          </div>
+          <p className="text-xs text-zinc-500 mt-2">You will be charged ₹1 now (LIVE). We will switch to your real price later.</p>
         </div>
       </section>
     </main>
   );
 }
+
+// deploy-bump 2025-10-30T22:03:52
