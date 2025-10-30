@@ -1,54 +1,37 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import Razorpay from "razorpay";
+﻿import { NextResponse } from "next/server";
+import { getSupabaseServer } from "../../../../lib/supabaseServer";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
-const KEY_ID = process.env.RAZORPAY_KEY_ID!;
-const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET!;
-const SITE_URL = process.env.SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-// fallback if the client doesn't send one
-const DEFAULT_BUSINESS_ID = process.env.DEFAULT_BUSINESS_ID || "demo-business";
-
-const rzp = new Razorpay({
-  key_id: KEY_ID,
-  key_secret: KEY_SECRET,
-});
-
-type Body = {
-  business_id?: string;
-  plan?: "pro";
-};
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const body = (await req.json().catch(() => ({}))) as Body;
-    const business_id = String(body.business_id || DEFAULT_BUSINESS_ID);
+    const supabase = await getSupabaseServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    // 199 INR monthly (in paise)
-    const amountPaise = 19900;
+    const { amount = 1, plan = "pro" } = await req.json().catch(() => ({ amount: 1, plan: "pro" }));
+    const key_id = process.env.RAZORPAY_KEY_ID;
+    const key_secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!key_id || !key_secret) return NextResponse.json({ error: "missing_razorpay_keys" }, { status: 500 });
 
-    const order = await rzp.orders.create({
-      amount: amountPaise,
+    const body = {
+      amount: Math.max(1, Math.round(Number(amount))) * 100, // ₹→paise
       currency: "INR",
-      receipt: `biz_${business_id}_${Date.now()}`,
-      notes: { business_id },
+      receipt: `order_${user.id}_${Date.now()}`,
+      notes: { user_id: user.id, email: user.email ?? "", plan },
+    };
+
+    const basic = Buffer.from(`${key_id}:${key_secret}`).toString("base64");
+    const r = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: { "Authorization": `Basic ${basic}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
 
-    return NextResponse.json({
-      ok: true,
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      keyId: KEY_ID,
-      successUrl: `${SITE_URL}/billing/success?order_id=${order.id}`,
-      failureUrl: `${SITE_URL}/billing/failed?order_id=${order.id}`,
-    });
-  } catch (e: any) {
-    return NextResponse.json(
-      { ok: false, error: e?.message || "Failed to create order" },
-      { status: 500 }
-    );
+    const data = await r.json();
+    if (!r.ok) return NextResponse.json({ error: "razorpay_error", detail: data }, { status: 502 });
+    return NextResponse.json({ key_id, order: data });
+  } catch {
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
