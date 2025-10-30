@@ -1,11 +1,11 @@
-// src/app/dashboard/business/page.tsx
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
+import { getSupabaseServer } from "../../../lib/supabaseServer";
 
-// Avoid caching the redirect in edge/CDN during dev
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const runtime="nodejs"; export const dynamic="force-dynamic"; export const revalidate=0;
 
-export default function Page() {
-  // Send users to the legacy Business Profile editor you prefer
-  redirect("/businessprofile");
+export default async function BusinessPage(){
+  const supabase = await getSupabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login?redirectedFrom=/dashboard/business");
+  return <main className="p-6">Business profile editor — placeholder. Replace with your full UI.</main>;
 }
