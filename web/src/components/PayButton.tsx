@@ -1,15 +1,13 @@
 ï»¿"use client";
 import * as React from "react";
 
-declare global { interface Window { Razorpay: any } }
-
 type Props = { plan: string; amount: number; buttonText?: string; timeoutMs?: number };
 
 export default function PayButton({ plan, amount, buttonText = "Subscribe Pro â€” â‚¹1", timeoutMs = 120000 }: Props) {
   const [busy, setBusy] = React.useState(false);
 
   async function ensureCheckoutJs() {
-    if (window.Razorpay) return;
+    if ((window as any).Razorpay) return;
     await new Promise<void>((resolve, reject) => {
       const s = document.createElement("script");
       s.src = "https://checkout.razorpay.com/v1/checkout.js";
@@ -40,10 +38,8 @@ export default function PayButton({ plan, amount, buttonText = "Subscribe Pro â€
           window.location.href = "/pricing?paid=1";
           return;
         }
-      } catch { /* retry */ }
+      } catch { /* keep polling */ }
     }
-    // optional: timeout UX
-    // window.location.href = "/pricing?timeout=1";
   }
 
   async function onClick() {
@@ -52,20 +48,21 @@ export default function PayButton({ plan, amount, buttonText = "Subscribe Pro â€
       await ensureCheckoutJs();
       const { orderId, keyId } = await createOrder();
 
-      const rzp = new window.Razorpay({
+      const Razorpay = (window as any).Razorpay;
+      const rzp = new Razorpay({
         key: keyId,
         amount: Math.round(amount * 100),
         currency: "INR",
         name: "Chatmadi",
         description: `${plan.toUpperCase()} plan`,
         order_id: orderId,
-        handler: () => { /* success callback (card/upi intent) */ },
+        handler: () => { /* Razorpay success callback (for card/intent flows) */ },
         modal: { ondismiss: () => {} },
         theme: { color: "#0ea5e9" },
       });
       rzp.open();
 
-      // Start polling regardless (covers QR payments on phone)
+      // Covers QR-on-mobile flow as well:
       pollUntilPaid(orderId);
     } catch (e) {
       alert("Could not create order. Please try again.");
