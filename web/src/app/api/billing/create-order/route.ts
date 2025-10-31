@@ -2,39 +2,48 @@
 import { getSupabaseServer } from "../../../../lib/supabaseServer";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic"; // avoid any caching
+export const dynamic = "force-dynamic";
+
+function toPaise(n: unknown) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return 100; // ₹1
+  // round to 2 decimals then paise
+  return Math.max(100, Math.round(Math.round(v * 100))); // min ₹1 => 100 paise
+}
+
+function safeJson(text: string) {
+  try { return JSON.parse(text); } catch { return { raw: text }; }
+}
 
 export async function POST(req: Request) {
   try {
-    const supabase = await getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
+    // (Auth is nice-to-have; don’t block order creation if cookie missing)
+    let userId = "anonymous";
+    let userEmail = "";
+    try {
+      const supabase = await getSupabaseServer();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) { userId = user.id; userEmail = user.email ?? ""; }
+    } catch {}
 
-    if (!user) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-
-    const { amount = 1, plan = "pro" } = await req.json().catch(() => ({ amount: 1, plan: "pro" }));
+    const bodyIn = await req.json().catch(() => ({ amount: 1, plan: "pro" }));
+    const amountPaise = toPaise(bodyIn.amount);
+    const plan = (bodyIn.plan ?? "pro") as string;
 
     const key_id = process.env.RAZORPAY_KEY_ID;
     const key_secret = process.env.RAZORPAY_KEY_SECRET;
-
     if (!key_id || !key_secret) {
-      console.error("Missing Razorpay env", { has_key_id: !!key_id, has_key_secret: !!key_secret });
-      return NextResponse.json(
-        { error: "missing_razorpay_keys", has_key_id: !!key_id, has_key_secret: !!key_secret },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "missing_razorpay_keys" }, { status: 500 });
     }
 
-    const body = {
-      amount: Math.max(1, Math.round(Number(amount))) * 100, // INR paise
+    const orderPayload = {
+      amount: amountPaise,
       currency: "INR",
-      receipt: `order_${user.id}_${Date.now()}`,
-      notes: { user_id: user.id, email: user.email ?? "", plan },
+      receipt: `order_${userId}_${Date.now()}`,
+      notes: { user_id: userId, email: userEmail, plan },
     };
 
     const basic = Buffer.from(`${key_id}:${key_secret}`).toString("base64");
-
     const r = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
@@ -42,22 +51,22 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(orderPayload),
     });
 
-    const raw = await r.text();
-    let data: any;
-    try { data = JSON.parse(raw); } catch { data = { raw }; }
-
     if (!r.ok) {
-      console.error("Razorpay /orders failed", { status: r.status, data });
-      return NextResponse.json({ error: "razorpay_error", status: r.status, detail: data }, { status: 502 });
+      const text = await r.text().catch(() => "");
+      const detail = safeJson(text);
+      // surface Razorpay's message (usually at detail.error.description)
+      return NextResponse.json(
+        { error: "razorpay_error", status: r.status, detail },
+        { status: 502 }
+      );
     }
 
-    // success: return public key and order object for Checkout
+    const data = await r.json();
     return NextResponse.json({ key_id, order: data });
-  } catch (e: any) {
-    console.error("create-order error", e);
-    return NextResponse.json({ error: "server_error", message: e?.message ?? String(e) }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }

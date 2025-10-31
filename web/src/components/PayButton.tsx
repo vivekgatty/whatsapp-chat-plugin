@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useState } from "react";
+
 declare global { interface Window { Razorpay?: any } }
 
 async function loadRazorpay(): Promise<void> {
@@ -25,15 +26,17 @@ export default function PayButton({ plan = "pro", amount = 1 }: { plan?: string;
 
       const resp = await fetch("/api/billing/create-order", {
         method: "POST",
-        credentials: "include",      // ensure auth cookies are sent
-        cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount, plan }),
       });
-      const data = await resp.json().catch(() => ({} as any));
+      const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        console.error("create-order error:", data);
-        alert(data?.error ? `Order failed: ${data.error}` : "Could not create order. See console.");
+        const msg =
+          data?.detail?.error?.description ??
+          data?.detail?.raw ??
+          data?.error ??
+          "Unknown error";
+        alert(`Order failed: ${msg}`);
         return;
       }
 
@@ -48,20 +51,18 @@ export default function PayButton({ plan = "pro", amount = 1 }: { plan?: string;
         notes: order.notes,
         theme: { color: "#10b981" },
         handler: async (result: any) => {
-          try {
-            const verify = await fetch("/api/billing/verify", {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(result),
-            });
-            const v = await verify.json();
-            if (verify.ok && v?.ok) {
-              window.location.href = "/pricing?upgraded=1";
-            } else {
-              alert("Payment verification failed."); console.error(v);
-            }
-          } catch (e) { console.error(e); alert("Verification error."); }
+          const verify = await fetch("/api/billing/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(result),
+          });
+          const v = await verify.json().catch(() => ({}));
+          if (verify.ok && v?.ok) {
+            window.location.href = "/pricing?upgraded=1";
+          } else {
+            alert("Payment verification failed.");
+            console.error(v);
+          }
         },
       });
 
