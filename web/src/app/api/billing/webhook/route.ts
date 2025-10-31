@@ -1,51 +1,55 @@
 ﻿import { NextResponse } from "next/server";
-import { createHmac, timingSafeEqual } from "crypto";
+import crypto from "crypto";
 import { getSupabaseAdmin } from "../../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function verifySignature(body: string, signature: string, secret: string): boolean {
-  const expected = createHmac("sha256", secret).update(body).digest("hex");
-
-  // timing-safe compare
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
-
+/** stamp: 2025-10-31_17-07-09 */
 export async function POST(req: Request) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-  if (!secret) {
-    return NextResponse.json({ ok: false, error: "RAZORPAY_WEBHOOK_SECRET is missing" }, { status: 500 });
-  }
+  if (!secret) return NextResponse.json({ ok:false, error:"missing_webhook_secret" }, { status: 500 });
 
-  const signature = req.headers.get("x-razorpay-signature") || "";
-  const rawBody = await req.text();
+  const raw = await req.text();
+  const sig = req.headers.get("x-razorpay-signature") || "";
+  const digest = crypto.createHmac("sha256", secret).update(raw).digest("hex");
+  if (digest !== sig) return NextResponse.json({ ok:false, error:"bad_signature" }, { status: 400 });
 
-  if (!signature || !verifySignature(rawBody, signature, secret)) {
-    return NextResponse.json({ ok: false, error: "Invalid signature" }, { status: 401 });
-  }
-
-  let payload: any;
+  const event = JSON.parse(raw);
   try {
-    payload = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
-  }
+    // Handle both 'payment.captured' and 'order.paid'
+    let userId: string | undefined;
+    let orderId: string | undefined;
+    let paymentId: string | undefined;
+    let amount: number | undefined;
 
-  // Minimal example: store webhook (if you have a table to audit events)
-  try {
+    if (event?.event === "payment.captured" || event?.event === "payment.authorized") {
+      const p = event.payload?.payment?.entity;
+      orderId   = p?.order_id;
+      paymentId = p?.id;
+      amount    = p?.amount;
+      userId    = p?.notes?.user_id;
+    } else if (event?.event === "order.paid") {
+      const o = event.payload?.order?.entity;
+      orderId = o?.id;
+      amount  = o?.amount_paid;
+      userId  = o?.notes?.user_id;
+    }
+
+    if (!userId) return NextResponse.json({ ok:true, info:"no_user_in_notes" });
     const supabase = getSupabaseAdmin();
-    // Safe to no-op if the table doesn't exist; errors are caught.
-    await supabase.from("payments_webhooks").insert({
-      event: payload?.event ?? null,
-      payload, // requires JSONB column
-    } as any);
-  } catch {
-    // swallow insert errors to not break webhook handling
-  }
 
-  return NextResponse.json({ ok: true });
+    // Flip the user to pro
+    await supabase
+      .from("profiles")
+      .update({ plan: "pro", subscription_status: "active" })
+      .eq("id", userId);
+
+    // (Optional) persist a payment row if you have a table:
+    // await supabase.from("payments").insert({ user_id: userId, order_id: orderId, payment_id: paymentId, amount });
+
+    return NextResponse.json({ ok:true });
+  } catch (e) {
+    return NextResponse.json({ ok:false, error:"webhook_handler_error" }, { status: 500 });
+  }
 }
