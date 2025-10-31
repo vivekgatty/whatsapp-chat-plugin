@@ -1,9 +1,6 @@
 ﻿"use client";
 import { useState } from "react";
-
-declare global {
-  interface Window { Razorpay?: any }
-}
+declare global { interface Window { Razorpay?: any } }
 
 async function loadRazorpay(): Promise<void> {
   if (typeof window === "undefined") return;
@@ -28,13 +25,15 @@ export default function PayButton({ plan = "pro", amount = 1 }: { plan?: string;
 
       const resp = await fetch("/api/billing/create-order", {
         method: "POST",
+        credentials: "include",      // ensure auth cookies are sent
+        cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount, plan }),
       });
-      const data = await resp.json();
+      const data = await resp.json().catch(() => ({} as any));
       if (!resp.ok) {
         console.error("create-order error:", data);
-        alert("Could not create order. Check console.");
+        alert(data?.error ? `Order failed: ${data.error}` : "Could not create order. See console.");
         return;
       }
 
@@ -52,6 +51,7 @@ export default function PayButton({ plan = "pro", amount = 1 }: { plan?: string;
           try {
             const verify = await fetch("/api/billing/verify", {
               method: "POST",
+              credentials: "include",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(result),
             });
@@ -59,13 +59,9 @@ export default function PayButton({ plan = "pro", amount = 1 }: { plan?: string;
             if (verify.ok && v?.ok) {
               window.location.href = "/pricing?upgraded=1";
             } else {
-              alert("Payment verification failed.");
-              console.error(v);
+              alert("Payment verification failed."); console.error(v);
             }
-          } catch (e) {
-            console.error(e);
-            alert("Verification error.");
-          }
+          } catch (e) { console.error(e); alert("Verification error."); }
         },
       });
 
