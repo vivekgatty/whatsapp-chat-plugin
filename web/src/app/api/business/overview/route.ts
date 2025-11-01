@@ -21,12 +21,9 @@ async function getUser() {
   return user;
 }
 
-const URL  = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SKEY = process.env.SUPABASE_SERVICE_ROLE; // service role
-
-const admin = (URL && SKEY)
-  ? createClient(URL, SKEY, { auth: { persistSession: false } })
-  : null;
+const URL  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SKEY = process.env.SUPABASE_SERVICE_ROLE!; // service role (server-only)
+const admin = createClient(URL, SKEY, { auth: { persistSession: false } });
 
 const TABLE = "businesses";
 
@@ -43,7 +40,8 @@ function sanitize(input: any) {
     dial_code: dial || null,
     phone: local || null,
     whatsapp_e164: e164,
-    hours
+    hours,
+    logo_url: input?.logoUrl ? String(input.logoUrl) : null
   };
 }
 
@@ -55,20 +53,18 @@ export async function GET() {
     country: "IN",
     dialCode: "+91",
     phone: "",
-    hours: defaultHours()
+    hours: defaultHours(),
+    logoUrl: null as string | null
   };
 
   const user = await getUser();
   if (!user) {
     return NextResponse.json({ ok: true, plan: "free", used: 0, quota: 100, business: defaults });
   }
-  if (!admin) {
-    return NextResponse.json({ ok: false, error: "server_env_missing", business: defaults }, { status: 500 });
-  }
 
   const { data, error } = await admin
     .from(TABLE).select("*")
-    .eq("owner_id", user.id)  // <<< use owner_id
+    .eq("owner_id", user.id)
     .limit(1).maybeSingle();
 
   if (error) {
@@ -86,7 +82,8 @@ export async function GET() {
       country: b.country ?? defaults.country,
       dialCode: b.dial_code ?? defaults.dialCode,
       phone: b.phone ?? defaults.phone,
-      hours: b.hours ?? defaults.hours
+      hours: b.hours ?? defaults.hours,
+      logoUrl: b.logo_url ?? null
     }
   });
 }
@@ -94,38 +91,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  if (!admin) return NextResponse.json({ ok: false, error: "server_env_missing" }, { status: 500 });
 
   const body = await req.json().catch(() => ({}));
   const row  = sanitize(body);
+  const payload = { owner_id: user.id, ...row };
 
-  // Manual upsert to avoid relying on a unique constraint:
-  // 1) UPDATE existing by owner_id
-  const { data: updated, error: updErr } = await admin
+  const { data, error } = await admin
     .from(TABLE)
-    .update(row)
-    .eq("owner_id", user.id)
+    .upsert(payload, { onConflict: "owner_id" })
     .select("*")
     .maybeSingle();
 
-  if (updErr) {
-    return NextResponse.json({ ok: false, error: updErr.message }, { status: 500 });
-  }
-
-  if (updated) {
-    return NextResponse.json({ ok: true, business: updated });
-  }
-
-  // 2) If no row updated, INSERT a new one with owner_id
-  const { data: inserted, error: insErr } = await admin
-    .from(TABLE)
-    .insert({ owner_id: user.id, ...row }) // <<< set owner_id
-    .select("*")
-    .maybeSingle();
-
-  if (insErr) {
-    return NextResponse.json({ ok: false, error: insErr.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true, business: inserted });
+  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, business: data });
 }
