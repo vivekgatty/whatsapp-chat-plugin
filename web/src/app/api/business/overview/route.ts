@@ -22,7 +22,7 @@ async function getUser() {
 }
 
 const URL  = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SKEY = process.env.SUPABASE_SERVICE_ROLE;
+const SKEY = process.env.SUPABASE_SERVICE_ROLE; // service role
 
 const admin = (URL && SKEY)
   ? createClient(URL, SKEY, { auth: { persistSession: false } })
@@ -68,7 +68,7 @@ export async function GET() {
 
   const { data, error } = await admin
     .from(TABLE).select("*")
-    .eq("owner_user_id", user.id)
+    .eq("owner_id", user.id)  // <<< use owner_id
     .limit(1).maybeSingle();
 
   if (error) {
@@ -98,14 +98,34 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const row  = sanitize(body);
-  const payload = { owner_user_id: user.id, ...row };
 
-  const { data, error } = await admin
+  // Manual upsert to avoid relying on a unique constraint:
+  // 1) UPDATE existing by owner_id
+  const { data: updated, error: updErr } = await admin
     .from(TABLE)
-    .upsert(payload, { onConflict: "owner_user_id" })
+    .update(row)
+    .eq("owner_id", user.id)
     .select("*")
     .maybeSingle();
 
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, business: data });
+  if (updErr) {
+    return NextResponse.json({ ok: false, error: updErr.message }, { status: 500 });
+  }
+
+  if (updated) {
+    return NextResponse.json({ ok: true, business: updated });
+  }
+
+  // 2) If no row updated, INSERT a new one with owner_id
+  const { data: inserted, error: insErr } = await admin
+    .from(TABLE)
+    .insert({ owner_id: user.id, ...row }) // <<< set owner_id
+    .select("*")
+    .maybeSingle();
+
+  if (insErr) {
+    return NextResponse.json({ ok: false, error: insErr.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, business: inserted });
 }
