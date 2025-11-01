@@ -1,4 +1,4 @@
-﻿export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 import { getSupabaseServer } from "../../lib/supabaseServer";
 
@@ -40,6 +40,25 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       <h1 className="text-3xl font-semibold">Dashboard <span className="ml-2 text-xs align-super bg-slate-800 px-2 py-1 rounded">FREE</span></h1>
+      <div className="flex justify-end mb-3">
+        <div className="flex flex-wrap gap-2">
+          <a href="/dashboard/profile" className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-2 text-sm">
+            Edit profile
+          </a>
+          <a href="/dashboard/widget" className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-2 text-sm">
+            Widget settings
+          </a>
+          <a href="/billing" className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-2 text-sm">
+            Manage plan
+          </a>
+          <form action="/api/auth/signout" method="post">
+            <button type="submit" className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-2 text-sm">
+              Sign out
+            </button>
+          </form>
+        </div>
+      </div>
+
 
       <div className="rounded border border-slate-700 p-4">
         <div className="flex items-center gap-4">
