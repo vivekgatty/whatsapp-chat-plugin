@@ -28,7 +28,7 @@ export default async function BillingPage() {
 
       {!userId && (
         <div className="rounded border border-slate-700 p-4">
-          <div className="font-medium mb-2">Youâ€™re not signed in</div>
+          <div className="font-medium mb-2">YouÃ¢â‚¬â„¢re not signed in</div>
           <p className="text-slate-300 text-sm">
             Please sign in from the home page, then return to billing.
           </p>
@@ -39,17 +39,14 @@ export default async function BillingPage() {
         <div className="font-medium mb-2">Manage subscription</div>
         {hasPortal ? (
           <a
-            href={portalUrl}
-            target="_blank"
-            className="inline-block bg-sky-600 hover:bg-sky-500 rounded px-3 py-2 text-sm"
-          >
+            href={portalUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
             Open billing portal
           </a>
         ) : (
           <div className="text-sm text-slate-300">
-            Billing isnâ€™t fully configured yet. Ask the site admin to set{" "}
+            Billing isnÃ¢â‚¬â„¢t fully configured yet. Ask the site admin to set{" "}
             <code className="px-1 py-0.5 rounded bg-slate-800">RAZORPAY_CUSTOMER_PORTAL_URL</code>{" "}
-            in Vercel Project â†’ Settings â†’ Environment Variables.
+            in Vercel Project Ã¢â€ â€™ Settings Ã¢â€ â€™ Environment Variables.
           </div>
         )}
       </div>
