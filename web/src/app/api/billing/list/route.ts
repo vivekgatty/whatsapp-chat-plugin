@@ -1,11 +1,17 @@
-/** stamp: 2025-11-01_07-59-29 */
+import { NextResponse } from "next/server";
 export const runtime = "nodejs";
+/** safe billing list — stamp: 2025-11-01_09-17-27 */
 export async function GET() {
+  const key_id = process.env.RAZORPAY_KEY_ID;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!key_id || !key_secret) {
+    // No keys yet -> don't crash Billing page
+    return NextResponse.json({ ok: true, items: [] });
+  }
   try {
-    // TODO: replace with a real query to your 'payments' table or Razorpay fetch.
-    // For now return an empty list so the page never crashes.
-    return Response.json({ ok: true, items: [] }, { status: 200 });
-  } catch (e:any) {
-    return Response.json({ ok: false, items: [], error: String(e?.message ?? e) }, { status: 200 });
+    // Replace with real Razorpay fetch later
+    return NextResponse.json({ ok: true, items: [] });
+  } catch (e) {
+    return NextResponse.json({ ok: false, items: [], error: "billing_unavailable" });
   }
 }
