@@ -10,21 +10,16 @@ type Biz = {
   name?: string;
   website?: string;
   email?: string;
-  country?: string;   // ISO code
-  dialCode?: string;  // +NNN
-  phone?: string;     // local
+  country?: string;
+  dialCode?: string;
+  phone?: string;
   hours?: Partial<HoursMap> | HoursMap;
   logoUrl?: string | null;
 };
 
 const DAYS: { key: Day; label: string }[] = [
-  { key: "mon", label: "Mon" },
-  { key: "tue", label: "Tue" },
-  { key: "wed", label: "Wed" },
-  { key: "thu", label: "Thu" },
-  { key: "fri", label: "Fri" },
-  { key: "sat", label: "Sat" },
-  { key: "sun", label: "Sun" },
+  { key: "mon", label: "Mon" }, { key: "tue", label: "Tue" }, { key: "wed", label: "Wed" },
+  { key: "thu", label: "Thu" }, { key: "fri", label: "Fri" }, { key: "sat", label: "Sat" }, { key: "sun", label: "Sun" }
 ];
 
 function defaultHours(): HoursMap {
@@ -37,40 +32,20 @@ function buildCountryData() {
   const countries = getCountries()
     .map(code => ({ code, name: (dn?.of(code) as string) || code, dial: "+" + getCountryCallingCode(code) }))
     .sort((a,b) => a.name.localeCompare(b.name));
-
   const dialMap = new Map<string, string[]>();
-  for (const c of countries) {
-    const arr = dialMap.get(c.dial) ?? [];
-    arr.push(c.name);
-    dialMap.set(c.dial, arr);
-  }
+  for (const c of countries) { const arr = dialMap.get(c.dial) ?? []; arr.push(c.name); dialMap.set(c.dial, arr); }
   const dials = Array.from(dialMap.entries())
-    .map(([dial, names]) => {
-      const extra = names.length > 1 ? ` (+${names.length - 1} more)` : "";
-      return { dial, label: `${dial} - ${names[0]}${extra}` };
-    })
+    .map(([dial, names]) => { const extra = names.length>1 ? ` (+${names.length-1} more)` : ""; return { dial, label: `${dial} - ${names[0]}${extra}` }; })
     .sort((a,b) => parseInt(a.dial.slice(1)) - parseInt(b.dial.slice(1)));
-
   return { countries, dials };
 }
 
 export default function Page(){
   const data = React.useMemo(buildCountryData, []);
-
-  const [biz, setBiz] = React.useState<Biz>({
-    name: "",
-    website: "https://chatmadi.com",
-    email: "admin@chatmadi.com",
-    country: "IN",
-    dialCode: "+91",
-    phone: "",
-    hours: defaultHours(),
-    logoUrl: null
-  });
-
-  const [loading, setLoading]   = React.useState(true);
-  const [saving, setSaving]     = React.useState(false);
-  const [msg, setMsg]           = React.useState<string | undefined>();
+  const [biz, setBiz] = React.useState<Biz>({ name:"", website:"https://chatmadi.com", email:"admin@chatmadi.com", country:"IN", dialCode:"+91", phone:"", hours: defaultHours(), logoUrl: null });
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving]   = React.useState(false);
+  const [msg, setMsg]         = React.useState<string | undefined>();
   const [uploading, setUploading] = React.useState(false);
 
   React.useEffect(() => {
@@ -81,14 +56,10 @@ export default function Page(){
         if (r.ok) {
           const j = await r.json();
           const incoming: Biz = {
-            name: j?.business?.name ?? "",
-            website: j?.business?.website ?? "https://chatmadi.com",
-            email: j?.business?.email ?? "admin@chatmadi.com",
-            country: j?.business?.country ?? "IN",
-            dialCode: j?.business?.dialCode ?? "+91",
-            phone: j?.business?.phone ?? "",
-            hours: j?.business?.hours ?? defaultHours(),
-            logoUrl: j?.business?.logoUrl ?? null
+            name: j?.business?.name ?? "", website: j?.business?.website ?? "https://chatmadi.com",
+            email: j?.business?.email ?? "admin@chatmadi.com", country: j?.business?.country ?? "IN",
+            dialCode: j?.business?.dialCode ?? "+91", phone: j?.business?.phone ?? "",
+            hours: j?.business?.hours ?? defaultHours(), logoUrl: j?.business?.logoUrl ?? null
           };
           if (!dead) setBiz(incoming);
         }
@@ -98,33 +69,22 @@ export default function Page(){
     return () => { dead = true; };
   }, []);
 
-  function onField<K extends keyof Biz>(k: K, v: Biz[K]) {
-    setBiz(b => ({ ...b, [k]: v }));
-  }
-
+  function onField<K extends keyof Biz>(k: K, v: Biz[K]) { setBiz(b => ({ ...b, [k]: v })); }
   function setHour(day: Day, part: "open"|"close"|"closed", value: string|boolean) {
     setBiz(b => {
       const hx = (b.hours && Object.keys(b.hours as any).length ? b.hours : defaultHours()) as HoursMap;
-      const row = (hx as any)[day] ?? { open: "09:00", close: "18:00", closed: false };
+      const row = (hx as any)[day] ?? { open:"09:00", close:"18:00", closed:false };
       return { ...b, hours: { ...(hx as any), [day]: { ...row, [part]: value as any } } };
     });
   }
 
   async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true); setMsg(undefined);
+    e.preventDefault(); setSaving(true); setMsg(undefined);
     try {
-      const r = await fetch("/api/business/overview", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(biz)
-      });
+      const r = await fetch("/api/business/overview", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(biz) });
       const j = await r.json().catch(() => null);
       setMsg(r.ok ? "Saved" : ("Could not save: " + (j?.error ?? (r.status + " " + r.statusText))));
-    } catch {
-      setMsg("Could not save: network_error");
-    }
+    } catch { setMsg("Could not save: network_error"); }
     setSaving(false);
   }
 
@@ -135,23 +95,15 @@ export default function Page(){
   }
 
   async function pickLogo(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
+    const f = e.target.files?.[0]; if (!f) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", f);
+      const fd = new FormData(); fd.append("file", f);
       const r = await fetch("/api/business/logo", { method: "POST", body: fd });
-      const j = await r.json();
-      if (j?.ok && j.url) {
-        onField("logoUrl", j.url);
-        setMsg("Logo uploaded");
-      } else {
-        setMsg("Logo upload failed");
-      }
-    } catch {
-      setMsg("Logo upload failed");
-    }
+      const j = await r.json().catch(()=>null);
+      if (r.ok && j?.url) { onField("logoUrl", j.url); setMsg("Logo uploaded"); }
+      else { setMsg("Logo upload failed: " + (j?.error ?? (r.status + " " + r.statusText))); }
+    } catch { setMsg("Logo upload failed: network_error"); }
     setUploading(false);
   }
 
@@ -164,23 +116,19 @@ export default function Page(){
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Business name</label>
-              <input className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.name ?? ""} onChange={e=>onField("name", e.target.value)} placeholder="Your company" required />
+              <input className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2" value={biz.name ?? ""} onChange={e=>onField("name", e.target.value)} placeholder="Your company" required />
             </div>
             <div>
               <label className="block text-sm mb-1">Website</label>
-              <input className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.website ?? ""} onChange={e=>onField("website", e.target.value)} placeholder="https://example.com" pattern="https?://.+" required />
+              <input className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2" value={biz.website ?? ""} onChange={e=>onField("website", e.target.value)} placeholder="https://example.com" pattern="https?://.+" required />
             </div>
             <div>
               <label className="block text-sm mb-1">Email</label>
-              <input type="email" className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.email ?? ""} onChange={e=>onField("email", e.target.value)} placeholder="you@company.com" required />
+              <input type="email" className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2" value={biz.email ?? ""} onChange={e=>onField("email", e.target.value)} placeholder="you@company.com" required />
             </div>
             <div>
               <label className="block text-sm mb-1">Country</label>
-              <select className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.country ?? "IN"} onChange={e => onCountryChange(e.target.value)}>
+              <select className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2" value={biz.country ?? "IN"} onChange={e => onCountryChange(e.target.value)}>
                 {data.countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select>
             </div>
@@ -189,16 +137,13 @@ export default function Page(){
           <div className="grid grid-cols-[200px_1fr] gap-3">
             <div>
               <label className="block text-sm mb-1">Dial code</label>
-              <select className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.dialCode ?? "+91"}
-                onChange={e => onField("dialCode", e.target.value)}>
+              <select className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2" value={biz.dialCode ?? "+91"} onChange={e => onField("dialCode", e.target.value)}>
                 {data.dials.map(d => <option key={d.dial} value={d.dial}>{d.label}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm mb-1">Phone number</label>
-              <input type="tel" className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.phone ?? ""} onChange={e=>onField("phone", e.target.value)} placeholder="9740333189" required />
+              <input type="tel" className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2" value={biz.phone ?? ""} onChange={e=>onField("phone", e.target.value)} placeholder="9740333189" required />
             </div>
           </div>
 
@@ -208,8 +153,9 @@ export default function Page(){
               <div className="w-16 h-16 rounded bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden">
                 {biz.logoUrl ? <img src={biz.logoUrl} alt="Logo" className="max-w-full max-h-full" /> : <span className="text-xs text-slate-500">No logo</span>}
               </div>
-              <input type="file" accept="image/*" onChange={pickLogo} disabled={uploading} className="text-sm" />
+              <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={pickLogo} disabled={uploading} className="text-sm" />
             </div>
+            <p className="text-xs text-slate-400">Square 1:1 • 512×512 recommended (256–1024 ok) • PNG/JPG/WEBP/SVG • ≤ 2MB</p>
             {uploading && <div className="text-xs text-slate-400">Uploading...</div>}
           </div>
 
@@ -222,11 +168,9 @@ export default function Page(){
                 return (
                   <div key={key} className="grid grid-cols-[60px_120px_24px_120px_auto] items-center gap-3">
                     <div className="text-sm text-slate-300">{label}</div>
-                    <input type="time" className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
-                      value={row.open} onChange={e=>setHour(key,"open", e.target.value)} disabled={row.closed} required={!row.closed}/>
+                    <input type="time" className="bg-slate-900 border border-slate-700 rounded px-2 py-1" value={row.open} onChange={e=>setHour(key,"open", e.target.value)} disabled={row.closed} required={!row.closed}/>
                     <span className="text-center opacity-70">to</span>
-                    <input type="time" className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
-                      value={row.close} onChange={e=>setHour(key,"close", e.target.value)} disabled={row.closed} required={!row.closed}/>
+                    <input type="time" className="bg-slate-900 border border-slate-700 rounded px-2 py-1" value={row.close} onChange={e=>setHour(key,"close", e.target.value)} disabled={row.closed} required={!row.closed}/>
                     <label className="inline-flex items-center gap-2 text-sm">
                       <input type="checkbox" checked={row.closed} onChange={e=>setHour(key,"closed", e.target.checked)} />
                       Closed
