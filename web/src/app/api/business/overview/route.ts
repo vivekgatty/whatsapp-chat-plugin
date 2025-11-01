@@ -4,7 +4,6 @@ export const revalidate = 0;
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-// RELATIVE import to avoid alias issues
 import { getSupabaseServer } from "../../../../lib/supabaseServer";
 
 type Day = "mon"|"tue"|"wed"|"thu"|"fri"|"sat"|"sun";
@@ -23,12 +22,7 @@ async function getUser() {
 }
 
 const URL  = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SKEY = process.env.SUPABASE_SERVICE_ROLE; // SERVICE ROLE (server-only)
-
-if (!URL || !SKEY) {
-  // Make the cause obvious in the UI
-  console.error("Missing env: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE");
-}
+const SKEY = process.env.SUPABASE_SERVICE_ROLE;
 
 const admin = (URL && SKEY)
   ? createClient(URL, SKEY, { auth: { persistSession: false } })
@@ -100,9 +94,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  if (!admin) {
-    return NextResponse.json({ ok: false, error: "server_env_missing" }, { status: 500 });
-  }
+  if (!admin) return NextResponse.json({ ok: false, error: "server_env_missing" }, { status: 500 });
 
   const body = await req.json().catch(() => ({}));
   const row  = sanitize(body);
