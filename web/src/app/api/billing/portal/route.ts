@@ -2,25 +2,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-function readPortalUrl(): string | null {
-  const raw = process.env.RAZORPAY_CUSTOMER_PORTAL_URL;
-  if (!raw) return null;
-  try {
-    const u = new URL(raw.trim());
-    if (!/^https?:$/i.test(u.protocol)) return null;
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
-
-export async function GET() {
-  const url = readPortalUrl();
+function redirectOrExplain() {
+  const url = process.env.RAZORPAY_CUSTOMER_PORTAL_URL;
   if (!url) {
-    return NextResponse.json({ ok:false, error:"portal_url_not_configured" }, { status: 503 });
+    return NextResponse.json({ ok: false, error: "portal_url_not_configured" });
   }
-  // Use a standard HTTP 302 with Location header (works in all runtimes).
-  return new Response(null, { status: 302, headers: { Location: url } });
+  return NextResponse.redirect(url, { status: 302 });
 }
+
+export function GET(_req: NextRequest) { return redirectOrExplain(); }
+export function POST(_req: NextRequest) { return redirectOrExplain(); }
