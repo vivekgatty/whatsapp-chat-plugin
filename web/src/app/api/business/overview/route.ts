@@ -10,20 +10,15 @@ const URL  = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SKEY = process.env.SUPABASE_SERVICE_ROLE!;
 const admin = createClient(URL, SKEY, { auth: { persistSession: false } });
 
+const TABLE = "businesses";
+
 type Day = "mon"|"tue"|"wed"|"thu"|"fri"|"sat"|"sun";
 type HoursRow = { open: string; close: string; closed: boolean };
 type HoursMap = Record<Day, HoursRow>;
-const TABLE = "businesses";
 
 function defaultHours(): HoursMap {
   const base: HoursRow = { open: "09:00", close: "18:00", closed: false };
   return { mon:{...base}, tue:{...base}, wed:{...base}, thu:{...base}, fri:{...base}, sat:{...base}, sun:{...base, closed:true} };
-}
-
-async function getUser() {
-  const supa = await getSupabaseServer();
-  const { data: { user } } = await supa.auth.getUser();
-  return user;
 }
 
 function sanitize(input: any) {
@@ -31,36 +26,54 @@ function sanitize(input: any) {
   const dial  = String(input?.dialCode ?? "").trim();
   const local = String(input?.phone ?? "").replace(/\D/g, "");
   const e164  = dial && local ? (dial + local) : null;
+
   return {
-    company_name: String(input?.name ?? ""),                   // <-- store into company_name
-    website: String(input?.website ?? ""),
-    email: String(input?.email ?? ""),
-    country: String(input?.country ?? "IN"),
-    dial_code: dial || null,
-    phone: local || null,
+    company_name: String(input?.name ?? ""),        // map name -> company_name (NOT NULL)
+    website:      String(input?.website ?? ""),
+    email:        String(input?.email ?? ""),
+    country:      String(input?.country ?? "IN"),
+    dial_code:    dial || null,
+    phone:        local || null,
     whatsapp_e164: e164,
-    hours,
-    logo_url: input?.logoUrl ?? null
+    hours
   };
 }
 
 export async function GET() {
+  const supa = await getSupabaseServer();
+  const { data: { user } } = await supa.auth.getUser();
+
   const defaults = {
-    name: "", website: "https://chatmadi.com", email: "admin@chatmadi.com",
-    country: "IN", dialCode: "+91", phone: "", hours: defaultHours(), logoUrl: null
+    name: "",
+    website: "https://chatmadi.com",
+    email: "admin@chatmadi.com",
+    country: "IN",
+    dialCode: "+91",
+    phone: "",
+    hours: defaultHours(),
+    logoUrl: null as string | null
   };
 
-  const user = await getUser();
-  if (!user) return NextResponse.json({ ok: true, plan: "free", used: 0, quota: 100, business: defaults });
+  if (!user) {
+    return NextResponse.json({ ok: true, plan: "free", used: 0, quota: 100, business: defaults });
+  }
 
-  const { data, error } = await admin.from(TABLE).select("*").eq("owner_user_id", user.id).limit(1).maybeSingle();
-  if (error) return NextResponse.json({ ok: false, error: error.message, business: defaults }, { status: 500 });
+  const ex = await admin
+    .from(TABLE)
+    .select("id, company_name, website, email, country, dial_code, phone, hours, logo_url, whatsapp_e164")
+    .or(`owner_user_id.eq.${user.id},owner_id.eq.${user.id}`)
+    .limit(1).maybeSingle();
 
-  const b: any = data ?? {};
+  if (ex.error) {
+    return NextResponse.json({ ok:false, error: ex.error.message, business: defaults }, { status: 500 });
+  }
+
+  const b: any = ex.data ?? {};
   return NextResponse.json({
-    ok: true, plan: "free", used: 0, quota: 100,
+    ok: true,
+    plan: "free", used: 0, quota: 100,
     business: {
-      name: b.company_name ?? "",                               // <-- read from company_name
+      name: b.company_name ?? "",
       website: b.website ?? defaults.website,
       email: b.email ?? defaults.email,
       country: b.country ?? defaults.country,
@@ -73,20 +86,66 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  const supa = await getSupabaseServer();
+  const { data: { user } } = await supa.auth.getUser();
+  if (!user) return NextResponse.json({ ok:false, error: "unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
   const row  = sanitize(body);
 
-  const payload = { owner_user_id: user.id, owner_id: user.id, ...row };
-
-  const { data, error } = await admin
+  // Find existing by owner_user_id OR owner_id
+  const ex = await admin
     .from(TABLE)
-    .upsert(payload, { onConflict: "owner_user_id" })
-    .select("*")
-    .maybeSingle();
+    .select("id")
+    .or(`owner_user_id.eq.${user.id},owner_id.eq.${user.id}`)
+    .limit(1).maybeSingle();
 
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true, business: data });
+  if (ex.error) {
+    return NextResponse.json({ ok:false, error: ex.error.message }, { status: 500 });
+  }
+
+  if (ex.data?.id) {
+    // Update existing (no duplicate key issues)
+    const upd = await admin.from(TABLE).update(row).eq("id", ex.data.id).select("*").maybeSingle();
+    if (upd.error) return NextResponse.json({ ok:false, error: upd.error.message }, { status: 500 });
+
+    const b: any = upd.data;
+    return NextResponse.json({
+      ok: true,
+      business: {
+        name: b.company_name ?? "",
+        website: b.website ?? "",
+        email: b.email ?? "",
+        country: b.country ?? "IN",
+        dialCode: b.dial_code ?? null,
+        phone: b.phone ?? null,
+        hours: b.hours ?? defaultHours(),
+        logoUrl: b.logo_url ?? null
+      }
+    });
+  }
+
+  // No row yet -> insert minimal valid row; set BOTH owner columns
+  const ins = await admin.from(TABLE).insert({
+    owner_user_id: user.id,
+    owner_id: user.id,
+    ...row
+  }).select("*").maybeSingle();
+
+  if (ins.error) return NextResponse.json({ ok:false, error: ins.error.message }, { status: 500 });
+
+  const b: any = ins.data;
+  return NextResponse.json({
+    ok: true,
+    business: {
+      name: b.company_name ?? "",
+      website: b.website ?? "",
+      email: b.email ?? "",
+      country: b.country ?? "IN",
+      dialCode: b.dial_code ?? null,
+      phone: b.phone ?? null,
+      hours: b.hours ?? defaultHours(),
+      logoUrl: b.logo_url ?? null
+    }
+  });
 }
