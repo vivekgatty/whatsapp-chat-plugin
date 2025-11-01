@@ -1,15 +1,22 @@
-/** stamp: 2025-11-01_07-59-29 */
+/** stamp: 2025-11-01_08-30-23 */
 import PlanBadge from "@/components/PlanBadge";
 import { UsageBanner } from "@/components/UsageBanner";
 export const dynamic = "force-dynamic";
 
-async function fetchOverview() {
-  const r = await fetch("/api/business/overview", { cache: "no-store" });
-  return r.json();
+async function getOverview() {
+  try {
+    const r = await fetch("/api/business/overview", { cache: "no-store" });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(String(data?.error ?? r.status));
+    return data;
+  } catch {
+    // Never crash the page – show sensible defaults
+    return { plan: "free", used: 0, quota: 100, business: null };
+  }
 }
 
 export default async function DashboardPage() {
-  const o = await fetchOverview();
+  const o = await getOverview();
   const plan  = o?.plan ?? "free";
   const used  = o?.used ?? 0;
   const quota = o?.quota ?? 100;
