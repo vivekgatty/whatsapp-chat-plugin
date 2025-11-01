@@ -3,8 +3,12 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { getSupabaseServer } from "../../lib/supabaseServer";
 
+function hasHttpsUrl(v?: string | null) {
+  return !!(v && /^https?:\/\//i.test(v.trim()));
+}
+
 export default async function BillingPage() {
-  // Always guard auth + env to avoid runtime crashes
+  // Guard auth to avoid runtime crashes
   let userId: string | null = null;
   try {
     const supa = await getSupabaseServer();
@@ -14,8 +18,9 @@ export default async function BillingPage() {
     userId = null;
   }
 
+  // Read env at runtime (server) and validate
   const portalUrl = process.env.RAZORPAY_CUSTOMER_PORTAL_URL || "";
-  const hasPortal = portalUrl.length > 0;
+  const showPortal = hasHttpsUrl(portalUrl);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -28,25 +33,28 @@ export default async function BillingPage() {
 
       {!userId && (
         <div className="rounded border border-slate-700 p-4">
-          <div className="font-medium mb-2">YouÃ¢â‚¬â„¢re not signed in</div>
+          <div className="font-medium mb-2">You’re not signed in</div>
           <p className="text-slate-300 text-sm">
             Please sign in from the home page, then return to billing.
           </p>
         </div>
       )}
 
-      <div className="rounded border border-slate-700 p-4">
-        <div className="font-medium mb-2">Manage subscription</div>
-        {hasPortal ? (
+      <div className="rounded border border-slate-700 p-4 space-y-3">
+        <div className="font-medium">Manage subscription</div>
+
+        {showPortal ? (
           <a
-            href={portalUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
+            href="/api/billing/portal"
+            className="inline-flex items-center justify-center bg-sky-600 hover:bg-sky-500 rounded px-4 py-2 text-sm font-medium w-fit"
+          >
             Open billing portal
           </a>
         ) : (
           <div className="text-sm text-slate-300">
-            Billing isnÃ¢â‚¬â„¢t fully configured yet. Ask the site admin to set{" "}
+            Billing isn’t fully configured yet. Set{" "}
             <code className="px-1 py-0.5 rounded bg-slate-800">RAZORPAY_CUSTOMER_PORTAL_URL</code>{" "}
-            in Vercel Project Ã¢â€ â€™ Settings Ã¢â€ â€™ Environment Variables.
+            in Vercel → Project → Settings → Environment Variables (Production) to enable the portal.
           </div>
         )}
       </div>
