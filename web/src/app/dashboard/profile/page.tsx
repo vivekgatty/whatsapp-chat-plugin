@@ -69,45 +69,23 @@ export default function Page(){
     let dead = false;
     (async () => {
       try {
-        const r = await fetch("/api/business/overview", { cache: "no-store" });
-        if (r.ok) {
-          const j = await r.json();
-          const incoming: Biz = {
-            name: j?.business?.name ?? "",
-            website: j?.business?.website ?? "https://chatmadi.com",
-            email: j?.business?.email ?? "admin@chatmadi.com",
-            country: j?.business?.country ?? "IN",
-            dialCode: j?.business?.dialCode ?? "+91",
-            phone: j?.business?.phone ?? "",
-            hours: j?.business?.hours ?? defaultHours(),
-          };
-          if (!dead) setBiz(incoming);
-        }
-      } finally {
-        if (!dead) setLoading(false);
-      }
-    })();
-    return () => { dead = true; };
-  }, []);
-
-  function onField<K extends keyof Biz>(k: K, v: Biz[K]) {
-    setBiz(b => ({ ...b, [k]: v }));
-  }
-
-  function setHour(day: Day, part: "open"|"close"|"closed", value: string|boolean) {
-    setBiz(b => {
-      const hx = (b.hours && Object.keys(b.hours).length ? b.hours : defaultHours()) as HoursMap;
-      const row = (hx as any)[day] ?? { open: "09:00", close: "18:00", closed: false };
-      return { ...b, hours: { ...(hx as any), [day]: { ...row, [part]: value as any } } };
-    });
-  }
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true); setMsg(undefined);
+        const r = await fetch('/api/business/overview', {
+  method: 'POST',
+  credentials: 'same-origin',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(biz)
+});
+const j = await r.json().catch(() => null);
+setMsg(r.ok ? 'Saved' : ('Could not save: ' + (j?.error ?? (r.status + ' ' + r.statusText))));
     try {
-      const r = await fetch("/api/business/overview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(biz) });
-      setMsg(r.ok ? "Saved" : "Could not save right now.");
+      const r = await fetch('/api/business/overview', {
+  method: 'POST',
+  credentials: 'same-origin',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(biz)
+});
+const j = await r.json().catch(() => null);
+setMsg(r.ok ? 'Saved' : ('Could not save: ' + (j?.error ?? (r.status + ' ' + r.statusText))));
     } catch {
       setMsg("Could not save right now.");
     } finally {
