@@ -28,7 +28,7 @@ function sanitize(input: any) {
   const e164  = dial && local ? (dial + local) : null;
 
   return {
-    company_name: String(input?.name ?? ""),        // map name -> company_name (NOT NULL)
+    company_name: String(input?.name ?? ""),  // map to NOT NULL column
     website:      String(input?.website ?? ""),
     email:        String(input?.email ?? ""),
     country:      String(input?.country ?? "IN"),
@@ -54,9 +54,7 @@ export async function GET() {
     logoUrl: null as string | null
   };
 
-  if (!user) {
-    return NextResponse.json({ ok: true, plan: "free", used: 0, quota: 100, business: defaults });
-  }
+  if (!user) return NextResponse.json({ ok: true, plan: "free", used: 0, quota: 100, business: defaults });
 
   const ex = await admin
     .from(TABLE)
@@ -64,9 +62,7 @@ export async function GET() {
     .or(`owner_user_id.eq.${user.id},owner_id.eq.${user.id}`)
     .limit(1).maybeSingle();
 
-  if (ex.error) {
-    return NextResponse.json({ ok:false, error: ex.error.message, business: defaults }, { status: 500 });
-  }
+  if (ex.error) return NextResponse.json({ ok:false, error: ex.error.message, business: defaults }, { status: 500 });
 
   const b: any = ex.data ?? {};
   return NextResponse.json({
@@ -90,42 +86,30 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supa.auth.getUser();
   if (!user) return NextResponse.json({ ok:false, error: "unauthorized" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const row  = sanitize(body);
+  const row  = sanitize(await req.json().catch(() => ({})));
 
-  // Find existing by owner_user_id OR owner_id
+  // Look up existing by either owner column
   const ex = await admin
     .from(TABLE)
     .select("id")
     .or(`owner_user_id.eq.${user.id},owner_id.eq.${user.id}`)
     .limit(1).maybeSingle();
 
-  if (ex.error) {
-    return NextResponse.json({ ok:false, error: ex.error.message }, { status: 500 });
-  }
+  if (ex.error) return NextResponse.json({ ok:false, error: ex.error.message }, { status: 500 });
 
   if (ex.data?.id) {
-    // Update existing (no duplicate key issues)
+    // Update existing row -> avoids duplicate key on owner_id unique index
     const upd = await admin.from(TABLE).update(row).eq("id", ex.data.id).select("*").maybeSingle();
     if (upd.error) return NextResponse.json({ ok:false, error: upd.error.message }, { status: 500 });
-
     const b: any = upd.data;
-    return NextResponse.json({
-      ok: true,
-      business: {
-        name: b.company_name ?? "",
-        website: b.website ?? "",
-        email: b.email ?? "",
-        country: b.country ?? "IN",
-        dialCode: b.dial_code ?? null,
-        phone: b.phone ?? null,
-        hours: b.hours ?? defaultHours(),
-        logoUrl: b.logo_url ?? null
-      }
-    });
+    return NextResponse.json({ ok: true, business: {
+      name: b.company_name ?? "", website: b.website ?? "", email: b.email ?? "",
+      country: b.country ?? "IN", dialCode: b.dial_code ?? null, phone: b.phone ?? null,
+      hours: b.hours ?? defaultHours(), logoUrl: b.logo_url ?? null
+    }});
   }
 
-  // No row yet -> insert minimal valid row; set BOTH owner columns
+  // Insert a new one with BOTH owner columns set
   const ins = await admin.from(TABLE).insert({
     owner_user_id: user.id,
     owner_id: user.id,
@@ -135,17 +119,9 @@ export async function POST(req: NextRequest) {
   if (ins.error) return NextResponse.json({ ok:false, error: ins.error.message }, { status: 500 });
 
   const b: any = ins.data;
-  return NextResponse.json({
-    ok: true,
-    business: {
-      name: b.company_name ?? "",
-      website: b.website ?? "",
-      email: b.email ?? "",
-      country: b.country ?? "IN",
-      dialCode: b.dial_code ?? null,
-      phone: b.phone ?? null,
-      hours: b.hours ?? defaultHours(),
-      logoUrl: b.logo_url ?? null
-    }
-  });
+  return NextResponse.json({ ok: true, business: {
+    name: b.company_name ?? "", website: b.website ?? "", email: b.email ?? "",
+    country: b.country ?? "IN", dialCode: b.dial_code ?? null, phone: b.phone ?? null,
+    hours: b.hours ?? defaultHours(), logoUrl: b.logo_url ?? null
+  }});
 }
