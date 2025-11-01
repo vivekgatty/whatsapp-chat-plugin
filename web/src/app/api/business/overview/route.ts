@@ -32,7 +32,7 @@ function sanitize(input: any) {
   const local = String(input?.phone ?? "").replace(/\D/g, "");
   const e164  = dial && local ? (dial + local) : null;
   return {
-    name: String(input?.name ?? ""),
+    company_name: String(input?.name ?? ""),                   // <-- store into company_name
     website: String(input?.website ?? ""),
     email: String(input?.email ?? ""),
     country: String(input?.country ?? "IN"),
@@ -60,9 +60,14 @@ export async function GET() {
   return NextResponse.json({
     ok: true, plan: "free", used: 0, quota: 100,
     business: {
-      name: b.name ?? "", website: b.website ?? defaults.website, email: b.email ?? defaults.email,
-      country: b.country ?? defaults.country, dialCode: b.dial_code ?? defaults.dialCode,
-      phone: b.phone ?? defaults.phone, hours: b.hours ?? defaults.hours, logoUrl: b.logo_url ?? null
+      name: b.company_name ?? "",                               // <-- read from company_name
+      website: b.website ?? defaults.website,
+      email: b.email ?? defaults.email,
+      country: b.country ?? defaults.country,
+      dialCode: b.dial_code ?? defaults.dialCode,
+      phone: b.phone ?? defaults.phone,
+      hours: b.hours ?? defaults.hours,
+      logoUrl: b.logo_url ?? null
     }
   });
 }
@@ -73,6 +78,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const row  = sanitize(body);
+
   const payload = { owner_user_id: user.id, owner_id: user.id, ...row };
 
   const { data, error } = await admin
