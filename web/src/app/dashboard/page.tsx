@@ -1,32 +1,35 @@
+/** stamp: 2025-11-01_07-59-29 */
 import PlanBadge from "@/components/PlanBadge";
 import { UsageBanner } from "@/components/UsageBanner";
 export const dynamic = "force-dynamic";
-/** stamp: 2025-11-01_07-37-21 */
 
 async function fetchOverview() {
-  try {
-    const r = await fetch("/api/business/overview", { cache: "no-store" });
-    if (!r.ok) return {};
-    const ct = r.headers.get("content-type") || "";
-    if (!ct.includes("application/json")) return {};
-    return await r.json();
-  } catch {
-    return {};
-  }
+  const r = await fetch("/api/business/overview", { cache: "no-store" });
+  return r.json();
 }
 
 export default async function DashboardPage() {
-  const o: any = await fetchOverview();
-  const plan  = o?.plan  ?? "free";
-  const used  = o?.used  ?? 0;
+  const o = await fetchOverview();
+  const plan  = o?.plan ?? "free";
+  const used  = o?.used ?? 0;
   const quota = o?.quota ?? 100;
   const biz   = o?.business ?? {};
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-semibold mb-6">Dashboard <PlanBadge plan={plan} /></h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        <PlanBadge plan={plan} />
+      </div>
 
-      <div className="space-y-6">
+      {/* Quick actions */}
+      <div className="mt-4 flex flex-wrap gap-3">
+        <a className="px-3 py-2 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700" href="/dashboard/profile">Edit profile</a>
+        <a className="px-3 py-2 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700" href="/dashboard/widget">Widget settings</a>
+        <a className="px-3 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-500" href="/pricing">Manage plan</a>
+      </div>
+
+      <div className="space-y-6 mt-6">
         <div className="rounded-lg border border-slate-700 p-4">
           <div className="font-medium mb-2">Business profile</div>
           <div className="text-sm text-slate-300 space-y-1">

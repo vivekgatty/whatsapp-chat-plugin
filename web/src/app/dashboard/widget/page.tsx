@@ -1,26 +1,10 @@
-﻿import { redirect } from "next/navigation";
-import { getSupabaseServer } from "../../../lib/supabaseServer";
-import WidgetPanel from "./ui/WidgetPanel";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
-export default async function WidgetPage(){
-  const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?redirectedFrom=/dashboard/widget");
-
-  const { data: widget } = await supabase
-    .from("widgets")
-    .select("*")
-    .eq("owner_user_id", user.id)
-    .maybeSingle();
-
+/** stamp: 2025-11-01_07-59-29 */
+export default function WidgetSettingsPage() {
   return (
-    <main className="max-w-5xl mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-6">Widget settings</h1>
-      <WidgetPanel userId={user.id} initial={widget ?? null} />
-    </main>
+    <div className="max-w-3xl mx-auto px-4 py-6">
+      <h1 className="text-2xl font-semibold mb-2">Widget settings</h1>
+      <p className="text-slate-300 mb-4">Configure chat widget options here (placeholder page).</p>
+      <a className="underline" href="/dashboard">← Back to dashboard</a>
+    </div>
   );
 }
