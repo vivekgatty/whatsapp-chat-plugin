@@ -46,16 +46,28 @@ export async function POST(req: Request) {
   const pub = admin.storage.from(BUCKET).getPublicUrl(key);
   const url = pub.data.publicUrl;
 
-  // Try update first
-  const upd = await admin.from(TABLE).update({ logo_url: url }).eq("owner_user_id", user.id);
-  if (upd.error) return NextResponse.json({ ok:false, error: upd.error.message }, { status: 500 });
+  // --- FIX: check existence first (owner_user_id OR owner_id) ---
+  const existing = await admin
+    .from(TABLE)
+    .select("id")
+    .or(`owner_user_id.eq.${user.id},owner_id.eq.${user.id}`)
+    .limit(1)
+    .maybeSingle();
 
-  // If nothing updated, insert a minimal valid row (meets NOT NULL on company_name, owner ids)
-  if ((upd.count ?? 0) === 0) {
+  if (existing.error) {
+    return NextResponse.json({ ok:false, error: existing.error.message }, { status: 500 });
+  }
+
+  if (existing.data?.id) {
+    // Row exists → update only logo_url (no clobber)
+    const upd = await admin.from(TABLE).update({ logo_url: url }).eq("id", existing.data.id);
+    if (upd.error) return NextResponse.json({ ok:false, error: upd.error.message }, { status: 500 });
+  } else {
+    // No row yet → insert minimal valid row that satisfies NOT NULLs
     const ins = await admin.from(TABLE).insert({
       owner_user_id: user.id,
       owner_id: user.id,
-      company_name: "",          // NOT NULL satisfied
+      company_name: "",      // NOT NULL satisfied; user can fill later
       website: "",
       email: "",
       country: "IN",
@@ -64,7 +76,7 @@ export async function POST(req: Request) {
       whatsapp_e164: null,
       hours: defaultHours(),
       logo_url: url
-    }).select("*").maybeSingle();
+    }).select("id").maybeSingle();
     if (ins.error) return NextResponse.json({ ok:false, error: ins.error.message }, { status: 500 });
   }
 
