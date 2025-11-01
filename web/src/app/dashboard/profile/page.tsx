@@ -1,286 +1,189 @@
 'use client';
-/** Edit Business Profile â€” restored (2025-11-01_09-50-19)
- * - Client component to avoid server crashes
- * - Country dropdown (all countries via Intl.DisplayNames)
- * - Dial code input with common-code suggestions (datalist) â€” user can enter ANY code
- * - Working hours grid (Monâ€“Sun) with time inputs + Closed toggle
- * - Safe fetch/POST with toasts; never throws
- */
+import React from "react";
+import { getCountries, getCountryCallingCode } from "libphonenumber-js";
 
-import React from 'react';
-
+type Day = "mon"|"tue"|"wed"|"thu"|"fri"|"sat"|"sun";
+type HoursRow = { open: string; close: string; closed: boolean };
+type HoursMap = Record<Day, HoursRow>;
 type Biz = {
   name?: string;
   website?: string;
   email?: string;
-  country?: string;    // ISO 3166-1 alpha-2
-  dialCode?: string;   // e.g. +91
-  phone?: string;      // local phone part
-  hours?: Record<string, { open: string; close: string; closed: boolean }>;
+  country?: string;
+  dialCode?: string;
+  phone?: string;
+  hours?: Partial<HoursMap> | HoursMap;
 };
 
-const DAYS: Array<{ key: string; label: string }> = [
-  { key: 'mon', label: 'Mon' },
-  { key: 'tue', label: 'Tue' },
-  { key: 'wed', label: 'Wed' },
-  { key: 'thu', label: 'Thu' },
-  { key: 'fri', label: 'Fri' },
-  { key: 'sat', label: 'Sat' },
-  { key: 'sun', label: 'Sun' },
+const DAYS: { key: Day; label: string }[] = [
+  { key: "mon", label: "Mon" },
+  { key: "tue", label: "Tue" },
+  { key: "wed", label: "Wed" },
+  { key: "thu", label: "Thu" },
+  { key: "fri", label: "Fri" },
+  { key: "sat", label: "Sat" },
+  { key: "sun", label: "Sun" },
 ];
 
-function defaultHours(): Biz['hours'] {
-  const base = { open: '09:00', close: '18:00', closed: false };
-  return {
-    mon: { ...base },
-    tue: { ...base },
-    wed: { ...base },
-    thu: { ...base },
-    fri: { ...base },
-    sat: { ...base },
-    sun: { ...base, closed: true },
-  };
+function defaultHours(): HoursMap {
+  const base: HoursRow = { open: "09:00", close: "18:00", closed: false };
+  return { mon:{...base}, tue:{...base}, wed:{...base}, thu:{...base}, fri:{...base}, sat:{...base}, sun:{...base, closed:true} };
 }
 
-// Common dial codes as suggestions (user can still type any code)
-const COMMON_DIALS = [
-  '+1', '+7', '+20', '+27', '+30', '+31', '+32', '+33', '+34', '+36', '+39',
-  '+40', '+41', '+43', '+44', '+45', '+46', '+47', '+48', '+49', '+52', '+53',
-  '+54', '+55', '+56', '+57', '+58', '+60', '+61', '+62', '+63', '+64', '+65',
-  '+66', '+81', '+82', '+84', '+86', '+90', '+91', '+92', '+93', '+94', '+95',
-  '+98', '+212', '+213', '+216', '+218', '+220', '+221', '+234', '+251', '+254',
-  '+256', '+263', '+298', '+351', '+352', '+353', '+354', '+355', '+356', '+357',
-  '+358', '+359', '+370', '+371', '+372', '+373', '+374', '+375', '+376', '+377',
-  '+378', '+380', '+381', '+382', '+383', '+385', '+386', '+387', '+389', '+420',
-  '+421', '+423', '+500', '+501', '+502', '+503', '+504', '+505', '+506', '+507',
-  '+508', '+509', '+590', '+591', '+592', '+593', '+594', '+595', '+596', '+597',
-  '+598', '+599', '+670', '+673', '+675', '+676', '+677', '+678', '+679', '+680',
-  '+681', '+682', '+683', '+685', '+686', '+687', '+688', '+689', '+690', '+691',
-  '+692', '+850', '+852', '+853', '+855', '+856', '+870', '+871', '+872', '+873',
-  '+874', '+875', '+876', '+877', '+878', '+880', '+886', '+960', '+961', '+962',
-  '+963', '+964', '+965', '+966', '+967', '+968', '+970', '+971', '+972', '+973',
-  '+974', '+975', '+976', '+977', '+978', '+992', '+993', '+994', '+995', '+996',
-  '+998'
-];
+function buildCountryData() {
+  const dn = typeof Intl !== "undefined" ? new Intl.DisplayNames(["en"], { type: "region" }) : undefined;
+  const countries = getCountries()
+    .map(code => ({ code, name: (dn?.of(code) as string) || code, dial: "+" + getCountryCallingCode(code) }))
+    .sort((a,b) => a.name.localeCompare(b.name));
 
-function getAllCountries(): Array<{ code: string; name: string }> {
-  try {
-    // Modern browsers: list all regions
-    const regions = (Intl as any).supportedValuesOf?.('region') as string[] | undefined;
-    if (regions && regions.length) {
-      const dn = new Intl.DisplayNames(['en'], { type: 'region' });
-      return regions
-        .map((r) => ({ code: r, name: (dn.of(r) as string) ?? r }))
-        .filter((c) => /^[A-Z]{2}$/.test(c.code))
-        .sort((a, b) => a.name.localeCompare(b.name));
-    }
-  } catch {}
-  // Fallback minimal list (kept tiny; user can still type any dialCode)
-  return [
-    { code: 'IN', name: 'India' },
-    { code: 'US', name: 'United States' },
-    { code: 'GB', name: 'United Kingdom' },
-    { code: 'AE', name: 'United Arab Emirates' },
-    { code: 'SG', name: 'Singapore' },
-    { code: 'AU', name: 'Australia' },
-    { code: 'DE', name: 'Germany' },
-    { code: 'FR', name: 'France' },
-    { code: 'ZA', name: 'South Africa' },
-  ];
+  const dialMap = new Map<string, string[]>(); // dial -> [country names]
+  for (const c of countries) {
+    const arr = dialMap.get(c.dial) ?? [];
+    arr.push(c.name);
+    dialMap.set(c.dial, arr);
+  }
+  const dials = Array.from(dialMap.entries())
+    .map(([dial, names]) => ({ dial, label: `${dial} - ${names[0]}${names.length>1 ? ` (+${names.length-1} more)` : ""}` }))
+    .sort((a,b) => parseInt(a.dial.slice(1)) - parseInt(b.dial.slice(1)));
+
+  return { countries, dials };
 }
 
-export default function Page() {
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving]   = React.useState(false);
-  const [error, setError]     = React.useState<string|undefined>();
-  const [ok, setOk]           = React.useState<string|undefined>();
-
+export default function Page(){
+  const data = React.useMemo(buildCountryData, []);
   const [biz, setBiz] = React.useState<Biz>({
-    name: '',
-    website: 'https://chatmadi.com',
-    email: 'admin@chatmadi.com',
-    country: 'IN',
-    dialCode: '+91',
-    phone: '',
+    name: "",
+    website: "https://chatmadi.com",
+    email: "admin@chatmadi.com",
+    country: "IN",
+    dialCode: "+91",
+    phone: "9591428002",
     hours: defaultHours(),
   });
 
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving]   = React.useState(false);
+  const [msg, setMsg]         = React.useState<string | undefined>();
+
   React.useEffect(() => {
-    let cancelled = false;
+    let dead = false;
     (async () => {
       try {
-        const r = await fetch('/api/business/overview', { cache: 'no-store' });
-        if (!r.ok) throw new Error('overview_not_ok');
-        const j = await r.json();
-        const incoming: Biz = {
-          name: j?.business?.name ?? biz.name,
-          website: j?.business?.website ?? biz.website,
-          email: j?.business?.email ?? biz.email,
-          country: j?.business?.country ?? biz.country,
-          dialCode: j?.business?.dialCode ?? biz.dialCode,
-          phone: j?.business?.phone ?? biz.phone,
-          hours: j?.business?.hours ?? biz.hours,
-        };
-        if (!cancelled) setBiz(incoming);
-      } catch {
-        // Silent fallback: defaults remain
+        const r = await fetch("/api/business/overview", { cache: "no-store" });
+        if (r.ok) {
+          const j = await r.json();
+          const incoming: Biz = {
+            name: j?.business?.name ?? "",
+            website: j?.business?.website ?? "https://chatmadi.com",
+            email: j?.business?.email ?? "admin@chatmadi.com",
+            country: j?.business?.country ?? "IN",
+            dialCode: j?.business?.dialCode ?? "+91",
+            phone: j?.business?.phone ?? "",
+            hours: j?.business?.hours ?? defaultHours(),
+          };
+          if (!dead) setBiz(incoming);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!dead) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { dead = true; };
   }, []);
 
-  const countries = React.useMemo(getAllCountries, []);
-  const onField = (k: keyof Biz, v: any) => setBiz((b) => ({ ...b, [k]: v }));
+  function onField<K extends keyof Biz>(k: K, v: Biz[K]) {
+    setBiz(b => ({ ...b, [k]: v }));
+  }
+
+  function setHour(day: Day, part: "open"|"close"|"closed", value: string|boolean) {
+    setBiz(b => {
+      const hx = (b.hours && Object.keys(b.hours).length ? b.hours : defaultHours()) as HoursMap;
+      const row = (hx as any)[day] ?? { open: "09:00", close: "18:00", closed: false };
+      return { ...b, hours: { ...(hx as any), [day]: { ...row, [part]: value as any } } };
+    });
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true); setError(undefined); setOk(undefined);
+    setSaving(true); setMsg(undefined);
     try {
-      const r = await fetch('/api/business/overview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(biz),
-      });
-      if (!r.ok) throw new Error('save_failed');
-      setOk('Saved.');
-    } catch (err: any) {
-      setError('Could not save right now. Your changes are still on screen.');
+      const r = await fetch("/api/business/overview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(biz) });
+      setMsg(r.ok ? "Saved" : "Could not save right now.");
+    } catch {
+      setMsg("Could not save right now.");
     } finally {
       setSaving(false);
     }
   }
 
-  function setHour(day: string, part: 'open'|'close'|'closed', value: string|boolean) {
-    setBiz((b) => ({
-      ...b,
-      hours: {
-        ...(b.hours ?? defaultHours()),
-        [day]: { ...(b.hours?.[day] ?? { open: '09:00', close: '18:00', closed: false }), [part]: value as any }
-      }
-    }));
-  }
+  const onCountryChange = (code: string) => {
+    onField("country", code);
+    const match = data.countries.find(c => c.code === code);
+    if (match) onField("dialCode", match.dial);
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
       <h1 className="text-2xl font-semibold">Edit business profile</h1>
 
-      {loading ? (
-        <div className="text-slate-300">Loadingâ€¦</div>
-      ) : (
+      {loading ? <div className="text-slate-300">Loading...</div> : (
         <form onSubmit={save} className="space-y-6">
-          {/* Basic details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm mb-1">Business name</label>
-              <input
-                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.name ?? ''}
-                onChange={(e) => onField('name', e.target.value)}
-                placeholder="Your company"
-                required
-              />
+              <input className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                value={biz.name ?? ""} onChange={e=>onField("name", e.target.value)} placeholder="Your company" required />
             </div>
             <div>
               <label className="block text-sm mb-1">Website</label>
-              <input
-                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.website ?? ''}
-                onChange={(e) => onField('website', e.target.value)}
-                placeholder="https://example.com"
-                pattern="https?://.+"
-                required
-              />
+              <input className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                value={biz.website ?? ""} onChange={e=>onField("website", e.target.value)} placeholder="https://example.com" pattern="https?://.+" required />
             </div>
             <div>
               <label className="block text-sm mb-1">Email</label>
-              <input
-                type="email"
-                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.email ?? ''}
-                onChange={(e) => onField('email', e.target.value)}
-                placeholder="you@company.com"
-                required
-              />
+              <input type="email" className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                value={biz.email ?? ""} onChange={e=>onField("email", e.target.value)} placeholder="you@company.com" required />
             </div>
-
-            {/* Country + phone */}
-            <div className="grid grid-cols-[1fr] gap-3">
+            <div>
               <label className="block text-sm mb-1">Country</label>
-              <select
-                className="bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                value={biz.country ?? 'IN'}
-                onChange={(e) => onField('country', e.target.value)}
-              >
-                {countries.map((c) => (
-                  <option key={c.code} value={c.code}>{c.name}</option>
-                ))}
+              <select className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                value={biz.country ?? "IN"} onChange={e => onCountryChange(e.target.value)}>
+                {data.countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-[120px_1fr] gap-3 md:col-span-2">
+
+            <div className="grid grid-cols-[160px_1fr] gap-3 md:col-span-2">
               <div>
                 <label className="block text-sm mb-1">Dial code</label>
-                <input
-                  list="dial-codes"
-                  className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                  value={biz.dialCode ?? '+91'}
-                  onChange={(e) => onField('dialCode', e.target.value)}
-                  placeholder="+91"
-                  pattern="^\+[\d]{1,4}$"
-                  required
-                />
-                <datalist id="dial-codes">
-                  {COMMON_DIALS.map((d) => <option key={d} value={d} />)}
-                </datalist>
+                <select className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                  value={biz.dialCode ?? "+91"}
+                  onChange={e => onField("dialCode", e.target.value)}>
+                  {data.dials.map(d => <option key={d.dial} value={d.dial}>{d.label}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm mb-1">Phone number</label>
-                <input
-                  type="tel"
-                  className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
-                  value={biz.phone ?? ''}
-                  onChange={(e) => onField('phone', e.target.value)}
-                  placeholder="9740333189"
-                  required
-                />
+                <input type="tel" className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                  value={biz.phone ?? ""} onChange={e=>onField("phone", e.target.value)} placeholder="9740333189" required />
               </div>
             </div>
           </div>
 
-          {/* Working hours */}
           <div>
             <div className="font-medium mb-2">Working hours</div>
             <div className="grid grid-cols-1 gap-2">
-              {DAYS.map(({ key, label }) => { const _hours = (biz.hours ?? defaultHours()) as any;
-                const row = _hours[key] ?? { open: '09:00', close: '18:00', closed: false };
+              {DAYS.map(({key,label}) => {
+                const hx = (biz.hours && Object.keys(biz.hours as any).length ? biz.hours : defaultHours()) as HoursMap;
+                const row = (hx as any)[key] ?? { open:"09:00", close:"18:00", closed:false };
                 return (
                   <div key={key} className="grid grid-cols-[60px_120px_24px_120px_auto] items-center gap-3">
                     <div className="text-sm text-slate-300">{label}</div>
-                    <input
-                      type="time"
-                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
-                      value={row.open}
-                      onChange={(e) => setHour(key, 'open', e.target.value)}
-                      disabled={row.closed}
-                      required={!row.closed}
-                    />
-                    <span className="text-center opacity-70">â€”</span>
-                    <input
-                      type="time"
-                      className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
-                      value={row.close}
-                      onChange={(e) => setHour(key, 'close', e.target.value)}
-                      disabled={row.closed}
-                      required={!row.closed}
-                    />
+                    <input type="time" className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
+                      value={row.open} onChange={e=>setHour(key,"open", e.target.value)} disabled={row.closed} required={!row.closed}/>
+                    <span className="text-center opacity-70">to</span>
+                    <input type="time" className="bg-slate-900 border border-slate-700 rounded px-2 py-1"
+                      value={row.close} onChange={e=>setHour(key,"close", e.target.value)} disabled={row.closed} required={!row.closed}/>
                     <label className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={row.closed}
-                        onChange={(e) => setHour(key, 'closed', e.target.checked)}
-                      />
+                      <input type="checkbox" checked={row.closed} onChange={e=>setHour(key,"closed", e.target.checked)} />
                       Closed
                     </label>
                   </div>
@@ -289,20 +192,14 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-emerald-600 hover:bg-emerald-700 rounded px-4 py-2 disabled:opacity-60"
-            >
-              {saving ? 'Savingâ€¦' : 'Save'}
+            <button type="submit" disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 rounded px-4 py-2 disabled:opacity-60">
+              {saving ? "Saving..." : "Save"}
             </button>
-            <a href="/dashboard" className="text-sky-400 hover:underline">â† Back to dashboard</a>
+            <a href="/dashboard" className="text-sky-400 hover:underline">Back to dashboard</a>
           </div>
 
-          {error && <div className="text-red-400 text-sm">{error}</div>}
-          {ok && <div className="text-emerald-400 text-sm">{ok}</div>}
+          {msg && <div className="text-sm text-slate-300">{msg}</div>}
         </form>
       )}
     </div>
