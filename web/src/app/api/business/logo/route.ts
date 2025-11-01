@@ -22,22 +22,20 @@ export async function POST(req: Request) {
   const file = form.get("file") as File | null;
   if (!file) return NextResponse.json({ ok:false, error: "file_required" }, { status: 400 });
 
-  // ensure bucket exists (ignore if it already does)
-  try { await admin.storage.createBucket(BUCKET, { public: true, fileSizeLimit: "5MB" }); } catch {}
+  // Create bucket if missing (ignore "already exists" errors)
+  try { await admin.storage.createBucket(BUCKET, { public: true }); } catch {}
 
   const safeName = file.name.replace(/[^\w.\-]+/g, "_");
-  const key = ${user.id}/_;
+  const key = `${user.id}/${Date.now()}_${safeName}`;
+
   const up = await admin.storage.from(BUCKET).upload(key, file, { upsert: true, contentType: file.type });
   if (up.error) return NextResponse.json({ ok:false, error: up.error.message }, { status: 500 });
 
   const pub = admin.storage.from(BUCKET).getPublicUrl(key);
   const url = pub.data.publicUrl;
 
-  // persist on the row
-  const save = await admin
-    .from(TABLE)
-    .upsert({ owner_id: user.id, logo_url: url }, { onConflict: "owner_id" });
-
+  // Save to businesses.logo_url for this owner
+  const save = await admin.from(TABLE).upsert({ owner_id: user.id, logo_url: url }, { onConflict: "owner_id" });
   if (save.error) return NextResponse.json({ ok:false, error: save.error.message }, { status: 500 });
 
   return NextResponse.json({ ok:true, url });
