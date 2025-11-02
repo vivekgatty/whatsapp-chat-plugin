@@ -1,33 +1,145 @@
-﻿export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import AnalyticsClient from "../../../components/analytics/AnalyticsClient";
-import { getSupabaseServer } from "../../../lib/supabaseServer";
+const WID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881"; // your primary widget
+const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatmadi.com";
 
-export default async function AnalyticsPage() {
-  const supa = await getSupabaseServer();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) {
-    return <div className="p-4 text-red-300">Please sign in to view analytics.</div>;
+type Totals = { impressions:number; opens:number; closes:number; clicks:number; leads:number; };
+type Daily  = { day:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
+type ByPage = { page:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
+
+function clampDays(sp: Record<string, string | string[] | undefined>) {
+  const raw = Array.isArray(sp?.days) ? sp.days[0] : sp?.days;
+  const d = parseInt((raw ?? "14") as string, 10);
+  if (!Number.isFinite(d) || d <= 0) return 14;
+  return Math.min(d, 90);
+}
+
+async function getData(days: number) {
+  const u = new URL("/api/dashboard/analytics/summary", ORIGIN);
+  u.searchParams.set("wid", WID);
+  u.searchParams.set("days", String(days));
+  const r = await fetch(u.toString(), { cache: "no-store" });
+  try { return await r.json(); } catch { return { ok:false }; }
+}
+
+export default async function AnalyticsPage({ searchParams }:{
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const days = clampDays(searchParams);
+  const data = await getData(days);
+
+  if (!data?.ok) {
+    return <div className="p-4 text-red-300">Analytics unavailable. Please try again.</div>;
   }
 
-  let widgetId: string | null = null;
-  const { data: w } = await supa
-    .from("widgets")
-    .select("id")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const t: Totals = data.totals ?? { impressions:0, opens:0, closes:0, clicks:0, leads:0 };
+  const daily:  Daily[]  = data.daily  ?? [];
+  const byPage: ByPage[] = data.by_page ?? [];
+  const ctr = t.impressions > 0 ? Math.round((t.clicks / t.impressions) * 100) : 0;
 
-  if (w?.id) widgetId = w.id as string;
+  const csvUrl = new URL("/api/dashboard/analytics/export", ORIGIN);
+  csvUrl.searchParams.set("wid", data.widget_id ?? WID);
+  csvUrl.searchParams.set("days", String(days));
 
-  if (!widgetId) {
-    return <div className="p-4 text-slate-300">No widget found. Create a widget to see analytics.</div>;
-  }
+  const DayLink = ({d,label}:{d:number;label:string}) => {
+    const q = new URLSearchParams(); q.set("days", String(d));
+    return <a className={"px-3 py-2 rounded border border-slate-700 " + (d===days ? "bg-amber-600 text-black" : "bg-slate-900 hover:bg-slate-800")} href={`?${q.toString()}`}>{label}</a>;
+  };
 
   return (
-    <div className="p-4">
-      <AnalyticsClient widgetId={widgetId} initialDays={14} />
+    <div className="p-4 space-y-6">
+      <div className="flex items-center gap-3">
+        <DayLink d={1}  label="Today" />
+        <DayLink d={7}  label="7 days" />
+        <DayLink d={14} label="14 days" />
+        <DayLink d={30} label="30 days" />
+        <a className="ml-auto px-3 py-2 rounded border border-slate-700 bg-slate-900 hover:bg-slate-800" href={csvUrl.toString()}>
+          Export CSV
+        </a>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {[
+          ["Impr.", t.impressions],
+          ["Opens", t.opens],
+          ["Closes", t.closes],
+          ["Clicks", t.clicks],
+          ["Leads", t.leads],
+        ].map(([label, val]) => (
+          <div key={label as string} className="rounded border border-slate-700 bg-slate-900/50 p-3">
+            <div className="text-xs text-slate-400">{label}</div>
+            <div className="text-xl font-bold">{String(val)}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded border border-slate-700 bg-slate-900/50 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Totals (last {days} {days===1?"day":"days"})</h2>
+          <div className="text-sm text-slate-300">CTR: {ctr}%</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="rounded border border-slate-700 bg-slate-900/50 p-4 overflow-x-auto">
+          <h3 className="font-semibold mb-3">Daily</h3>
+          <table className="min-w-full text-sm">
+            <thead className="text-slate-400">
+              <tr>
+                <th className="text-left p-2">day</th>
+                <th className="text-right p-2">impressions</th>
+                <th className="text-right p-2">opens</th>
+                <th className="text-right p-2">closes</th>
+                <th className="text-right p-2">clicks</th>
+                <th className="text-right p-2">leads</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily.map((r) => (
+                <tr key={r.day} className="border-t border-slate-800">
+                  <td className="p-2">{r.day}</td>
+                  <td className="p-2 text-right">{r.impressions}</td>
+                  <td className="p-2 text-right">{r.opens}</td>
+                  <td className="p-2 text-right">{r.closes}</td>
+                  <td className="p-2 text-right">{r.clicks}</td>
+                  <td className="p-2 text-right">{r.leads}</td>
+                </tr>
+              ))}
+              {daily.length === 0 && <tr><td className="p-2 text-slate-400" colSpan={6}>No data</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="rounded border border-slate-700 bg-slate-900/50 p-4 overflow-x-auto">
+          <h3 className="font-semibold mb-3">By page</h3>
+          <table className="min-w-full text-sm">
+            <thead className="text-slate-400">
+              <tr>
+                <th className="text-left p-2">page</th>
+                <th className="text-right p-2">impressions</th>
+                <th className="text-right p-2">opens</th>
+                <th className="text-right p-2">closes</th>
+                <th className="text-right p-2">clicks</th>
+                <th className="text-right p-2">leads</th>
+              </tr>
+            </thead>
+            <tbody>
+              {byPage.map((r) => (
+                <tr key={r.page} className="border-t border-slate-800">
+                  <td className="p-2">{r.page}</td>
+                  <td className="p-2 text-right">{r.impressions}</td>
+                  <td className="p-2 text-right">{r.opens}</td>
+                  <td className="p-2 text-right">{r.closes}</td>
+                  <td className="p-2 text-right">{r.clicks}</td>
+                  <td className="p-2 text-right">{r.leads}</td>
+                </tr>
+              ))}
+              {byPage.length === 0 && <tr><td className="p-2 text-slate-400" colSpan={6}>No data</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
