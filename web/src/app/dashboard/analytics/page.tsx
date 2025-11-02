@@ -20,7 +20,7 @@ async function loadData(days: number) {
   const supa = await getSupabaseServer();
   const { data: auth } = await supa.auth.getUser();
 
-  // Your primary widget id (from our notes)
+  // Primary widget id from project notes
   const FALLBACK_WID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
   let widgetId = FALLBACK_WID;
@@ -72,8 +72,11 @@ function DaysLink({ d, current }: { d:number; current:number }) {
   return <Link href={`?days=${d}`} className={cls}>{d === 1 ? "Today" : `${d} days`}</Link>;
 }
 
-export default async function Page({ searchParams } : { searchParams?: { [k:string]: string | string[] | undefined } }) {
-  const days = clampDays(searchParams?.days);
+export default async function Page(
+  { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
+) {
+  const sp = await searchParams;
+  const days = clampDays(sp?.days);
   const { widgetId, totals, daily, by_page } = await loadData(days);
   const ctr = totals.impressions > 0 ? Math.round((totals.clicks / totals.impressions) * 100) : 0;
 
