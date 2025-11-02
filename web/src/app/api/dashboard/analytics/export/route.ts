@@ -1,4 +1,4 @@
-﻿export const runtime = "nodejs";
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -13,14 +13,32 @@ function clampDays(sp: URLSearchParams) {
   return Math.min(d, 90);
 }
 
-function csvLine(fields: (string|number)[]) {
+function csvLine(fields: (string | number)[]) {
   return fields
-    .map(v => {
+    .map((v) => {
       const s = String(v ?? "");
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     })
     .join(",");
 }
+
+type DailyRow = {
+  day: string;
+  impressions: number;
+  opens: number;
+  closes: number;
+  clicks: number;
+  leads: number;
+};
+
+type PageRow = {
+  page: string;
+  impressions: number;
+  opens: number;
+  closes: number;
+  clicks: number;
+  leads: number;
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,7 +59,10 @@ export async function GET(req: NextRequest) {
       if (w?.id) widgetId = w.id as string;
     }
     if (!widgetId) {
-      return new NextResponse("No widget", { status: 200, headers: { "content-type": "text/plain" }});
+      return new NextResponse("No widget", {
+        status: 200,
+        headers: { "content-type": "text/plain" },
+      });
     }
 
     const days = clampDays(url.searchParams);
@@ -51,17 +72,19 @@ export async function GET(req: NextRequest) {
     const { data: by_page } = await admin.rpc("page_analytics",  { p_widget_id: widgetId, p_days: days });
 
     const lines: string[] = [];
-
-    // section 1: daily
     lines.push("Daily");
-    lines.push(csvLine(["day","impressions","opens","closes","clicks","leads"]));
-    (daily ?? []).forEach(r => lines.push(csvLine([r.day, r.impressions, r.opens, r.closes, r.clicks, r.leads])));
-    lines.push(""); lines.push("");
+    lines.push(csvLine(["day", "impressions", "opens", "closes", "clicks", "leads"]));
+    for (const r of (daily ?? []) as DailyRow[]) {
+      lines.push(csvLine([r.day, r.impressions, r.opens, r.closes, r.clicks, r.leads]));
+    }
+    lines.push("");
+    lines.push("");
 
-    // section 2: by page
     lines.push("By page");
-    lines.push(csvLine(["page","impressions","opens","closes","clicks","leads"]));
-    (by_page ?? []).forEach(r => lines.push(csvLine([r.page, r.impressions, r.opens, r.closes, r.clicks, r.leads])));
+    lines.push(csvLine(["page", "impressions", "opens", "closes", "clicks", "leads"]));
+    for (const r of (by_page ?? []) as PageRow[]) {
+      lines.push(csvLine([r.page, r.impressions, r.opens, r.closes, r.clicks, r.leads]));
+    }
 
     const csv = lines.join("\r\n");
     return new NextResponse(csv, {
@@ -71,7 +94,7 @@ export async function GET(req: NextRequest) {
         "content-disposition": `attachment; filename=analytics_${widgetId}_${days}d.csv`,
       },
     });
-  } catch (e:any) {
+  } catch {
     return NextResponse.json({ ok: false, error: "export_error" }, { status: 500 });
   }
 }
