@@ -1,89 +1,111 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const WID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881"; // your primary widget
-const ORIGIN = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chatmadi.com";
+import Link from "next/link";
+import { getSupabaseServer } from "../../../lib/supabaseServer";
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
-type Totals = { impressions:number; opens:number; closes:number; clicks:number; leads:number; };
-type Daily  = { day:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
-type ByPage = { page:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
+type DailyRow = { day:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
+type PageRow  = { page:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
+type Totals   = { impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 
-function clampDays(raw: unknown) {
-  const v = (raw && typeof raw === "object") ? (raw as Record<string, unknown>) : {};
-  const sv = v["days"];
-  const str = Array.isArray(sv) ? String(sv[0]) : String(sv ?? "14");
-  const d = parseInt(str, 10);
-  if (!Number.isFinite(d) || d <= 0) return 14;
-  return Math.min(d, 90);
+function clampDays(raw: string | string[] | undefined): number {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  const n = parseInt(v ?? "14", 10);
+  if (!Number.isFinite(n) || n <= 0) return 14;
+  return Math.min(n, 90);
 }
 
-async function getData(days: number) {
-  const u = new URL("/api/dashboard/analytics/summary", ORIGIN);
-  u.searchParams.set("wid", WID);
-  u.searchParams.set("days", String(days));
-  const r = await fetch(u.toString(), { cache: "no-store" });
-  try { return await r.json(); } catch { return { ok:false }; }
-}
+async function loadData(days: number) {
+  const supa = await getSupabaseServer();
+  const { data: auth } = await supa.auth.getUser();
 
-export default async function AnalyticsPage(props: any) {
-  const sp = await props?.searchParams;
-  const days = clampDays(sp);
-  const data = await getData(days);
+  // Your primary widget id (from our notes)
+  const FALLBACK_WID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
-  if (!data?.ok) {
-    return <div className="p-4 text-red-300">Analytics unavailable. Please try again.</div>;
+  let widgetId = FALLBACK_WID;
+  if (auth?.user) {
+    const { data: w } = await supa
+      .from("widgets")
+      .select("id")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (w?.id) widgetId = w.id as string;
   }
 
-  const t: Totals = data.totals ?? { impressions:0, opens:0, closes:0, clicks:0, leads:0 };
-  const daily:  Daily[]  = data.daily  ?? [];
-  const byPage: ByPage[] = data.by_page ?? [];
-  const ctr = t.impressions > 0 ? Math.round((t.clicks / t.impressions) * 100) : 0;
+  const admin = getSupabaseAdmin();
+  const { data: daily }   = await admin.rpc("daily_analytics", { p_widget_id: widgetId, p_days: days });
+  const { data: by_page } = await admin.rpc("page_analytics",  { p_widget_id: widgetId, p_days: days });
 
-  const csvUrl = new URL("/api/dashboard/analytics/export", ORIGIN);
-  csvUrl.searchParams.set("wid", data.widget_id ?? WID);
-  csvUrl.searchParams.set("days", String(days));
+  const d: DailyRow[] = (daily  ?? []) as DailyRow[];
+  const p: PageRow[]  = (by_page ?? []) as PageRow[];
 
-  const DayLink = ({d,label}:{d:number;label:string}) => {
-    const q = new URLSearchParams(); q.set("days", String(d));
-    const active = d === days;
-    return (
-      <a
-        className={"px-3 py-2 rounded border border-slate-700 " + (active ? "bg-amber-600 text-black" : "bg-slate-900 hover:bg-slate-800")}
-        href={`?${q.toString()}`}
-      >{label}</a>
-    );
-  };
+  const totals: Totals = d.reduce(
+    (acc, r) => ({
+      impressions: acc.impressions + (r.impressions || 0),
+      opens:       acc.opens       + (r.opens || 0),
+      closes:      acc.closes      + (r.closes || 0),
+      clicks:      acc.clicks      + (r.clicks || 0),
+      leads:       acc.leads       + (r.leads || 0),
+    }),
+    { impressions: 0, opens: 0, closes: 0, clicks: 0, leads: 0 }
+  );
+
+  return { widgetId, days, totals, daily: d, by_page: p };
+}
+
+function StatCard({ label, value }: { label:string; value:number }) {
+  return (
+    <div className="rounded border border-slate-700 bg-slate-900/50 p-3">
+      <div className="text-xs text-slate-400">{label}</div>
+      <div className="text-xl font-bold">{value}</div>
+    </div>
+  );
+}
+
+function DaysLink({ d, current }: { d:number; current:number }) {
+  const isActive = d === current;
+  const cls = isActive
+    ? "px-3 py-1 rounded bg-amber-600 text-black font-medium"
+    : "px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-200";
+  return <Link href={`?days=${d}`} className={cls}>{d === 1 ? "Today" : `${d} days`}</Link>;
+}
+
+export default async function Page({ searchParams } : { searchParams?: { [k:string]: string | string[] | undefined } }) {
+  const days = clampDays(searchParams?.days);
+  const { widgetId, totals, daily, by_page } = await loadData(days);
+  const ctr = totals.impressions > 0 ? Math.round((totals.clicks / totals.impressions) * 100) : 0;
 
   return (
     <div className="p-4 space-y-6">
-      <div className="flex items-center gap-3">
-        <DayLink d={1}  label="Today" />
-        <DayLink d={7}  label="7 days" />
-        <DayLink d={14} label="14 days" />
-        <DayLink d={30} label="30 days" />
-        <a className="ml-auto px-3 py-2 rounded border border-slate-700 bg-slate-900 hover:bg-slate-800" href={csvUrl.toString()}>
-          Export CSV
-        </a>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Analytics</h1>
+        <div className="flex items-center gap-2">
+          <DaysLink d={1}  current={days} />
+          <DaysLink d={7}  current={days} />
+          <DaysLink d={14} current={days} />
+          <DaysLink d={30} current={days} />
+          <a
+            className="ml-2 px-3 py-1 rounded bg-slate-800 border border-slate-700"
+            href={`/api/dashboard/analytics/export?wid=${widgetId}&days=${days}`}
+          >
+            Export CSV
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          ["Impr.", t.impressions],
-          ["Opens", t.opens],
-          ["Closes", t.closes],
-          ["Clicks", t.clicks],
-          ["Leads", t.leads],
-        ].map(([label, val]) => (
-          <div key={label as string} className="rounded border border-slate-700 bg-slate-900/50 p-3">
-            <div className="text-xs text-slate-400">{label}</div>
-            <div className="text-xl font-bold">{String(val)}</div>
-          </div>
-        ))}
+        <StatCard label="Impr."  value={totals.impressions} />
+        <StatCard label="Opens"  value={totals.opens} />
+        <StatCard label="Closes" value={totals.closes} />
+        <StatCard label="Clicks" value={totals.clicks} />
+        <StatCard label="Leads"  value={totals.leads} />
       </div>
 
       <div className="rounded border border-slate-700 bg-slate-900/50 p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Totals (last {days} {days===1?"day":"days"})</h2>
+          <h2 className="text-lg font-semibold">Totals (last {days} {days === 1 ? "day" : "days"})</h2>
           <div className="text-sm text-slate-300">CTR: {ctr}%</div>
         </div>
       </div>
@@ -103,7 +125,7 @@ export default async function AnalyticsPage(props: any) {
               </tr>
             </thead>
             <tbody>
-              {daily.map((r) => (
+              {daily.map(r => (
                 <tr key={r.day} className="border-t border-slate-800">
                   <td className="p-2">{r.day}</td>
                   <td className="p-2 text-right">{r.impressions}</td>
@@ -113,7 +135,9 @@ export default async function AnalyticsPage(props: any) {
                   <td className="p-2 text-right">{r.leads}</td>
                 </tr>
               ))}
-              {daily.length === 0 && <tr><td className="p-2 text-slate-400" colSpan={6}>No data</td></tr>}
+              {daily.length === 0 && (
+                <tr><td className="p-2 text-slate-400" colSpan={6}>No data</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -132,7 +156,7 @@ export default async function AnalyticsPage(props: any) {
               </tr>
             </thead>
             <tbody>
-              {byPage.map((r) => (
+              {by_page.map(r => (
                 <tr key={r.page} className="border-t border-slate-800">
                   <td className="p-2">{r.page}</td>
                   <td className="p-2 text-right">{r.impressions}</td>
@@ -142,7 +166,9 @@ export default async function AnalyticsPage(props: any) {
                   <td className="p-2 text-right">{r.leads}</td>
                 </tr>
               ))}
-              {byPage.length === 0 && <tr><td className="p-2 text-slate-400" colSpan={6}>No data</td></tr>}
+              {by_page.length === 0 && (
+                <tr><td className="p-2 text-slate-400" colSpan={6}>No data</td></tr>
+              )}
             </tbody>
           </table>
         </div>
