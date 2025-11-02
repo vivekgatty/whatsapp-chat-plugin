@@ -40,6 +40,12 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
       <h1 className="text-3xl font-semibold">Dashboard <span className="ml-2 text-xs align-super bg-slate-800 px-2 py-1 rounded">FREE</span></h1>
+<nav className="mt-2 mb-4 flex flex-wrap gap-2 text-sm">
+  <a href="/dashboard" className="rounded bg-slate-800 hover:bg-slate-700 px-3 py-1.5">Overview</a>
+  <a href="/dashboard/widget" className="rounded bg-slate-800 hover:bg-slate-700 px-3 py-1.5">Widget</a>
+  <a href="/billing" className="rounded bg-slate-800 hover:bg-slate-700 px-3 py-1.5">Billing</a>
+  <a href="/dashboard/analytics" className="rounded bg-amber-600 text-black hover:bg-amber-500 px-3 py-1.5">Analytics</a>
+</nav>
       <div className="flex justify-end mb-3">
         <div className="flex flex-wrap gap-2">
           <a href="/dashboard/profile" className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-2 text-sm">

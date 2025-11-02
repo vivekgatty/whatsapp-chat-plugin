@@ -4,7 +4,7 @@ export const revalidate = 0;
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServer } from "../../../../../lib/supabaseServer";
-import supabaseAdmin from "../../../../../lib/supabaseAdmin";
+import { supabaseAdmin } from "../../../../../lib/supabaseAdmin";
 
 function clampDays(sp: URLSearchParams) {
   const raw = sp.get("days");
