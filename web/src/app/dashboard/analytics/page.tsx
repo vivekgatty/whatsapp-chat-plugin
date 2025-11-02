@@ -8,9 +8,11 @@ type Totals = { impressions:number; opens:number; closes:number; clicks:number; 
 type Daily  = { day:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 type ByPage = { page:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 
-function clampDays(sp: Record<string, string | string[] | undefined>) {
-  const raw = Array.isArray(sp?.days) ? sp.days[0] : sp?.days;
-  const d = parseInt((raw ?? "14") as string, 10);
+function clampDays(raw: unknown) {
+  const v = (raw && typeof raw === "object") ? (raw as Record<string, unknown>) : {};
+  const sv = v["days"];
+  const str = Array.isArray(sv) ? String(sv[0]) : String(sv ?? "14");
+  const d = parseInt(str, 10);
   if (!Number.isFinite(d) || d <= 0) return 14;
   return Math.min(d, 90);
 }
@@ -23,10 +25,9 @@ async function getData(days: number) {
   try { return await r.json(); } catch { return { ok:false }; }
 }
 
-export default async function AnalyticsPage({ searchParams }:{
-  searchParams: Record<string, string | string[] | undefined>;
-}) {
-  const days = clampDays(searchParams);
+export default async function AnalyticsPage(props: any) {
+  const sp = await props?.searchParams;
+  const days = clampDays(sp);
   const data = await getData(days);
 
   if (!data?.ok) {
@@ -44,7 +45,13 @@ export default async function AnalyticsPage({ searchParams }:{
 
   const DayLink = ({d,label}:{d:number;label:string}) => {
     const q = new URLSearchParams(); q.set("days", String(d));
-    return <a className={"px-3 py-2 rounded border border-slate-700 " + (d===days ? "bg-amber-600 text-black" : "bg-slate-900 hover:bg-slate-800")} href={`?${q.toString()}`}>{label}</a>;
+    const active = d === days;
+    return (
+      <a
+        className={"px-3 py-2 rounded border border-slate-700 " + (active ? "bg-amber-600 text-black" : "bg-slate-900 hover:bg-slate-800")}
+        href={`?${q.toString()}`}
+      >{label}</a>
+    );
   };
 
   return (
