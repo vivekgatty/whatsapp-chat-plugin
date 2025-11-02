@@ -7,8 +7,14 @@ type Totals = { impressions:number; opens:number; closes:number; clicks:number; 
 type Daily  = { day:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 type ByPage = { page:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 
-function absoluteUrl(path: string) {
-  const h = headers();
+/** Handle both cases: next/headers returning Headers or Promise<Headers> */
+async function readHeaders(): Promise<Headers> {
+  const maybe = headers() as any;
+  return (typeof maybe?.then === "function") ? await maybe : maybe;
+}
+
+async function absoluteUrl(path: string) {
+  const h = await readHeaders();
   const host =
     h.get("x-forwarded-host") ??
     h.get("host") ??
@@ -20,7 +26,7 @@ function absoluteUrl(path: string) {
 }
 
 async function getData() {
-  const url = absoluteUrl("/api/dashboard/analytics/summary?days=14");
+  const url = await absoluteUrl("/api/dashboard/analytics/summary?days=14");
   const r = await fetch(url, { cache: "no-store" });
   try { return await r.json(); } catch { return { ok: false }; }
 }
