@@ -1,13 +1,28 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import { headers } from "next/headers";
+
 type Totals = { impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 type Daily  = { day:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 type ByPage = { page:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 
+function absoluteUrl(path: string) {
+  const h = headers();
+  const host =
+    h.get("x-forwarded-host") ??
+    h.get("host") ??
+    (process.env.VERCEL_URL ?? "localhost:3000");
+  const proto =
+    h.get("x-forwarded-proto") ??
+    (host.includes("localhost") ? "http" : "https");
+  return `${proto}://${host}${path}`;
+}
+
 async function getData() {
-  const r = await fetch("/api/dashboard/analytics/summary?days=14", { cache: "no-store" });
-  try { return await r.json(); } catch { return null; }
+  const url = absoluteUrl("/api/dashboard/analytics/summary?days=14");
+  const r = await fetch(url, { cache: "no-store" });
+  try { return await r.json(); } catch { return { ok: false }; }
 }
 
 export default async function AnalyticsPage() {
@@ -20,7 +35,6 @@ export default async function AnalyticsPage() {
   const t: Totals = data.totals ?? { impressions:0, opens:0, closes:0, clicks:0, leads:0 };
   const daily:  Daily[]  = data.daily  ?? [];
   const byPage: ByPage[] = data.by_page ?? [];
-
   const ctr = t.impressions > 0 ? Math.round((t.clicks / t.impressions) * 100) : 0;
 
   return (
