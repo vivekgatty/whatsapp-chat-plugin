@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { NextResponse, NextRequest } from "next/server";
-import { getSupabaseServer } from "../../../../../lib/supabaseServer";
-import { getUsage } from "../../../../../lib/plan";
+import { getSupabaseServer } from "../../../../lib/supabaseServer";
+import { getUsage } from "../../../../lib/plan";
 
 export async function GET(_req: NextRequest) {
   try {
