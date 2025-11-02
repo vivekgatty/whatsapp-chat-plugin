@@ -1,16 +1,23 @@
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
-import { NextRequest, NextResponse } from "next/server";
-
-function redirectOrExplain() {
-  const url = process.env.RAZORPAY_CUSTOMER_PORTAL_URL;
-  if (!url) {
-    return NextResponse.json({ ok: false, error: "portal_url_not_configured" });
+// Minimal, robust redirect using the Web Response API (avoids NextResponse quirks)
+async function handle() {
+  try {
+    const url = process.env.RAZORPAY_CUSTOMER_PORTAL_URL;
+    if (!url) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "portal_url_not_configured" }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+    return Response.redirect(url, 302); // 302: temporary redirect
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "unexpected_error", message: String(err) }),
+      { status: 500, headers: { "content-type": "application/json" } }
+    );
   }
-  return NextResponse.redirect(url, { status: 302 });
 }
 
-export function GET(_req: NextRequest) { return redirectOrExplain(); }
-export function POST(_req: NextRequest) { return redirectOrExplain(); }
+export const GET  = handle;
+export const POST = handle;
