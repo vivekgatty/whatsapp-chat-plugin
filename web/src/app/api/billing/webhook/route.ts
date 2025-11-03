@@ -1,55 +1,41 @@
-﻿import { NextResponse } from "next/server";
-import crypto from "crypto";
+import crypto from "node:crypto";
+import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
-/** stamp: 2025-10-31_17-07-09 */
+function verify(sig: string | null, body: string, secret: string) {
+  const digest = crypto.createHmac("sha256", secret).update(body).digest("hex");
+  return sig === digest;
+}
+
 export async function POST(req: Request) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-  if (!secret) return NextResponse.json({ ok:false, error:"missing_webhook_secret" }, { status: 500 });
+  if (!secret) return NextResponse.json({ error: "Missing webhook secret" }, { status: 500 });
 
   const raw = await req.text();
-  const sig = req.headers.get("x-razorpay-signature") || "";
-  const digest = crypto.createHmac("sha256", secret).update(raw).digest("hex");
-  if (digest !== sig) return NextResponse.json({ ok:false, error:"bad_signature" }, { status: 400 });
+  const sig = req.headers.get("x-razorpay-signature");
 
-  const event = JSON.parse(raw);
-  try {
-    // Handle both 'payment.captured' and 'order.paid'
-    let userId: string | undefined;
-    let orderId: string | undefined;
-    let paymentId: string | undefined;
-    let amount: number | undefined;
+  if (!verify(sig, raw, secret)) return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
 
-    if (event?.event === "payment.captured" || event?.event === "payment.authorized") {
-      const p = event.payload?.payment?.entity;
-      orderId   = p?.order_id;
-      paymentId = p?.id;
-      amount    = p?.amount;
-      userId    = p?.notes?.user_id;
-    } else if (event?.event === "order.paid") {
-      const o = event.payload?.order?.entity;
-      orderId = o?.id;
-      amount  = o?.amount_paid;
-      userId  = o?.notes?.user_id;
-    }
+  const evt = JSON.parse(raw);
+  const type: string = evt.event;
+  const sub  = evt.payload?.subscription?.entity;
+  const cust = evt.payload?.customer?.entity;
 
-    if (!userId) return NextResponse.json({ ok:true, info:"no_user_in_notes" });
-    const supabase = getSupabaseAdmin();
+  if (!sub?.id) return NextResponse.json({ ok: true }); // ignore non-subscription events
 
-    // Flip the user to pro
-    await supabase
-      .from("profiles")
-      .update({ plan: "pro", subscription_status: "active" })
-      .eq("id", userId);
+  const admin = getSupabaseAdmin();
 
-    // (Optional) persist a payment row if you have a table:
-    // await supabase.from("payments").insert({ user_id: userId, order_id: orderId, payment_id: paymentId, amount });
+  const payload = {
+    razorpay_subscription_id: sub.id as string,
+    razorpay_customer_id: (cust?.id || sub.customer_id) as string,
+    plan: sub.plan_id as string,
+    subscription_status: (sub.status || type) as string,
+    current_period_end: sub.current_end ? new Date(sub.current_end * 1000).toISOString() : null,
+  };
 
-    return NextResponse.json({ ok:true });
-  } catch (e) {
-    return NextResponse.json({ ok:false, error:"webhook_handler_error" }, { status: 500 });
-  }
+  await admin.from("subscriptions").upsert(payload, { onConflict: "razorpay_subscription_id" });
+
+  return NextResponse.json({ ok: true });
 }

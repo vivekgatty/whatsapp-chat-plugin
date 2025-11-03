@@ -1,33 +1,70 @@
+"use client";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import Link from "next/link";
 
-export default async function BillingPage() {
+function loadCheckoutScript() {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = resolve as any;
+    s.onerror = reject as any;
+    document.body.appendChild(s);
+  });
+}
+
+async function openCheckout() {
+  await loadCheckoutScript();
+  const res = await fetch("/api/billing/create-subscription", { method: "POST" });
+  const data = await res.json();
+  if (!res.ok) {
+    alert(data?.error || "Failed to start checkout");
+    return;
+  }
+
+  // @ts-ignore
+  const rzp = new window.Razorpay({
+    key: data.key,
+    subscription_id: data.subscription_id,
+    name: "Chatmadi",
+    description: "Pro Plan",
+    prefill: { email: data.email, name: data.name },
+    theme: { color: "#f59e0b" },
+    handler: function () { window.location.href = "/dashboard?upgraded=1"; },
+    modal: { ondismiss: function() {} }
+  });
+  rzp.open();
+}
+
+export default function Page() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">Billing</h1>
-        <Link href="/dashboard" className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-2 text-sm">
+        <h1 className="text-2xl font-semibold">Billing</h1>
+        <Link href="/dashboard" className="px-3 py-1 rounded bg-slate-800 border border-slate-700">
           Back to dashboard
         </Link>
       </div>
 
-      <div className="rounded border border-slate-700 p-4">
-        <div className="font-medium mb-2">Manage subscription</div>
-        <a href="/api/billing/portal"
-           className="inline-block bg-sky-600 hover:bg-sky-500 rounded px-4 py-2 text-sm font-medium">
-          Open billing portal
-        </a>
-        <p className="text-xs text-slate-400 mt-2">
-          This opens the secure Razorpay Customer Portal to manage your subscription.
-        </p>
+      <div className="rounded border border-slate-700 bg-slate-900/50 p-4 space-y-2">
+        <div className="font-semibold">Manage subscription</div>
+        <div className="flex gap-2">
+          <button id="upgrade-btn" onClick={() => openCheckout()} className="px-3 py-1 rounded bg-amber-600 text-black">
+            Upgrade to Pro
+          </button>
+
+          {/* Replace with real portal link once webhook has customer_id */}
+          <a className="px-3 py-1 rounded bg-slate-800 border border-slate-700" href="#" onClick={(e)=>{e.preventDefault(); alert("Portal link can be enabled once webhook populates customer_id.");}}>
+            Open billing portal
+          </a>
+        </div>
+        <div className="text-sm text-slate-400">This opens Razorpay Checkout for subscription. Portal is for managing an existing subscription.</div>
       </div>
 
-      <div className="rounded border border-slate-700 p-4">
-        <div className="font-medium mb-1">Receipts</div>
-        <p className="text-sm text-slate-300">
-          Your payment receipts are available inside the billing portal.
-        </p>
+      <div className="rounded border border-slate-700 bg-slate-900/50 p-4">
+        <div className="font-semibold">Receipts</div>
+        <div className="text-sm text-slate-400">Receipts are available inside the billing portal once the subscription is active.</div>
       </div>
     </div>
   );
