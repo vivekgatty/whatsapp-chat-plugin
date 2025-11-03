@@ -1,4 +1,5 @@
-"use client";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import Link from "next/link";
 
@@ -37,14 +38,17 @@ async function openCheckout() {
 async function openPortal() {
   const res = await fetch("/api/billing/portal", { method: "POST" });
   const data = await res.json();
-  if (!res.ok || !data?.url) {
-    alert(data?.error || "Could not open billing portal");
+  if (data?.url) {
+    window.location.href = data.url as string;
     return;
   }
-  window.location.href = data.url as string;
+  alert(
+    data?.message ||
+      "Billing portal will be available after you start a subscription."
+  );
 }
 
-export default function BillingPage() {
+export default async function Page() {
   return (
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -71,7 +75,9 @@ export default function BillingPage() {
 
       <div className="rounded border border-slate-700 bg-slate-900/50 p-4">
         <div className="font-semibold">Receipts</div>
-        <div className="text-sm text-slate-400">Receipts are available inside the billing portal once the subscription is active.</div>
+        <div className="text-sm text-slate-400">
+          Receipts are available inside the billing portal once the subscription is active.
+        </div>
       </div>
     </div>
   );

@@ -1,42 +1,25 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServer } from "../../../../lib/supabaseServer";
-import { createPortalSession, createPortalSessionForEmail } from "../../../../lib/razorpay";
 
 export const runtime = "nodejs";
 
+// If you’ve set RAZORPAY_CUSTOMER_PORTAL_URL in Vercel, we’ll just redirect to it.
+// Otherwise we return a friendly message (no raw 404s shown to users).
 export async function POST() {
-  const supa = await getSupabaseServer();
-  const { data: auth } = await supa.auth.getUser();
-  if (!auth?.user?.email) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
-  // Try DB first (if webhook already populated), else resolve by email.
-  const { data: sub } = await supa
-    .from("subscriptions")
-    .select("razorpay_customer_id")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
   try {
-    const session = sub?.razorpay_customer_id
-      ? await createPortalSession(sub.razorpay_customer_id)
-      : await createPortalSessionForEmail(
-          auth.user.email,
-          auth.user.user_metadata?.name as string | undefined
-        );
+    const url = process.env.RAZORPAY_CUSTOMER_PORTAL_URL || "";
+    if (url) return NextResponse.json({ url });
 
-    const url =
-      (session && (session.short_url || session.url || session.redirect_url)) ||
-      null;
-
-    if (!url) throw new Error("Portal URL not returned");
-    return NextResponse.json({ url });
+    return NextResponse.json({
+      message:
+        "Billing portal will be available once your first subscription is active. Please subscribe first, then manage or download receipts from the portal.",
+      code: "PORTAL_UNAVAILABLE",
+    });
   } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message || "Failed to create portal session" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      message:
+        "We couldn’t open the billing portal right now. Please try again in a minute or contact support.",
+      code: "PORTAL_ERROR",
+      detail: e?.message ?? "unknown",
+    });
   }
 }
