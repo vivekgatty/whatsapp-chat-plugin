@@ -20,7 +20,7 @@ async function loadData(days: number) {
   const supa = await getSupabaseServer();
   const { data: auth } = await supa.auth.getUser();
 
-  // Primary widget id from project notes
+  // Primary widget id you asked me to remember
   const FALLBACK_WID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
   let widgetId = FALLBACK_WID;
@@ -83,7 +83,12 @@ export default async function Page(
   return (
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Analytics</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="px-3 py-1 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700">
+            ← Back to Dashboard
+          </Link>
+          <h1 className="text-2xl font-semibold">Analytics</h1>
+        </div>
         <div className="flex items-center gap-2">
           <DaysLink d={1}  current={days} />
           <DaysLink d={7}  current={days} />
