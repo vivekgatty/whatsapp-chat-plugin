@@ -12,6 +12,7 @@ export async function POST() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    // Accept either server or public names for safety
     const planId =
       process.env.RAZORPAY_PLAN_ID ||
       process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID || "";
@@ -34,6 +35,7 @@ export async function POST() {
       (auth.user.user_metadata && (auth.user.user_metadata.name as string)) ||
       "Chatmadi User";
 
+    // Idempotent helper handles "Customer already exists" gracefully
     const customer = await createCustomerIfNeeded(auth.user.email, name);
     const sub = await createSubscription(customer.id, planId);
 
