@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer } from "../../../../lib/supabaseServer";
-import { createCustomerIfNeeded, createSubscription } from "../../../../lib/razorpay";
+import { ensureCustomer, createSubscription } from "../../../../lib/razorpay";
 
 export const runtime = "nodejs";
 
@@ -12,7 +12,6 @@ export async function POST() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Accept either server or public names for safety
     const planId =
       process.env.RAZORPAY_PLAN_ID ||
       process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID || "";
@@ -35,8 +34,7 @@ export async function POST() {
       (auth.user.user_metadata && (auth.user.user_metadata.name as string)) ||
       "Chatmadi User";
 
-    // Idempotent helper handles "Customer already exists" gracefully
-    const customer = await createCustomerIfNeeded(auth.user.email, name);
+    const customer = await ensureCustomer(auth.user.email, name); // <— idempotent
     const sub = await createSubscription(customer.id, planId);
 
     return NextResponse.json({
