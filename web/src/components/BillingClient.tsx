@@ -4,21 +4,20 @@ function loadCheckoutScript() {
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");
     s.src = "https://checkout.razorpay.com/v1/checkout.js";
-    s.onload = resolve;
-    s.onerror = reject;
+    s.onload = resolve as any;
+    s.onerror = reject as any;
     document.body.appendChild(s);
   });
 }
 
 async function openCheckout() {
-  await loadCheckoutScript();
   const res = await fetch("/api/billing/create-subscription", { method: "POST" });
   const data = await res.json();
   if (!res.ok) {
     alert(data?.error || "Failed to start checkout");
     return;
   }
-
+  await loadCheckoutScript();
   // @ts-ignore
   const rzp = new window.Razorpay({
     key: data.key,
@@ -35,34 +34,40 @@ async function openCheckout() {
   rzp.open();
 }
 
+async function openPortal() {
+  const res = await fetch("/api/billing/portal", { method: "POST" });
+  const data = await res.json();
+  if (data?.url) {
+    window.location.href = data.url as string;
+    return;
+  }
+  alert(
+    data?.message ||
+      "Billing portal will be available after you start a subscription."
+  );
+}
+
 export default function BillingClient() {
   return (
-    <div className="space-y-2 rounded border border-slate-700 bg-slate-900/50 p-4">
+    <div className="rounded border border-slate-700 bg-slate-900/50 p-4 space-y-2">
       <div className="font-semibold">Manage subscription</div>
       <div className="flex gap-2">
         <button
           id="upgrade-btn"
           onClick={() => openCheckout()}
-          className="rounded bg-amber-600 px-3 py-1 text-black"
+          className="px-3 py-1 rounded bg-amber-600 text-black"
         >
           Upgrade to Pro
         </button>
-
-        {/* Replace with real portal link once webhook has customer_id */}
-        <a
-          className="rounded border border-slate-700 bg-slate-800 px-3 py-1"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            alert("Portal link can be enabled once webhook populates customer_id.");
-          }}
+        <button
+          onClick={() => openPortal()}
+          className="px-3 py-1 rounded bg-slate-800 border border-slate-700"
         >
           Open billing portal
-        </a>
+        </button>
       </div>
       <div className="text-sm text-slate-400">
-        This opens Razorpay Checkout for subscription. Portal is for managing an existing
-        subscription.
+        This opens Razorpay Checkout for subscription. Portal is for managing an existing subscription.
       </div>
     </div>
   );

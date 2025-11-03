@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-// If you’ve set RAZORPAY_CUSTOMER_PORTAL_URL in Vercel, we’ll just redirect to it.
-// Otherwise we return a friendly message (no raw 404s shown to users).
 export async function POST() {
   try {
     const url = process.env.RAZORPAY_CUSTOMER_PORTAL_URL || "";
