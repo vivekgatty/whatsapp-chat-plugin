@@ -9,30 +9,37 @@ type DailyRow = { day:string; impressions:number; opens:number; closes:number; c
 type PageRow  = { page:string; impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 type Totals   = { impressions:number; opens:number; closes:number; clicks:number; leads:number; };
 
-function clampDays(raw: string | string[] | undefined): number {
+function clampDays(raw: any): number {
   const v = Array.isArray(raw) ? raw[0] : raw;
   const n = parseInt(v ?? "14", 10);
   if (!Number.isFinite(n) || n <= 0) return 14;
   return Math.min(n, 90);
 }
 
-async function loadData(days: number) {
+async function pickWidgetId(supa: any, sp: any): Promise<string> {
+  // 1) Allow explicit override via ?wid=
+  const explicit = Array.isArray(sp?.wid) ? sp.wid[0] : sp?.wid;
+  if (explicit && typeof explicit === "string") return explicit;
+
+  // 2) Prefer newest widget that HAS a business_id
+  const { data: wHasBiz } = await supa
+    .from("widgets")
+    .select("id,business_id")
+    .not("business_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (wHasBiz?.id) return wHasBiz.id as string;
+
+  // 3) Otherwise fallback to your primary widget id (from project notes)
+  return "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
+}
+
+async function loadData(sp: any) {
+  const days = clampDays(sp?.days);
   const supa = await getSupabaseServer();
-  const { data: auth } = await supa.auth.getUser();
-
-  // Primary widget id you asked me to remember
-  const FALLBACK_WID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
-
-  let widgetId = FALLBACK_WID;
-  if (auth?.user) {
-    const { data: w } = await supa
-      .from("widgets")
-      .select("id")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (w?.id) widgetId = w.id as string;
-  }
+  const widgetId = await pickWidgetId(supa, sp);
 
   const admin = getSupabaseAdmin();
   const { data: daily }   = await admin.rpc("daily_analytics", { p_widget_id: widgetId, p_days: days });
@@ -40,7 +47,6 @@ async function loadData(days: number) {
 
   const d: DailyRow[] = (daily  ?? []) as DailyRow[];
   const p: PageRow[]  = (by_page ?? []) as PageRow[];
-
   const totals: Totals = d.reduce(
     (acc, r) => ({
       impressions: acc.impressions + (r.impressions || 0),
@@ -72,19 +78,20 @@ function DaysLink({ d, current }: { d:number; current:number }) {
   return <Link href={`?days=${d}`} className={cls}>{d === 1 ? "Today" : `${d} days`}</Link>;
 }
 
-export default async function Page(
-  { searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }
-) {
-  const sp = await searchParams;
-  const days = clampDays(sp?.days);
-  const { widgetId, totals, daily, by_page } = await loadData(days);
+export default async function Page(props: any) {
+  // Next.js 15 can pass searchParams as a Promise; normalize it.
+  const sp = typeof props?.searchParams?.then === "function"
+    ? await props.searchParams
+    : props?.searchParams;
+
+  const { widgetId, days, totals, daily, by_page } = await loadData(sp);
   const ctr = totals.impressions > 0 ? Math.round((totals.clicks / totals.impressions) * 100) : 0;
 
   return (
     <div className="p-4 space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="px-3 py-1 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700">
+          <Link href="/dashboard" className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-slate-200">
             ← Back to Dashboard
           </Link>
           <h1 className="text-2xl font-semibold">Analytics</h1>
@@ -133,7 +140,7 @@ export default async function Page(
               </tr>
             </thead>
             <tbody>
-              {daily.map(r => (
+              {daily.map((r: DailyRow) => (
                 <tr key={r.day} className="border-t border-slate-800">
                   <td className="p-2">{r.day}</td>
                   <td className="p-2 text-right">{r.impressions}</td>
@@ -164,7 +171,7 @@ export default async function Page(
               </tr>
             </thead>
             <tbody>
-              {by_page.map(r => (
+              {by_page.map((r: PageRow) => (
                 <tr key={r.page} className="border-t border-slate-800">
                   <td className="p-2">{r.page}</td>
                   <td className="p-2 text-right">{r.impressions}</td>
