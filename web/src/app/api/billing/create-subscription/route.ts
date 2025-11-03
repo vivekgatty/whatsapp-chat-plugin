@@ -12,13 +12,29 @@ export async function POST() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const planId = process.env.RAZORPAY_PLAN_ID;
-    const publicKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-    if (!planId || !publicKey) {
-      return NextResponse.json({ error: "Razorpay env missing" }, { status: 500 });
+    const planId =
+      process.env.RAZORPAY_PLAN_ID ||
+      process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ID || "";
+
+    const publicKey =
+      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+      process.env.RAZORPAY_KEY_ID || "";
+
+    const missing: string[] = [];
+    if (!planId) missing.push("RAZORPAY_PLAN_ID");
+    if (!publicKey) missing.push("NEXT_PUBLIC_RAZORPAY_KEY_ID/RAZORPAY_KEY_ID");
+    if (missing.length) {
+      return NextResponse.json(
+        { error: `Razorpay env missing: ${missing.join(", ")}` },
+        { status: 500 }
+      );
     }
 
-    const customer = await createCustomerIfNeeded(auth.user.email, auth.user.user_metadata?.name);
+    const name =
+      (auth.user.user_metadata && (auth.user.user_metadata.name as string)) ||
+      "Chatmadi User";
+
+    const customer = await createCustomerIfNeeded(auth.user.email, name);
     const sub = await createSubscription(customer.id, planId);
 
     return NextResponse.json({
@@ -26,9 +42,12 @@ export async function POST() {
       subscription_id: sub.id,
       customer_id: customer.id,
       email: auth.user.email,
-      name: auth.user.user_metadata?.name || "Chatmadi User",
+      name,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || "create-subscription failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "create-subscription failed" },
+      { status: 500 }
+    );
   }
 }
