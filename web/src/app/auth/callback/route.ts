@@ -5,7 +5,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
-  const url  = new URL(req.url);
+  const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const next = url.searchParams.get("next") || "/dashboard";
 
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   }
 
   // Pre-create the redirect response and WRITE COOKIES ON THIS RESPONSE
-  const res   = NextResponse.redirect(new URL(next, url.origin));
+  const res = NextResponse.redirect(new URL(next, url.origin));
   const store = await cookies();
 
   const supabase = createServerClient(
@@ -24,7 +24,9 @@ export async function GET(req: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) { return store.get(name)?.value; },
+        get(name: string) {
+          return store.get(name)?.value;
+        },
         set(name: string, value: string, options: CookieOptions) {
           res.cookies.set(name, value, options as any);
         },
@@ -38,7 +40,10 @@ export async function GET(req: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`, url.origin)
+      new URL(
+        `/login?error=${encodeURIComponent(error.message)}&redirectedFrom=${encodeURIComponent(next)}`,
+        url.origin
+      )
     );
   }
 

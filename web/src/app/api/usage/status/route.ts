@@ -22,9 +22,9 @@ export async function GET() {
     .select("n")
     .eq("user_id", auth.user.id)
     .eq("kind", "message")
-    .gte("day", new Date(Date.now() - 30*24*3600*1000).toISOString().slice(0,10));
+    .gte("day", new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10));
 
-  const used = (usage || []).reduce((a:any, r:any) => a + (r.n || 0), 0);
+  const used = (usage || []).reduce((a: any, r: any) => a + (r.n || 0), 0);
   const limit = plan === "pro" ? Number.MAX_SAFE_INTEGER : FREE_LIMIT;
 
   return NextResponse.json({ plan, used, limit, ok: used < limit });

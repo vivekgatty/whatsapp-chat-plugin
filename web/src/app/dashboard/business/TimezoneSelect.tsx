@@ -8,11 +8,7 @@ type Props = {
   style?: React.CSSProperties;
 };
 
-export default function TimezoneSelect({
-  name = "timezone",
-  defaultValue = "UTC",
-  style,
-}: Props) {
+export default function TimezoneSelect({ name = "timezone", defaultValue = "UTC", style }: Props) {
   const [zones, setZones] = useState<string[]>([]);
 
   useEffect(() => {

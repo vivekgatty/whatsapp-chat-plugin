@@ -8,13 +8,15 @@ function makeShortReceipt(userId: string | null | undefined) {
   const uid = (userId ?? "u").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
   const t = Date.now().toString(36);
   const rnd = Math.random().toString(36).slice(2, 8);
-  return (`cm_${uid}_${t}_${rnd}`).slice(0, 40);
+  return `cm_${uid}_${t}_${rnd}`.slice(0, 40);
 }
 
 export async function POST(req: Request) {
   try {
     const supabase = await getSupabaseServer();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     const { amount = 1, plan = "pro" } = await req.json().catch(() => ({ amount: 1, plan: "pro" }));
@@ -27,14 +29,14 @@ export async function POST(req: Request) {
     const body = {
       amount: Math.max(1, Math.round(Number(amount))) * 100, // paise
       currency: "INR",
-      receipt: makeShortReceipt(user.id),                    // <= 40 chars guaranteed
+      receipt: makeShortReceipt(user.id), // <= 40 chars guaranteed
       notes: { user_id: user.id, email: user.email ?? "", plan },
     };
 
     const basic = Buffer.from(`${key_id}:${key_secret}`).toString("base64");
     const r = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
-      headers: { "Authorization": `Basic ${basic}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Basic ${basic}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
   } catch (e: any) {
     return NextResponse.json(
       { error: "server_error", message: e?.message ?? String(e) },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

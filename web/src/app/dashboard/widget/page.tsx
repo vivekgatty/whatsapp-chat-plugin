@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type WidgetSettings = {
   widget_id: string;
-  theme_color: string;                // hex like #10b981
+  theme_color: string; // hex like #10b981
   button_position: "right" | "left";
   icon: "whatsapp" | "chat" | "message";
   cta_text: string;
@@ -74,56 +74,57 @@ export default function WidgetSettingsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-semibold mb-6">Widget settings</h1>
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <h1 className="mb-6 text-2xl font-semibold">Widget settings</h1>
 
-      <a href="/dashboard" className="text-sm underline inline-block mb-6">
+      <a href="/dashboard" className="mb-6 inline-block text-sm underline">
         &larr; Back to dashboard
       </a>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Form */}
         <div className="space-y-6">
           <div>
-            <label className="block text-sm mb-1">Widget ID</label>
+            <label className="mb-1 block text-sm">Widget ID</label>
             <input
               value={settings.widget_id}
               onChange={(e) => field("widget_id", e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+              className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               placeholder="eg. 4b5e8f9a-..."
             />
-            <p className="text-xs text-slate-400 mt-1">
-              This appears in your embed snippet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and replace it on your site later.
+            <p className="mt-1 text-xs text-slate-400">
+              This appears in your embed snippet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
+              replace it on your site later.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-1">Theme color (hex)</label>
+              <label className="mb-1 block text-sm">Theme color (hex)</label>
               <div className="flex gap-2">
                 <input
                   type="color"
                   value={settings.theme_color}
                   onChange={(e) => field("theme_color", e.target.value)}
-                  className="h-10 w-14 rounded bg-slate-900 border border-slate-700"
+                  className="h-10 w-14 rounded border border-slate-700 bg-slate-900"
                   aria-label="Theme color"
                 />
                 <input
                   value={settings.theme_color}
                   onChange={(e) => field("theme_color", e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                  className="flex-1 rounded border border-slate-700 bg-slate-900 px-3 py-2"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm mb-1">Button position</label>
+              <label className="mb-1 block text-sm">Button position</label>
               <select
                 value={settings.button_position}
                 onChange={(e) =>
                   field("button_position", e.target.value as WidgetSettings["button_position"])
                 }
-                className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+                className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               >
                 <option value="right">Right</option>
                 <option value="left">Left</option>
@@ -132,11 +133,11 @@ export default function WidgetSettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Icon</label>
+            <label className="mb-1 block text-sm">Icon</label>
             <select
               value={settings.icon}
               onChange={(e) => field("icon", e.target.value as WidgetSettings["icon"])}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+              className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
             >
               <option value="whatsapp">WhatsApp</option>
               <option value="chat">Chat</option>
@@ -145,21 +146,21 @@ export default function WidgetSettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm mb-1">CTA text</label>
+            <label className="mb-1 block text-sm">CTA text</label>
             <input
               value={settings.cta_text}
               onChange={(e) => field("cta_text", e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2"
+              className="w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               placeholder="Chat with us on WhatsApp"
             />
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Prefill message</label>
+            <label className="mb-1 block text-sm">Prefill message</label>
             <textarea
               value={settings.prefill_message}
               onChange={(e) => field("prefill_message", e.target.value)}
-              className="w-full h-28 bg-slate-900 border border-slate-700 rounded px-3 py-2"
+              className="h-28 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               placeholder="Hi! I'd like to know more."
             />
           </div>
@@ -189,25 +190,25 @@ export default function WidgetSettingsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={save}
-              className={cx("rounded px-4 py-2 text-sm bg-sky-600 hover:bg-sky-500")}
+              className={cx("rounded bg-sky-600 px-4 py-2 text-sm hover:bg-sky-500")}
             >
               Save settings
             </button>
             <button
               onClick={resetToDefaults}
-              className="rounded px-3 py-2 text-sm bg-slate-800 hover:bg-slate-700"
+              className="rounded bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700"
             >
               Reset
             </button>
-            {okMsg && <span className="text-emerald-400 text-sm">{okMsg}</span>}
+            {okMsg && <span className="text-sm text-emerald-400">{okMsg}</span>}
           </div>
         </div>
 
         {/* Right: preview + snippet */}
         <div className="space-y-6">
           <div>
-            <div className="text-sm mb-2">Live preview</div>
-            <div className="rounded border border-slate-700 p-6 h-64 flex items-center justify-center">
+            <div className="mb-2 text-sm">Live preview</div>
+            <div className="flex h-64 items-center justify-center rounded border border-slate-700 p-6">
               <div
                 className="rounded-full px-4 py-2 text-sm text-black"
                 style={{ backgroundColor: settings.theme_color }}
@@ -218,13 +219,13 @@ export default function WidgetSettingsPage() {
           </div>
 
           <div>
-            <div className="text-sm mb-2">Embed snippet</div>
+            <div className="mb-2 text-sm">Embed snippet</div>
             <textarea
-              className="w-full h-28 bg-slate-900 border border-slate-700 rounded px-3 py-2"
+              className="h-28 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               readOnly
               value={embedSnippet}
             />
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="mt-1 text-xs text-slate-400">
               Paste this on your site where you want the chat bubble. Replace{" "}
               <code>&lt;WIDGET_ID&gt;</code> with your actual id if needed.
             </p>

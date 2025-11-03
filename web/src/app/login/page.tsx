@@ -43,12 +43,14 @@ function LoginInner() {
     }
 
     setStatus("sent");
-    try { localStorage.setItem("wcp_last_email", email); } catch {}
+    try {
+      localStorage.setItem("wcp_last_email", email);
+    } catch {}
   }
 
   return (
-    <main className="min-h-dvh max-w-xl mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-6">Log in</h1>
+    <main className="mx-auto min-h-dvh max-w-xl p-6">
+      <h1 className="mb-6 text-3xl font-semibold">Log in</h1>
 
       {status !== "sent" ? (
         <form onSubmit={onSubmit} className="space-y-4">
@@ -60,14 +62,14 @@ function LoginInner() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="mt-1 w-full rounded-md bg-zinc-900 border border-zinc-700 px-3 py-2 outline-none"
+              className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 outline-none"
             />
           </label>
 
           <button
             type="submit"
             disabled={status === "sending"}
-            className="rounded-md bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-white disabled:opacity-60"
+            className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500 disabled:opacity-60"
           >
             {status === "sending" ? "Sending…" : "Send magic link"}
           </button>
@@ -76,9 +78,10 @@ function LoginInner() {
         </form>
       ) : (
         <div className="rounded-md border border-zinc-700 p-4">
-          <p className="text-emerald-400 font-medium mb-1">Check your email</p>
+          <p className="mb-1 font-medium text-emerald-400">Check your email</p>
           <p className="text-sm text-zinc-300">
-            We sent a magic link to <b>{email}</b>. Click it to finish logging in. You’ll land on <code>{next}</code>.
+            We sent a magic link to <b>{email}</b>. Click it to finish logging in. You’ll land on{" "}
+            <code>{next}</code>.
           </p>
         </div>
       )}

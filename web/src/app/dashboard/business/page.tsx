@@ -11,7 +11,9 @@ export const revalidate = 0;
 async function saveBusiness(formData: FormData) {
   "use server";
   const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirectedFrom=/dashboard/business");
 
   const name = String(formData.get("name") ?? "");
@@ -20,7 +22,7 @@ async function saveBusiness(formData: FormData) {
   const timezone = String(formData.get("timezone") ?? "Asia/Kolkata");
   const cc = String(formData.get("whatsapp_cc") ?? "+91").replace(/[^\d+]/g, "");
   const national = String(formData.get("whatsapp_number") ?? "").replace(/[^\d]/g, "");
-  const e164 = (cc.startsWith("+") ? cc : ("+"+cc)) + (national ? national : "");
+  const e164 = (cc.startsWith("+") ? cc : "+" + cc) + (national ? national : "");
   let hours: HoursState = defaultHours;
   try {
     const raw = String(formData.get("hours_json") ?? "");
@@ -28,25 +30,30 @@ async function saveBusiness(formData: FormData) {
   } catch {}
 
   // upsert by owner_user_id
-  await supabase.from("businesses").upsert({
-    owner_user_id: user.id,
-    name,
-    category,
-    contact_name,
-    timezone,
-    whatsapp_cc: cc.startsWith("+") ? cc : ("+"+cc),
-    whatsapp_number: national,
-    whatsapp_e164: e164,
-    working_hours: hours,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "owner_user_id" });
+  await supabase.from("businesses").upsert(
+    {
+      owner_user_id: user.id,
+      name,
+      category,
+      contact_name,
+      timezone,
+      whatsapp_cc: cc.startsWith("+") ? cc : "+" + cc,
+      whatsapp_number: national,
+      whatsapp_e164: e164,
+      working_hours: hours,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "owner_user_id" }
+  );
 
   redirect("/dashboard");
 }
 
-export default async function BusinessPage(){
+export default async function BusinessPage() {
   const supabase = await getSupabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirectedFrom=/dashboard/business");
 
   // Try to load existing
@@ -67,18 +74,22 @@ export default async function BusinessPage(){
   };
 
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
+    <main className="mx-auto max-w-3xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Edit business profile</h1>
         <div className="flex gap-2">
-          <a className="rounded-md border border-zinc-600 px-3 py-2" href="/dashboard">← Back to dashboard</a>
-          <form action="/auth/signout" method="post"><button className="rounded-md border border-zinc-600 px-3 py-2">Sign out</button></form>
+          <a className="rounded-md border border-zinc-600 px-3 py-2" href="/dashboard">
+            ← Back to dashboard
+          </a>
+          <form action="/auth/signout" method="post">
+            <button className="rounded-md border border-zinc-600 px-3 py-2">Sign out</button>
+          </form>
         </div>
       </div>
 
       <p className="text-sm text-emerald-400">Signed in as {user.email}.</p>
 
-      <BusinessForm action={saveBusiness} initial={initial}/>
+      <BusinessForm action={saveBusiness} initial={initial} />
     </main>
   );
 }

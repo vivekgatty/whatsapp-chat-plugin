@@ -9,7 +9,9 @@ export async function getSupabaseServer() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) { return jar.get(name)?.value; },
+        get(name: string) {
+          return jar.get(name)?.value;
+        },
         set(_n: string, _v: string, _o?: CookieOptions) {},
         remove(_n: string, _o?: CookieOptions) {},
       },

@@ -9,8 +9,7 @@ export const revalidate = 0;
 export default async function Page() {
   // create the Supabase client at *request* time (not module scope)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const serviceKey =
-    process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceKey) {
     // Friendly message instead of throwing during build/misconfig
@@ -18,10 +17,9 @@ export default async function Page() {
       <div style={{ padding: 24 }}>
         <h1>Dev: Widget Editor</h1>
         <p>
-          Missing Supabase envs. Please set{" "}
-          <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-          <code>SUPABASE_SERVICE_ROLE</code> (or <code>SUPABASE_SERVICE_ROLE_KEY</code>)
-          in your environment.
+          Missing Supabase envs. Please set <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+          <code>SUPABASE_SERVICE_ROLE</code> (or <code>SUPABASE_SERVICE_ROLE_KEY</code>) in your
+          environment.
         </p>
       </div>
     );
@@ -34,9 +32,7 @@ export default async function Page() {
   // Grab the newest widget to edit
   const { data: widget } = await supabase
     .from("widgets")
-    .select(
-      "id,business_id,theme_color,icon,cta_text,position,prefill_message,created_at"
-    )
+    .select("id,business_id,theme_color,icon,cta_text,position,prefill_message,created_at")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -123,10 +119,7 @@ export default async function Page() {
           <CopyBox snippet={snippet} />
 
           <div style={{ marginTop: 24 }}>
-            <a
-              href="/docs/install"
-              style={{ color: "#10b981", textDecoration: "underline" }}
-            >
+            <a href="/docs/install" style={{ color: "#10b981", textDecoration: "underline" }}>
               Read install docs →
             </a>
           </div>

@@ -10,8 +10,7 @@ export const revalidate = 0;
 // DEV-ONLY: service role client (never expose to browser)
 function getAdminSupabase(): SupabaseClient {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url) throw new Error("SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL is missing");
   if (!key) throw new Error("SUPABASE_SERVICE_ROLE is missing");
   return createClient(url, key, { auth: { persistSession: false } });
@@ -29,10 +28,7 @@ export async function PATCH(req: Request, context: any) {
   try {
     const id = context?.params?.id as string | undefined;
     if (!id) {
-      return NextResponse.json(
-        { ok: false, error: "Missing widget id in path" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "Missing widget id in path" }, { status: 400 });
     }
 
     const body = (await req.json()) as Body;
@@ -46,10 +42,7 @@ export async function PATCH(req: Request, context: any) {
     if (typeof body.prefill_message === "string") updates.prefill_message = body.prefill_message;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { ok: false, error: "No allowed fields provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "No allowed fields provided" }, { status: 400 });
     }
 
     const supabase = getAdminSupabase();
@@ -58,9 +51,7 @@ export async function PATCH(req: Request, context: any) {
       .from("widgets")
       .update(updates)
       .eq("id", id)
-      .select(
-        "id,business_id,theme_color,icon,cta_text,position,prefill_message,created_at"
-      )
+      .select("id,business_id,theme_color,icon,cta_text,position,prefill_message,created_at")
       .single();
 
     if (error) {

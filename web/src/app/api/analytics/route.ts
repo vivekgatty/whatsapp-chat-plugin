@@ -9,10 +9,13 @@ export async function POST(req: Request) {
   try {
     // Accept wid from JSON body or query string
     const u = new URL(req.url);
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
     const wid =
-      body.wid || body.widget_id || u.searchParams.get("wid") ||
-      body.id  || u.searchParams.get("id");
+      body.wid ||
+      body.widget_id ||
+      u.searchParams.get("wid") ||
+      body.id ||
+      u.searchParams.get("id");
 
     const event_type = String(body.event_type || body.event || "impression");
     const meta = body.meta ?? {};
@@ -61,5 +64,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 });
   }
 }
-
-

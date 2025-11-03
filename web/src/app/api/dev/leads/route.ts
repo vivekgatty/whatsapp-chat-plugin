@@ -16,10 +16,7 @@ export async function POST(req: Request) {
     const body = (await req.json()) as Partial<Body>;
     const business_id = body.business_id?.trim();
     if (!business_id) {
-      return NextResponse.json(
-        { ok: false, error: "business_id is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: "business_id is required" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -38,10 +35,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, lead: data });

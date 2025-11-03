@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
     const widget_id = String((body as any).widget_id || "");
     const page = String((body as any).page || "");
     const event = String((body as any).event || "");
-    const meta = (body as any).meta && typeof (body as any).meta === "object" ? (body as any).meta : {};
+    const meta =
+      (body as any).meta && typeof (body as any).meta === "object" ? (body as any).meta : {};
 
     if (!widget_id || !event) {
       return NextResponse.json({ ok: false, error: "missing widget_id/event" }, { status: 400 });

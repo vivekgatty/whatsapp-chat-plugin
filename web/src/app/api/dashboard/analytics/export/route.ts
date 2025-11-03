@@ -43,7 +43,9 @@ type PageRow = {
 export async function GET(req: NextRequest) {
   try {
     const supa = await getSupabaseServer();
-    const { data: { user } } = await supa.auth.getUser();
+    const {
+      data: { user },
+    } = await supa.auth.getUser();
     if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
 
     const url = new URL(req.url);
@@ -68,8 +70,14 @@ export async function GET(req: NextRequest) {
     const days = clampDays(url.searchParams);
     const admin = getSupabaseAdmin();
 
-    const { data: daily }   = await admin.rpc("daily_analytics", { p_widget_id: widgetId, p_days: days });
-    const { data: by_page } = await admin.rpc("page_analytics",  { p_widget_id: widgetId, p_days: days });
+    const { data: daily } = await admin.rpc("daily_analytics", {
+      p_widget_id: widgetId,
+      p_days: days,
+    });
+    const { data: by_page } = await admin.rpc("page_analytics", {
+      p_widget_id: widgetId,
+      p_days: days,
+    });
 
     const lines: string[] = [];
     lines.push("Daily");

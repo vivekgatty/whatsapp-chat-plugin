@@ -289,7 +289,7 @@ export async function GET(req: Request) {
     headers: {
       "content-type": "text/javascript; charset=utf-8",
       "cache-control": "public, max-age=0, s-maxage=31536000, stale-while-revalidate=86400",
-      "x-robots-tag": "noindex"
+      "x-robots-tag": "noindex",
     },
   });
 }

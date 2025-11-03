@@ -26,7 +26,14 @@ type ApiResp = {
   widget_id: string;
   range: { from: string; to: string; key: RangeKey };
   today: Omit<DailyRow, "day">;
-  totals: { impressions: number; opens: number; closes: number; clicks: number; leads: number; ctr: number };
+  totals: {
+    impressions: number;
+    opens: number;
+    closes: number;
+    clicks: number;
+    leads: number;
+    ctr: number;
+  };
   daily: DailyRow[];
   byPage: PageRow[];
 };
@@ -49,9 +56,12 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       setError(null);
-      const r = await fetch(`/api/analytics?widget_id=${encodeURIComponent(widgetId)}&range=${range}`, {
-        cache: "no-store",
-      });
+      const r = await fetch(
+        `/api/analytics?widget_id=${encodeURIComponent(widgetId)}&range=${range}`,
+        {
+          cache: "no-store",
+        }
+      );
       const j = (await r.json()) as ApiResp;
       if (!j.ok) throw new Error((j as any).error || "Failed");
       setData(j);
@@ -73,7 +83,7 @@ export default function AnalyticsPage() {
     return (
       <button
         onClick={() => setRange(k)}
-        className={`px-3 py-1 rounded-xl border ${active ? "bg-white/10" : "bg-white/5"} hover:bg-white/10`}
+        className={`rounded-xl border px-3 py-1 ${active ? "bg-white/10" : "bg-white/5"} hover:bg-white/10`}
       >
         {label}
       </button>
@@ -97,38 +107,44 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <main className="min-h-screen text-slate-100 bg-zinc-950">
-      <div className="max-w-6xl mx-auto px-6 py-10">
-        <h1 className="text-3xl font-semibold mb-6">Widget Analytics</h1>
+    <main className="min-h-screen bg-zinc-950 text-slate-100">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <h1 className="mb-6 text-3xl font-semibold">Widget Analytics</h1>
 
-        <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="mb-6 flex flex-wrap items-center gap-3">
           <div className="text-sm opacity-70">Widget ID:</div>
-          <code className="text-sm px-2 py-1 bg-white/5 rounded">{widgetId}</code>
+          <code className="rounded bg-white/5 px-2 py-1 text-sm">{widgetId}</code>
           <div className="flex-1" />
           <RangeButton k="today" label="Today" />
           <RangeButton k="7d" label="7 days" />
           <RangeButton k="14d" label="14 days" />
           <RangeButton k="30d" label="30 days" />
-          <button onClick={exportDailyCsv} className="px-3 py-1 rounded-xl border bg-white/5 hover:bg-white/10">
+          <button
+            onClick={exportDailyCsv}
+            className="rounded-xl border bg-white/5 px-3 py-1 hover:bg-white/10"
+          >
             Export CSV
           </button>
         </div>
 
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-24 rounded-2xl bg-white/5 animate-pulse" />
+              <div key={i} className="h-24 animate-pulse rounded-2xl bg-white/5" />
             ))}
-            <div className="h-40 rounded-2xl bg-white/5 animate-pulse col-span-full" />
-            <div className="h-64 rounded-2xl bg-white/5 animate-pulse col-span-full" />
+            <div className="col-span-full h-40 animate-pulse rounded-2xl bg-white/5" />
+            <div className="col-span-full h-64 animate-pulse rounded-2xl bg-white/5" />
           </div>
         )}
 
         {error && (
-          <div className="p-4 rounded-xl bg-red-900/30 border border-red-800 mb-6">
+          <div className="mb-6 rounded-xl border border-red-800 bg-red-900/30 p-4">
             <div className="font-semibold">Error</div>
             <div className="text-sm opacity-80">{error}</div>
-            <button onClick={load} className="mt-3 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20">
+            <button
+              onClick={load}
+              className="mt-3 rounded-lg bg-white/10 px-3 py-1 hover:bg-white/20"
+            >
               Retry
             </button>
           </div>
@@ -137,7 +153,7 @@ export default function AnalyticsPage() {
         {data && (
           <>
             {/* KPI cards */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5">
               {[
                 { label: "Impr.", value: data.today.impressions },
                 { label: "Opens", value: data.today.opens },
@@ -147,26 +163,29 @@ export default function AnalyticsPage() {
               ].map((k) => (
                 <div key={k.label} className="rounded-2xl border bg-white/5 p-4">
                   <div className="text-xs opacity-60">{k.label}</div>
-                  <div className="text-2xl font-semibold mt-2">{k.value}</div>
+                  <div className="mt-2 text-2xl font-semibold">{k.value}</div>
                 </div>
               ))}
             </div>
 
             {/* Totals */}
-            <div className="rounded-2xl border bg-white/5 p-4 mb-6">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="font-semibold">Totals ({data.range.from} → {data.range.to})</div>
+            <div className="mb-6 rounded-2xl border bg-white/5 p-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="font-semibold">
+                  Totals ({data.range.from} → {data.range.to})
+                </div>
                 <div className="opacity-60">CTR: {data.totals.ctr}%</div>
               </div>
               <div className="mt-2 text-sm">
                 Impr: <b>{data.totals.impressions}</b> · Opens: <b>{data.totals.opens}</b> · Closes:{" "}
-                <b>{data.totals.closes}</b> · Clicks: <b>{data.totals.clicks}</b> · Leads: <b>{data.totals.leads}</b>
+                <b>{data.totals.closes}</b> · Clicks: <b>{data.totals.clicks}</b> · Leads:{" "}
+                <b>{data.totals.leads}</b>
               </div>
             </div>
 
             {/* Daily table */}
-            <section className="rounded-2xl border bg-white/5 p-4 mb-8">
-              <h3 className="font-semibold mb-3">Daily</h3>
+            <section className="mb-8 rounded-2xl border bg-white/5 p-4">
+              <h3 className="mb-3 font-semibold">Daily</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="text-left opacity-60">
@@ -204,7 +223,7 @@ export default function AnalyticsPage() {
 
             {/* By Page table */}
             <section className="rounded-2xl border bg-white/5 p-4">
-              <h3 className="font-semibold mb-3">By page</h3>
+              <h3 className="mb-3 font-semibold">By page</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                   <thead className="text-left opacity-60">

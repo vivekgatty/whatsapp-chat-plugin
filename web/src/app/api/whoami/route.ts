@@ -12,6 +12,8 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { cookies: { get: (n) => cookieStore.get(n)?.value, set() {}, remove() {} } }
   );
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return NextResponse.json({ user });
 }

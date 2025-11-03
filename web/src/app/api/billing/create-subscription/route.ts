@@ -28,7 +28,7 @@ export async function POST() {
       email: auth.user.email,
       name: auth.user.user_metadata?.name || "Chatmadi User",
     });
-  } catch (e:any) {
+  } catch (e: any) {
     return NextResponse.json({ error: e.message || "create-subscription failed" }, { status: 500 });
   }
 }

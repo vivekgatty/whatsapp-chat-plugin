@@ -27,29 +27,42 @@ async function openCheckout() {
     description: "Pro Plan",
     prefill: { email: data.email, name: data.name },
     theme: { color: "#f59e0b" },
-    handler: function () { window.location.href = "/dashboard?upgraded=1"; },
-    modal: { ondismiss: function() {} }
+    handler: function () {
+      window.location.href = "/dashboard?upgraded=1";
+    },
+    modal: { ondismiss: function () {} },
   });
   rzp.open();
 }
 
 export default function BillingClient() {
   return (
-    <div className="rounded border border-slate-700 bg-slate-900/50 p-4 space-y-2">
+    <div className="space-y-2 rounded border border-slate-700 bg-slate-900/50 p-4">
       <div className="font-semibold">Manage subscription</div>
       <div className="flex gap-2">
-        <button id="upgrade-btn" onClick={() => openCheckout()} className="px-3 py-1 rounded bg-amber-600 text-black">
+        <button
+          id="upgrade-btn"
+          onClick={() => openCheckout()}
+          className="rounded bg-amber-600 px-3 py-1 text-black"
+        >
           Upgrade to Pro
         </button>
 
         {/* Replace with real portal link once webhook has customer_id */}
-        <a className="px-3 py-1 rounded bg-slate-800 border border-slate-700" href="#"
-           onClick={(e)=>{e.preventDefault(); alert("Portal link can be enabled once webhook populates customer_id.");}}>
+        <a
+          className="rounded border border-slate-700 bg-slate-800 px-3 py-1"
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            alert("Portal link can be enabled once webhook populates customer_id.");
+          }}
+        >
           Open billing portal
         </a>
       </div>
       <div className="text-sm text-slate-400">
-        This opens Razorpay Checkout for subscription. Portal is for managing an existing subscription.
+        This opens Razorpay Checkout for subscription. Portal is for managing an existing
+        subscription.
       </div>
     </div>
   );

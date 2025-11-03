@@ -6,10 +6,10 @@ import BillingClient from "../../components/BillingClient";
 
 export default function Page() {
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6 p-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Billing</h1>
-        <Link href="/dashboard" className="px-3 py-1 rounded bg-slate-800 border border-slate-700">
+        <Link href="/dashboard" className="rounded border border-slate-700 bg-slate-800 px-3 py-1">
           Back to dashboard
         </Link>
       </div>

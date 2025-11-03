@@ -19,8 +19,7 @@ export async function POST(req: Request) {
 
     // "online_override": "" | "online" | "offline"
     const oo = String(fd.get("online_override") || "");
-    const online_override =
-      oo === "online" ? true : oo === "offline" ? false : null;
+    const online_override = oo === "online" ? true : oo === "offline" ? false : null;
 
     // Parse working hours from inputs like wh[mon][start], wh[mon][end], wh[mon][closed]
     const working_hours: Record<
@@ -71,5 +70,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e?.message || "server error" }, { status: 200 });
   }
 }
-
-

@@ -98,7 +98,8 @@
     injectStyles();
 
     // Decide to hide if offline
-    const hideWhenOffline = (scriptEl.getAttribute("data-hide-when-offline") || "false").toLowerCase() === "true";
+    const hideWhenOffline =
+      (scriptEl.getAttribute("data-hide-when-offline") || "false").toLowerCase() === "true";
     if (cfg.online === false && hideWhenOffline) return;
 
     // Avoid duplicates
@@ -106,7 +107,7 @@
 
     const root = document.createElement("div");
     root.id = "wa-widget-root";
-    root.className = (cfg.position === "left" ? "left" : "right");
+    root.className = cfg.position === "left" ? "left" : "right";
 
     const a = document.createElement("a");
     a.id = "wa-widget-btn";
@@ -178,7 +179,7 @@
 
       // Normalize/guard
       const normalized = {
-        position: (cfg.position === "left" ? "left" : "right"),
+        position: cfg.position === "left" ? "left" : "right",
         themeColor: cfg.themeColor || "#10b981",
         icon: cfg.icon || "whatsapp",
         ctaText: cfg.ctaText || "Chat with us on WhatsApp",

@@ -12,11 +12,7 @@ export async function GET(req: Request) {
     if (!id) return NextResponse.json({ ok: false, error: "Missing id" }, { status: 400 });
 
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("widgets")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
+    const { data, error } = await supabase.from("widgets").select("*").eq("id", id).maybeSingle();
 
     if (error) {
       console.error("widget-config error:", error);
@@ -27,6 +23,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, widget: data });
   } catch (e: any) {
     console.error("widget-config exception:", e);
-    return NextResponse.json({ ok: false, error: e?.message ?? "Unexpected error" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: e?.message ?? "Unexpected error" },
+      { status: 500 }
+    );
   }
 }

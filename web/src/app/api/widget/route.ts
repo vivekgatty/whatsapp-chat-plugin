@@ -237,7 +237,7 @@ export async function GET(_req: NextRequest) {
     headers: {
       "content-type": "application/javascript; charset=utf-8",
       "cache-control": "no-store, max-age=0",
-      "x-robots-tag": "noindex"
-    }
+      "x-robots-tag": "noindex",
+    },
   });
 }

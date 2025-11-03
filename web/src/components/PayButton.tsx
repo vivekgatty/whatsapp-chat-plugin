@@ -3,7 +3,12 @@ import * as React from "react";
 
 type Props = { plan: string; amount: number; buttonText?: string; timeoutMs?: number };
 
-export default function PayButton({ plan, amount, buttonText = "Subscribe Pro — ₹1", timeoutMs = 120000 }: Props) {
+export default function PayButton({
+  plan,
+  amount,
+  buttonText = "Subscribe Pro — ₹1",
+  timeoutMs = 120000,
+}: Props) {
   const [busy, setBusy] = React.useState(false);
 
   async function ensureCheckoutJs() {
@@ -32,13 +37,17 @@ export default function PayButton({ plan, amount, buttonText = "Subscribe Pro �
     while (Date.now() - start < timeoutMs) {
       await new Promise((r) => setTimeout(r, 3000));
       try {
-        const r = await fetch(`/api/billing/order-status?order_id=${encodeURIComponent(orderId)}`, { cache: "no-store" });
+        const r = await fetch(`/api/billing/order-status?order_id=${encodeURIComponent(orderId)}`, {
+          cache: "no-store",
+        });
         const j = await r.json();
         if (j?.status === "paid") {
           window.location.href = "/pricing?paid=1";
           return;
         }
-      } catch { /* keep polling */ }
+      } catch {
+        /* keep polling */
+      }
     }
   }
 
@@ -56,7 +65,9 @@ export default function PayButton({ plan, amount, buttonText = "Subscribe Pro �
         name: "Chatmadi",
         description: `${plan.toUpperCase()} plan`,
         order_id: orderId,
-        handler: () => { /* Razorpay success callback (for card/intent flows) */ },
+        handler: () => {
+          /* Razorpay success callback (for card/intent flows) */
+        },
         modal: { ondismiss: () => {} },
         theme: { color: "#0ea5e9" },
       });

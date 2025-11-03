@@ -16,11 +16,12 @@ export async function POST(req: Request) {
   const raw = await req.text();
   const sig = req.headers.get("x-razorpay-signature");
 
-  if (!verify(sig, raw, secret)) return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  if (!verify(sig, raw, secret))
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
 
   const evt = JSON.parse(raw);
   const type: string = evt.event;
-  const sub  = evt.payload?.subscription?.entity;
+  const sub = evt.payload?.subscription?.entity;
   const cust = evt.payload?.customer?.entity;
 
   if (!sub?.id) return NextResponse.json({ ok: true }); // ignore non-subscription events

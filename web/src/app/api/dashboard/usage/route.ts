@@ -9,13 +9,20 @@ import { getUsage } from "../../../../lib/plan";
 export async function GET(_req: NextRequest) {
   try {
     const supa = await getSupabaseServer();
-    const { data: { user } } = await supa.auth.getUser();
+    const {
+      data: { user },
+    } = await supa.auth.getUser();
     if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
 
     // Find a widget for this user: prefer owner_user_id, fallback to any
     let widgetId: string | null = null;
 
-    const byOwner = await supa.from("widgets").select("id").eq("owner_user_id", user.id).limit(1).maybeSingle();
+    const byOwner = await supa
+      .from("widgets")
+      .select("id")
+      .eq("owner_user_id", user.id)
+      .limit(1)
+      .maybeSingle();
     if (byOwner?.data?.id) widgetId = byOwner.data.id;
 
     if (!widgetId) {

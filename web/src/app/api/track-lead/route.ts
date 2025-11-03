@@ -8,15 +8,18 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const u = new URL(req.url);
-    const body = await req.json().catch(() => ({} as any));
+    const body = await req.json().catch(() => ({}) as any);
 
     const wid =
-      body.wid || body.widget_id || u.searchParams.get("wid") ||
-      body.id  || u.searchParams.get("id");
+      body.wid ||
+      body.widget_id ||
+      u.searchParams.get("wid") ||
+      body.id ||
+      u.searchParams.get("id");
 
-    const name    = String(body.name    ?? body.wcp_name    ?? "").slice(0, 100);
+    const name = String(body.name ?? body.wcp_name ?? "").slice(0, 100);
     const message = String(body.message ?? body.wcp_message ?? "").slice(0, 1000);
-    const source  = String(body.source  ?? "widget");
+    const source = String(body.source ?? "widget");
 
     if (!wid) {
       return NextResponse.json({ ok: false, warn: "missing wid" }, { status: 200 });
@@ -82,5 +85,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 200 });
   }
 }
-
-

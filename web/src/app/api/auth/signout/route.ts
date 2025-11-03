@@ -7,6 +7,8 @@ import { getSupabaseServer } from "../../../../lib/supabaseServer";
 
 export async function POST(req: NextRequest) {
   const supa = await getSupabaseServer();
-  try { await supa.auth.signOut(); } catch {}
+  try {
+    await supa.auth.signOut();
+  } catch {}
   return NextResponse.redirect(new URL("/", req.url), { status: 302 });
 }
