@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import Link from "next/link";
-import BillingClient from "@/src/components/BillingClient";
+import BillingClient from "../../components/BillingClient";
 
 export default function Page() {
   return (
