@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-export const metadata: Metadata = { title: "Privacy Policy — Chatmadi" };
+export const metadata: Metadata = { title: "Privacy Policy â€” Chatmadi" };
 
 export default function Page() {
   return (
@@ -8,8 +8,8 @@ export default function Page() {
       <p><strong>Last updated:</strong> 04 Nov 2025</p>
       <p>
         This Privacy Policy explains how <strong>Eduloom Technologies OPC Pvt Ltd</strong>
-        (“we”, “us”, “our”) collects, uses, and protects personal information in
-        connection with the Chatmadi service (“Service”). By using the Service, you agree to this Policy.
+        (â€œweâ€, â€œusâ€, â€œourâ€) collects, uses, and protects personal information in
+        connection with the Chatmadi service (â€œServiceâ€). By using the Service, you agree to this Policy.
       </p>
 
       <h2 className="text-xl font-semibold mt-6">1) Information We Collect</h2>
@@ -54,7 +54,7 @@ export default function Page() {
       <p>We may update this Policy and will post the effective date; material changes may include additional notice.</p>
 
       <h2 className="text-xl font-semibold mt-6">11) Contact</h2>
-      <p>Eduloom Technologies OPC Pvt Ltd, Bengaluru, Karnataka, India • Email: <a className="underline" href="mailto:support@chatmadi.com">support@chatmadi.com</a></p>
+      <p>Eduloom Technologies OPC Pvt Ltd, Mysuru, Karnataka, India â€¢ Email: <a className="underline" href="mailto:admin@chatmadi.com">admin@chatmadi.com</a></p>
     </div>
   );
 }
