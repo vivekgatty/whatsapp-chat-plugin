@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* CHAT_HEADER_CLEANUP_V1 */
+/* Hide duplicate "pills" row inside dashboard content (not the header) */
+main :is(div,nav,section)
+  :has(> a[href="/dashboard"])
+  :has(> a[href="/dashboard/widget"])
+  :has(> a[href="/dashboard/analytics"])
+  :has(> a[href="/billing"]) { display: none !important; }
+
+/* Hide duplicate action row inside dashboard content */
+main :is(div,nav,section)
+  :has(> a[href="/dashboard/profile"])
+  :has(> a[href="/dashboard/widget"])
+  :has(> a[href="/billing"]) { display: none !important; }
