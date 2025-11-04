@@ -1,31 +1,59 @@
-export const metadata = { title: "Terms & Conditions | Chatmadi" };
+import type { Metadata } from "next";
+export const metadata: Metadata = { title: "Terms & Conditions — Chatmadi" };
 
 export default function Page() {
   return (
-    <div className="prose prose-invert mx-auto max-w-5xl px-4 py-10">
-      <h1>Terms &amp; Conditions</h1>
-      <p>
-        <strong>Last updated:</strong> {new Date().toISOString().slice(0, 10)}
-      </p>
-      <h2>Accounts</h2>
-      <p>You are responsible for activity on your account and for keeping credentials secure.</p>
-      <h2>Subscriptions & Billing</h2>
-      <ul>
-        <li>Plans are prepaid and auto-renew until cancelled.</li>
-        <li>Taxes may apply as per law.</li>
+    <div className="mx-auto max-w-4xl p-4 md:p-8 space-y-6">
+      <h1 className="text-2xl font-semibold">Terms & Conditions</h1>
+      <p><strong>Last updated:</strong> 04 Nov 2025</p>
+      <p>These Terms govern your use of the Chatmadi service (“Service”) provided by <strong>Eduloom Technologies OPC Pvt Ltd</strong> (“Company”, “we”, “us”). By using the Service, you agree to these Terms.</p>
+
+      <h2 className="text-xl font-semibold mt-6">1) Accounts & Eligibility</h2>
+      <p>You must be legally competent and, if acting for an entity, authorized to bind it. You’re responsible for your credentials and all activity on your account.</p>
+
+      <h2 className="text-xl font-semibold mt-6">2) Subscriptions, Fees & Taxes</h2>
+      <p>Paid features are subscription-based. Fees are billed in advance and non-refundable except as stated in <a className="underline" href="/cancellations-and-refunds">Cancellations & Refunds</a>. Prices/taxes may change; material changes will be notified in advance.</p>
+
+      <h2 className="text-xl font-semibold mt-6">3) Cancellations</h2>
+      <p>You may cancel anytime; access continues until the end of the current billing period.</p>
+
+      <h2 className="text-xl font-semibold mt-6">4) Acceptable Use</h2>
+      <ul className="list-disc ps-6 space-y-2">
+        <li>No illegal, harmful, deceptive, or infringing activity.</li>
+        <li>No security testing/scraping without written permission.</li>
+        <li>No misuse of APIs or circumvention of quotas/limits.</li>
+        <li>No unauthorized collection/processing of others’ personal data.</li>
       </ul>
-      <h2>Acceptable Use</h2>
-      <p>No spam, abuse, or illegal content. We may suspend accounts violating these terms.</p>
-      <h2>Limitation of Liability</h2>
-      <p>
-        Service is provided “as is”. To the extent permitted by law, our liability is limited to
-        amounts paid in the last 6 months.
-      </p>
-      <h2>Contact</h2>
-      <p>
-        Email: <a href="mailto:admin@chatmadi.com">admin@chatmadi.com</a> &nbsp;|&nbsp; Phone:{" "}
-        <a href="tel:+919591428002">+91 95914 28002</a>
-      </p>
+
+      <h2 className="text-xl font-semibold mt-6">5) Your Content</h2>
+      <p>You retain ownership. You grant us a limited license to host/process/display it to operate and improve the Service. You represent you have the required rights.</p>
+
+      <h2 className="text-xl font-semibold mt-6">6) Third-Party Services</h2>
+      <p>Some features rely on third parties (e.g., Razorpay). Their terms and privacy policies may apply.</p>
+
+      <h2 className="text-xl font-semibold mt-6">7) Confidentiality & Privacy</h2>
+      <p>Personal data is handled under our <a className="underline" href="/privacy-policy">Privacy Policy</a>.</p>
+
+      <h2 className="text-xl font-semibold mt-6">8) Warranty Disclaimer</h2>
+      <p>THE SERVICE IS PROVIDED “AS IS” AND “AS AVAILABLE” WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.</p>
+
+      <h2 className="text-xl font-semibold mt-6">9) Limitation of Liability</h2>
+      <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE ARE NOT LIABLE FOR INDIRECT/INCIDENTAL/CONSEQUENTIAL DAMAGES. OUR TOTAL AGGREGATE LIABILITY WILL NOT EXCEED FEES PAID IN THE 12 MONTHS PRECEDING THE EVENT.</p>
+
+      <h2 className="text-xl font-semibold mt-6">10) Indemnity</h2>
+      <p>You will indemnify the Company and its affiliates for claims arising from your content, use of the Service, or breach of these Terms.</p>
+
+      <h2 className="text-xl font-semibold mt-6">11) Suspension & Termination</h2>
+      <p>We may suspend/terminate for violations or legal compliance. We may modify/discontinue features with reasonable notice for material changes.</p>
+
+      <h2 className="text-xl font-semibold mt-6">12) Governing Law & Disputes</h2>
+      <p>Indian law governs; exclusive jurisdiction lies with the courts in Bengaluru, Karnataka, subject to mandatory consumer laws.</p>
+
+      <h2 className="text-xl font-semibold mt-6">13) Changes</h2>
+      <p>We may update these Terms; continued use after the effective date is acceptance.</p>
+
+      <h2 className="text-xl font-semibold mt-6">14) Contact</h2>
+      <p>Eduloom Technologies OPC Pvt Ltd • Bengaluru, Karnataka, India • <a className="underline" href="mailto:support@chatmadi.com">support@chatmadi.com</a></p>
     </div>
   );
 }
