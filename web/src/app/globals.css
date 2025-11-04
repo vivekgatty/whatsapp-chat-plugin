@@ -38,3 +38,11 @@ main :is(div,nav,section)
   :has(> a[href="/dashboard/profile"])
   :has(> a[href="/dashboard/widget"])
   :has(> a[href="/billing"]) { display: none !important; }
+
+/* CHATMADI_HIDE_OVERVIEW_ACTION_ROW_V1 */
+/* Hide the duplicate action-row INSIDE the dashboard content (keeps header visible). */
+/* We match a small container that has links to Profile, Widget settings and Billing. */
+main :is(div,nav,section,header)
+  :has(a[href="/dashboard/profile"])
+  :has(a[href="/dashboard/widget"])
+  :has(a[href="/billing"]) { display: none !important; }
