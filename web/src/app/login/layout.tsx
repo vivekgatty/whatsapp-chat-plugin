@@ -1,11 +1,10 @@
-/** stamp: 2025-11-01_08-30-23 */
-import SiteFooter from "@/components/SiteFooter";
-export const dynamic = "force-dynamic";
+import SiteFooter from "../../components/SiteFooter";
+
 export default function LoginLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      {children}
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+      <main className="flex-1">{children}</main>
       <SiteFooter />
-    </>
+    </div>
   );
 }

@@ -1,17 +1,18 @@
-/** stamp: 2025-11-01_07-59-29 */
+import type { Metadata } from "next";
 import "./globals.css";
-import SiteFooter from "@/components/SiteFooter";
+import SiteFooter from "../components/SiteFooter";
+import GlobalTopBar from "../components/GlobalTopBar";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Chatmadi",
-  description: "WhatsApp chat widget",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        {children}
+    <html lang="en" className="h-full">
+      <body className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+        <GlobalTopBar />
+        <main className="flex-1">{children}</main>
         <SiteFooter />
       </body>
     </html>
