@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
   --background: #ffffff;
@@ -25,18 +25,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* CHAT_HEADER_CLEANUP_V1 */
 /* Hide duplicate "pills" row inside dashboard content (not the header) */
 main :is(div,nav,section)
-  :has(> a[href="/dashboard"])
-  :has(> a[href="/dashboard/widget"])
-  :has(> a[href="/dashboard/analytics"])
   :has(> a[href="/billing"]) { display: none !important; }
 
 /* Hide duplicate action row inside dashboard content */
 main :is(div,nav,section)
   :has(> a[href="/dashboard/profile"])
-  :has(> a[href="/dashboard/widget"])
   :has(> a[href="/billing"]) { display: none !important; }
 
 /* CHATMADI_HIDE_OVERVIEW_ACTION_ROW_V1 */
@@ -44,8 +39,13 @@ main :is(div,nav,section)
 /* We match a small container that has links to Profile, Widget settings and Billing. */
 main :is(div,nav,section,header)
   :has(a[href="/dashboard/profile"])
-  :has(a[href="/dashboard/widget"])
   :has(a[href="/billing"]) { display: none !important; }
 
 /* CHATMADI_HIDE_OVERVIEW_ACTION_ROW_V2 */
-main :has(a[href="/dashboard/profile"]):has(a[href="/dashboard/widget"]):has(a[href="/billing"]) { display: none !important; }
+
+/* CHAT_DASH_CLEAN_V2 — hide duplicate action row inside dashboard content (not header) */
+main > :is(div,nav,section)
+  :not(:has(h1,h2,h3,article,section,table,figure))
+  :has(> a[href="/dashboard/profile"])
+  :has(> a[href="/dashboard/widget"])
+  :has(> a[href="/billing"]) { display: none !important; }
