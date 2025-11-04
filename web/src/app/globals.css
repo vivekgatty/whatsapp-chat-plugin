@@ -46,3 +46,6 @@ main :is(div,nav,section,header)
   :has(a[href="/dashboard/profile"])
   :has(a[href="/dashboard/widget"])
   :has(a[href="/billing"]) { display: none !important; }
+
+/* CHATMADI_HIDE_OVERVIEW_ACTION_ROW_V2 */
+main :has(a[href="/dashboard/profile"]):has(a[href="/dashboard/widget"]):has(a[href="/billing"]) { display: none !important; }
