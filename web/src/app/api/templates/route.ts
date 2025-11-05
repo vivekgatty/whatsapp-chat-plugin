@@ -3,14 +3,48 @@ import * as SA from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
+function isClient(x: any) {
+  return x && typeof x === "object" && typeof x.from === "function";
+}
+
 /** Resolve a Supabase admin client regardless of how the module exports it. */
 function getAdmin(): any {
   const m: any = SA as any;
-  if (typeof m === "function") return m();                             // default export is a function
-  if (m.default && typeof m.default === "function") return m.default(); // default export fn
-  if (m.admin && typeof m.admin === "function") return m.admin();       // named admin()
-  if (m.createAdminClient && typeof m.createAdminClient === "function") return m.createAdminClient(); // named creator
-  throw new Error("supabaseAdmin must export a function that returns a Supabase client");
+
+  // 1) Module itself is a client object
+  if (isClient(m)) return m;
+
+  // 2) Module itself is a function returning a client
+  if (typeof m === "function") {
+    const c = m();
+    if (isClient(c)) return c;
+  }
+
+  // 3) default export (object or factory)
+  if (m?.default) {
+    if (isClient(m.default)) return m.default;
+    if (typeof m.default === "function") {
+      const c = m.default();
+      if (isClient(c)) return c;
+    }
+  }
+
+  // 4) named admin (object or factory)
+  if (m?.admin) {
+    if (isClient(m.admin)) return m.admin;
+    if (typeof m.admin === "function") {
+      const c = m.admin();
+      if (isClient(c)) return c;
+    }
+  }
+
+  // 5) named factory createAdminClient()
+  if (typeof m?.createAdminClient === "function") {
+    const c = m.createAdminClient();
+    if (isClient(c)) return c;
+  }
+
+  throw new Error("supabaseAdmin must export a client (with .from) or a function returning one");
 }
 
 // GET /api/templates?business_id=...&locale=...&trigger=...
@@ -27,7 +61,8 @@ export async function GET(req: Request) {
     const trig   = searchParams.get("trigger") || undefined;
 
     const sb = getAdmin();
-    let q = sb.from("auto_reply_templates")
+    let q = sb
+      .from("auto_reply_templates")
       .select("*")
       .eq("business_id", business_id)
       .order("created_at", { ascending: false });
