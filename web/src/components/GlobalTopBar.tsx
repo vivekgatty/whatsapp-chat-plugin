@@ -30,17 +30,21 @@ function hideDashboardDuplicates() {
     'a[href="/dashboard"], a[href="/dashboard/widget"], a[href="/dashboard/analytics"], a[href="/billing"]'
   );
   if (anyPill) {
-    const row = anyPill.closest<HTMLElement>(".flex, .gap-2, .space-x-2") || (anyPill.parentElement as HTMLElement | null);
+    const row =
+      anyPill.closest<HTMLElement>(".flex, .gap-2, .space-x-2") ||
+      (anyPill.parentElement as HTMLElement | null);
     if (row && isButtonsOnlyRow(row)) row.style.display = "none";
   }
 
   // 2) Action row (Edit profile / Widget settings / Manage plan / Sign out) inside content
   const profileLink = main.querySelector('a[href="/dashboard/profile"]');
-  const widgetLink  = main.querySelector('a[href="/dashboard/widget"]');
+  const widgetLink = main.querySelector('a[href="/dashboard/widget"]');
   const billingLink = main.querySelector('a[href="/billing"]');
   if (profileLink && widgetLink && billingLink) {
     const anchor = profileLink; // any of the three works to locate the row
-    const row = anchor.closest<HTMLElement>(".flex, .gap-2, .space-x-2, .items-center") || (anchor.parentElement as HTMLElement | null);
+    const row =
+      anchor.closest<HTMLElement>(".flex, .gap-2, .space-x-2, .items-center") ||
+      (anchor.parentElement as HTMLElement | null);
     if (row && isButtonsOnlyRow(row)) row.style.display = "none";
   }
 }
@@ -59,19 +63,43 @@ export default function GlobalTopBar() {
     <div data-global-dashboard-topbar>
       <div className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60">
         <div className="mx-auto max-w-6xl px-4 py-2 flex flex-wrap items-center gap-2">
-          <Link href="/dashboard" className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800">
+          <Link
+            href="/dashboard"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
+          >
             Overview
           </Link>
-          <Link href="/dashboard/widget" className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800">
+          <Link
+            href="/dashboard/widget"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
+          >
             Widget settings
           </Link>
-          <Link href="/dashboard/analytics" className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800">
+
+          {/* NEW: Templates pill */}
+          <Link
+            href="/dashboard/templates"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
+          >
+            Templates
+          </Link>
+
+          <Link
+            href="/dashboard/analytics"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
+          >
             Analytics
           </Link>
-          <Link href="/billing" className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800">
+          <Link
+            href="/billing"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
+          >
             Billing
           </Link>
-          <Link href="/dashboard/profile" className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800">
+          <Link
+            href="/dashboard/profile"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
+          >
             Edit profile
           </Link>
           <div className="ms-auto">
