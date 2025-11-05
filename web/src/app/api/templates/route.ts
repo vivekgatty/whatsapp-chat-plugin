@@ -3,15 +3,13 @@ import * as SA from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
-/** Resolve an admin Supabase client regardless of how the module exports it (default or named). */
+/** Resolve a Supabase admin client regardless of how the module exports it. */
 function getAdmin(): any {
   const m: any = SA as any;
-  if (typeof m === "function") return m();
-  if (m.default && typeof m.default === "function") return m.default();
-  if (m.admin && typeof m.admin === "function") return m.admin();
-  if (m.createAdminClient && typeof m.createAdminClient === "function") return m.createAdminClient();
-  if (m.getAdminClient && typeof m.getAdminClient === "function") return m.getAdminClient();
-  if (m.supabaseAdmin && typeof m.supabaseAdmin === "function") return m.supabaseAdmin();
+  if (typeof m === "function") return m();                             // default export is a function
+  if (m.default && typeof m.default === "function") return m.default(); // default export fn
+  if (m.admin && typeof m.admin === "function") return m.admin();       // named admin()
+  if (m.createAdminClient && typeof m.createAdminClient === "function") return m.createAdminClient(); // named creator
   throw new Error("supabaseAdmin must export a function that returns a Supabase client");
 }
 
@@ -19,10 +17,8 @@ function getAdmin(): any {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-
     const business_id =
       (searchParams.get("business_id") || "") || (process.env.DEFAULT_BUSINESS_ID || "");
-
     if (!business_id) {
       return NextResponse.json({ error: "Missing business_id" }, { status: 400 });
     }
@@ -31,8 +27,7 @@ export async function GET(req: Request) {
     const trig   = searchParams.get("trigger") || undefined;
 
     const sb = getAdmin();
-    let q = sb
-      .from("auto_reply_templates")
+    let q = sb.from("auto_reply_templates")
       .select("*")
       .eq("business_id", business_id)
       .order("created_at", { ascending: false });
