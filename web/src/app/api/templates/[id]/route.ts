@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import * as SA from "../../../../lib/supabaseAdmin";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
-function isClient(x: any) {
-  return x && typeof x === "object" && typeof x.from === "function";
+function isClient(x: any) { return x && typeof x === "object" && typeof x.from === "function"; }
+function buildFallback() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE;
+  if (!url) throw new Error("Missing env NEXT_PUBLIC_SUPABASE_URL or SUPABASE_URL");
+  if (!key) throw new Error("Missing env SUPABASE_SERVICE_ROLE");
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 function getAdmin(): any {
   const m: any = SA as any;
@@ -21,7 +27,7 @@ function getAdmin(): any {
   if (typeof m?.createAdminClient === "function") {
     const c = m.createAdminClient(); if (isClient(c)) return c;
   }
-  throw new Error("supabaseAdmin must export a client (with .from) or a function returning one");
+  return buildFallback();
 }
 
 // PUT /api/templates/[id]
