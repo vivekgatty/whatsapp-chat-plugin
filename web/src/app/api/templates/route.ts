@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
-import admin from "../../../lib/supabaseAdmin";
+import * as SA from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
+
+/** Resolve an admin Supabase client regardless of how the module exports it (default or named). */
+function getAdmin(): any {
+  const m: any = SA as any;
+  if (typeof m === "function") return m();
+  if (m.default && typeof m.default === "function") return m.default();
+  if (m.admin && typeof m.admin === "function") return m.admin();
+  if (m.createAdminClient && typeof m.createAdminClient === "function") return m.createAdminClient();
+  if (m.getAdminClient && typeof m.getAdminClient === "function") return m.getAdminClient();
+  if (m.supabaseAdmin && typeof m.supabaseAdmin === "function") return m.supabaseAdmin();
+  throw new Error("supabaseAdmin must export a function that returns a Supabase client");
+}
 
 // GET /api/templates?business_id=...&locale=...&trigger=...
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // Fallback to DEFAULT_BUSINESS_ID if not provided
     const business_id =
       (searchParams.get("business_id") || "") || (process.env.DEFAULT_BUSINESS_ID || "");
 
@@ -19,7 +30,7 @@ export async function GET(req: Request) {
     const locale = searchParams.get("locale") || undefined;
     const trig   = searchParams.get("trigger") || undefined;
 
-    const sb = admin();
+    const sb = getAdmin();
     let q = sb
       .from("auto_reply_templates")
       .select("*")
@@ -46,7 +57,6 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Allow client to omit business_id and fall back on server env
     const business_id = (body?.business_id || "") || (process.env.DEFAULT_BUSINESS_ID || "");
     if (!business_id) {
       return NextResponse.json({ error: "Missing business_id" }, { status: 400 });
@@ -61,7 +71,7 @@ export async function POST(req: Request) {
       active: Boolean(body?.active ?? true),
     };
 
-    const sb = admin();
+    const sb = getAdmin();
     const { data, error } = await sb
       .from("auto_reply_templates")
       .insert(row)
