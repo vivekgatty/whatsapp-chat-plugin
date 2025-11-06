@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-// Primary fallback widget id from project context
+// Primary fallback widget id from your project context
 const FALLBACK_WIDGET_ID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
+const DEFAULT_BUSINESS_ID = process.env.DEFAULT_BUSINESS_ID || null;
 
 async function emit() {
   const sb = getSupabaseAdmin();
@@ -18,7 +19,7 @@ async function emit() {
   if (wErr) throw new Error(wErr.message);
 
   const widget_id = w?.id ?? FALLBACK_WIDGET_ID;
-  const business_id = w?.business_id ?? null;
+  const business_id = w?.business_id ?? DEFAULT_BUSINESS_ID;
 
   const meta = {
     trigger: "test_manual",
@@ -28,9 +29,11 @@ async function emit() {
     locale: "en",
   };
 
+  // IMPORTANT: event_type is required by your schema
   const { error: insErr } = await sb.from("analytics").insert({
     widget_id,
     business_id,
+    event_type: "trigger",
     event: "trigger_fired",
     page: meta.page,
     meta,
@@ -48,7 +51,6 @@ export async function POST() {
   }
 }
 
-// Allow GET for convenience from UI button
 export async function GET() {
   return POST();
 }
