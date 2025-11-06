@@ -3,7 +3,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import getSupabaseAdmin from "../../../../lib/supabaseAdmin";
 
-/** ---------- Off-hours helpers (same as before) ---------- */
+/** ---------- Built-in defaults (so Day6-03 works even without DB rows) ---------- */
+const DEFAULTS: Record<string, Record<string, { name: string; body: string }>> = {
+  greeting: {
+    en: { name: "Greeting (default)", body: "Hey! 👋 How can we help?" },
+    hi: { name: "Greeting (default)", body: "नमस्ते! 👋 हम आपकी कैसे मदद कर सकते हैं?" },
+    kn: { name: "Greeting (default)", body: "ನಮಸ್ಕಾರ! 👋 ನಾವು ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?" },
+    ta: { name: "Greeting (default)", body: "வணக்கம்! 👋 எப்படிச் உதவலாம்?" },
+  },
+  off_hours: {
+    en: { name: "Off-hours (default)", body: "Thanks for reaching out! Our team is offline right now. We’ll reply when we’re back online." },
+    hi: { name: "Off-hours (default)", body: "संपर्क करने के लिए धन्यवाद! अभी हमारी टीम ऑफलाइन है। हम ऑनलाइन आते ही जवाब देंगे।" },
+    kn: { name: "Off-hours (default)", body: "ಸಂಪರ್ಕಿಸಿದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು! ಈಗ ನಮ್ಮ ತಂಡ ಆನ್‌ಲೈನ್‌ನಲ್ಲಿ ಇಲ್ಲ. ನಾವು ಹಿಂದಿರುಗಿದ ಮೇಲೆ ಉತ್ತರಿಸುತ್ತೇವೆ." },
+    ta: { name: "Off-hours (default)", body: "தொடர்பு கொண்டதற்கு நன்றி! இப்போது எங்கள் குழு ஆஃப்லைனில் உள்ளது. திரும்பி வந்தவுடன் பதிலளிப்போம்." },
+  },
+};
+
+/** ---------- Off-hours helpers ---------- */
 function parseWindow(v?: string | null): [number, number] | null {
   const s = (v || "").trim().toLowerCase();
   if (!s || s === "closed" || s === "off" || s === "x") return null;
@@ -14,7 +30,7 @@ function parseWindow(v?: string | null): [number, number] | null {
   if (aH>23||bH>23||aM>59||bM>59) return null;
   const start = aH*60 + aM;
   const end   = bH*60 + bM;
-  if (end <= start) return null; // same-day window only
+  if (end <= start) return null;
   return [start, end];
 }
 function pad2(n: number) { return n < 10 ? `0${n}` : String(n); }
@@ -87,11 +103,7 @@ function decideKind(u: URL) {
 }
 
 /** Rank by (1) kind match, (2) locale match) */
-function rankCandidate(
-  r: any,
-  targetKind: string,
-  targetLocale: string
-) {
+function rankCandidate(r: any, targetKind: string, targetLocale: string) {
   const kindScore   = (r.kind === targetKind) ? 2 : (r.kind === "greeting" ? 1 : 0);
   const localeScore = (r.locale === targetLocale) ? 2 : (r.locale === "en" ? 1 : 0);
   return (kindScore * 100) + (localeScore * 10);
@@ -100,10 +112,10 @@ function rankCandidate(
 export async function GET(req: NextRequest) {
   try {
     const u = new URL(req.url);
-    // accepted but currently ignored since templates.widget_id does not exist:
-    const _wid = (u.searchParams.get("wid") || "").trim() || null;
-    const locale = (u.searchParams.get("locale") || "en").trim();
-
+    // Wid accepted for future, ignored for now (no templates.widget_id column yet)
+    const localeRaw = (u.searchParams.get("locale") || "en").trim();
+    // Clean up any accidental quotes like %22
+    const locale = localeRaw.replace(/^"+|"+$/g, "");
     const decision = decideKind(u);
     const targetKind = decision.kind;
 
@@ -113,7 +125,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supa
       .from("templates")
-      .select("id,name,locale,kind,body")  // no widget_id here
+      .select("id,name,locale,kind,body")
       .in("kind", kinds as any)
       .in("locale", locales as any);
 
@@ -122,25 +134,36 @@ export async function GET(req: NextRequest) {
     }
 
     const candidates = Array.isArray(data) ? data : [];
-    if (candidates.length === 0) {
+    if (candidates.length > 0) {
+      const top = candidates
+        .map(r => ({ r, score: rankCandidate(r, targetKind, locale) }))
+        .sort((a,b) => b.score - a.score)[0].r;
+
       return NextResponse.json({
-        ok: false,
-        error: "No templates found for the requested kind/locale (including fallbacks).",
+        ok: true,
         decision,
-        tried: { locale, kinds, locales }
-      }, { status: 404 });
+        chosen: { ...top, source: "db" },
+        candidatesCount: candidates.length,
+      });
     }
 
-    const top = candidates
-      .map(r => ({ r, score: rankCandidate(r, targetKind, locale) }))
-      .sort((a,b) => b.score - a.score)[0].r;
-
+    // Fallback to built-in defaults
+    const defaultsForKind = DEFAULTS[targetKind] || DEFAULTS["greeting"];
+    const d = defaultsForKind[locale] || defaultsForKind["en"];
     return NextResponse.json({
       ok: true,
       decision,
-      chosen: top,
-      candidatesCount: candidates.length,
+      chosen: {
+        id: null,
+        name: d.name,
+        locale: locale,
+        kind: targetKind,
+        body: d.body,
+        source: "default",
+      },
+      candidatesCount: 0,
     });
+
   } catch (e:any) {
     return NextResponse.json({ ok:false, error: e?.message || "unknown" }, { status: 500 });
   }
