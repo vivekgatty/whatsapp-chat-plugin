@@ -26,19 +26,17 @@ export default function TemplatesPage() {
   const [customKinds, setCustomKinds] = useState<Kind[]>([]);
   const kinds = useMemo<Kind[]>(() => [...SYSTEM_KINDS, ...customKinds], [customKinds]);
 
-  const [name, setName]   = useState("");
-  const [body, setBody]   = useState("");
-  const [rows, setRows]   = useState<TemplateRow[]>([]);
-  const [busy, setBusy]   = useState(false);
-  const [err, setErr]     = useState<string | null>(null);
-  const [ok, setOk]       = useState<string | null>(null);
+  // list + form
+  const [name, setName] = useState("");
+  const [body, setBody] = useState("");
+  const [rows, setRows] = useState<TemplateRow[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  // Edit state
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName]   = useState("");
-  const [editLocale, setEditLocale] = useState<(typeof LOCALES)[number]>("en");
-  const [editKind, setEditKind]   = useState<string>("greeting");
-  const [editBody, setEditBody]   = useState("");
+  // inline edit state
+  type EditState = { id: string; name: string; body: string } | null;
+  const [editing, setEditing] = useState<EditState>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     const u = new URL(window.location.href);
@@ -79,67 +77,59 @@ export default function TemplatesPage() {
 
   async function create() {
     if (!name.trim() || !body.trim()) return;
-    setBusy(true); setErr(null); setOk(null);
+    setBusy(true);
+    setErr(null);
     const r = await fetch(`/api/templates`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ wid: wid || null, name: name.trim(), locale, kind, body }),
-    });
-    const j = await r.json().catch(() => ({}));
-    setBusy(false);
-    if (!j?.ok) return setErr(j?.error || "Failed to create");
-    setName(""); setBody("");
-    setOk("Template created");
-    setTimeout(() => setOk(null), 1600);
-    load();
-  }
-
-  function startEdit(row: TemplateRow) {
-    setEditingId(row.id);
-    setEditName(row.name);
-    setEditLocale(row.locale as any);
-    setEditKind(row.kind);
-    setEditBody(row.body);
-    // scroll
-    const el = document.getElementById("templates-table");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  async function saveEdit() {
-    if (!editingId) return;
-    if (!editName.trim() || !editBody.trim()) return;
-    setBusy(true); setErr(null); setOk(null);
-    const r = await fetch(`/api/templates/${editingId}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        name: editName.trim(),
-        body: editBody,
-        locale: editLocale,
-        kind: editKind,
+        wid: wid || null,
+        name: name.trim(),
+        locale,
+        kind,
+        body,
       }),
     });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
-    if (!j?.ok) return setErr(j?.error || "Failed to update");
-    setOk("Template updated");
-    setTimeout(() => setOk(null), 1600);
-    setEditingId(null);
+    if (!j?.ok) return setErr(j?.error || "Failed to create");
+    setName("");
+    setBody("");
     load();
   }
 
+  function beginEdit(row: TemplateRow) {
+    setEditing({ id: row.id, name: row.name, body: row.body });
+  }
+
   function cancelEdit() {
-    setEditingId(null);
+    setEditing(null);
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    if (!editing.name.trim() || !editing.body.trim()) return;
+
+    setSavingEdit(true);
+    setErr(null);
+    const r = await fetch(`/api/templates/${editing.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: editing.name.trim(), body: editing.body.trim() }),
+    });
+    const j = await r.json().catch(() => ({}));
+    setSavingEdit(false);
+    if (!j?.ok) return setErr(j?.error || "Failed to update");
+    setEditing(null);
+    load();
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this template?")) return;
-    setErr(null); setOk(null);
+    setErr(null);
     const r = await fetch(`/api/templates/${id}`, { method: "DELETE" });
     const j = await r.json().catch(() => ({}));
     if (!j?.ok) return setErr(j?.error || "Failed to delete");
-    setOk("Template deleted");
-    setTimeout(() => setOk(null), 1600);
     load();
   }
 
@@ -188,7 +178,8 @@ export default function TemplatesPage() {
 
         <button
           onClick={() => {
-            setName(""); setBody("");
+            setName("");
+            setBody("");
             const n = document.getElementById("new-template") as HTMLDivElement | null;
             if (n) n.scrollIntoView({ behavior: "smooth", block: "center" });
           }}
@@ -198,8 +189,7 @@ export default function TemplatesPage() {
         </button>
       </div>
 
-      {err && <div className="mb-3 text-sm text-rose-400">{err}</div>}
-      {ok  && <div className="mb-3 text-sm text-emerald-400">{ok}</div>}
+      {err && <div className="mb-4 text-sm text-rose-400">{err}</div>}
 
       {/* New template */}
       <div id="new-template" className="mb-6 rounded border border-slate-700 p-4">
@@ -228,110 +218,82 @@ export default function TemplatesPage() {
       </div>
 
       {/* List */}
-      <div id="templates-table">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-700 text-left">
-              <th className="py-2 pr-3">Name</th>
-              <th className="py-2 pr-3">Locale</th>
-              <th className="py-2 pr-3">Kind</th>
-              <th className="py-2 pr-3">Body</th>
-              <th className="py-2 pr-3">Actions</th>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-700 text-left">
+            <th className="py-2 pr-3">Name</th>
+            <th className="py-2 pr-3">Locale</th>
+            <th className="py-2 pr-3">Kind</th>
+            <th className="py-2 pr-3">Body</th>
+            <th className="py-2 pr-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="py-6 text-slate-400">No templates yet.</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-6 text-slate-400">No templates yet.</td>
+          ) : (
+            rows.map((r) => (
+              <tr key={r.id} className="border-b border-slate-800 align-top">
+                <td className="py-2 pr-3">{r.name}</td>
+                <td className="py-2 pr-3">{r.locale}</td>
+                <td className="py-2 pr-3">{r.kind}</td>
+                <td className="max-w-[520px] py-2 pr-3">
+                  {editing?.id === r.id ? (
+                    <textarea
+                      className="h-28 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
+                      value={editing.body}
+                      onChange={(e) => setEditing({ ...editing, body: e.target.value })}
+                    />
+                  ) : (
+                    <div className="truncate">{r.body}</div>
+                  )}
+                </td>
+                <td className="py-2 pr-3 whitespace-nowrap">
+                  {editing?.id === r.id ? (
+                    <div className="flex gap-2">
+                      <input
+                        className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-sm"
+                        value={editing.name}
+                        onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                      />
+                      <button
+                        onClick={saveEdit}
+                        disabled={savingEdit || !editing.name.trim() || !editing.body.trim()}
+                        className="rounded bg-emerald-600 px-2 py-1 text-sm hover:bg-emerald-500 disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="rounded bg-slate-800 px-2 py-1 text-sm hover:bg-slate-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => beginEdit(r)}
+                        className="text-sky-400 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => remove(r.id)}
+                        className="text-rose-400 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </td>
               </tr>
-            ) : (
-              rows.map((r) => {
-                const isEditing = editingId === r.id;
-                return (
-                  <tr key={r.id} className="border-b border-slate-800 align-top">
-                    <td className="py-2 pr-3">
-                      {isEditing ? (
-                        <input
-                          className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                        />
-                      ) : r.name}
-                    </td>
-                    <td className="py-2 pr-3">
-                      {isEditing ? (
-                        <select
-                          className="rounded border border-slate-700 bg-slate-900 px-2 py-1"
-                          value={editLocale}
-                          onChange={(e) => setEditLocale(e.target.value as any)}
-                        >
-                          {LOCALES.map((l) => <option key={l} value={l}>{l}</option>)}
-                        </select>
-                      ) : r.locale}
-                    </td>
-                    <td className="py-2 pr-3">
-                      {isEditing ? (
-                        <select
-                          className="rounded border border-slate-700 bg-slate-900 px-2 py-1"
-                          value={editKind}
-                          onChange={(e) => setEditKind(e.target.value)}
-                        >
-                          {kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
-                        </select>
-                      ) : r.kind}
-                    </td>
-                    <td className="max-w-[520px] py-2 pr-3">
-                      {isEditing ? (
-                        <textarea
-                          className="h-24 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1"
-                          value={editBody}
-                          onChange={(e) => setEditBody(e.target.value)}
-                        />
-                      ) : (
-                        <div className="truncate">{r.body}</div>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap py-2 pr-3">
-                      {isEditing ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={saveEdit}
-                            disabled={busy || !editName.trim() || !editBody.trim()}
-                            className="rounded bg-emerald-600 px-3 py-1 text-xs hover:bg-emerald-500 disabled:opacity-50"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            className="rounded bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => startEdit(r)}
-                            className="text-sky-400 hover:underline"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => remove(r.id)}
-                            className="text-rose-400 hover:underline"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
