@@ -1,19 +1,21 @@
 ﻿export const runtime = "nodejs";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import getSupabaseAdmin from "../../../../lib/supabaseAdmin";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+// PATCH /api/templates/[id]  body: { name?, locale?, kind?, body? }
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const id = params.id;
-    const body = await req.json().catch(() => ({}));
+    const body = await request.json().catch(() => ({}));
     const patch: any = {};
     if (typeof body?.name === "string") patch.name = body.name.trim();
     if (typeof body?.locale === "string") patch.locale = body.locale.trim();
     if (typeof body?.kind === "string") patch.kind = body.kind.trim();
     if (typeof body?.body === "string") patch.body = body.body.trim();
-    if (!Object.keys(patch).length)
+    if (!Object.keys(patch).length) {
       return NextResponse.json({ ok: false, error: "nothing to update" }, { status: 400 });
+    }
 
     const supa = getSupabaseAdmin();
     const { data, error } = await supa.from("templates").update(patch).eq("id", id).select("*").single();
@@ -24,7 +26,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+// DELETE /api/templates/[id]
+export async function DELETE(_: Request, { params }: { params: { id: string } }) {
   try {
     const id = params.id;
     const supa = getSupabaseAdmin();
