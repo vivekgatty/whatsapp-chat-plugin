@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import * as Admin from "@/lib/supabaseAdmin";
 
-// Primary fallback widget id from your project context
 const FALLBACK_WIDGET_ID = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
 function getAdminClient(): any {
@@ -52,12 +51,13 @@ export async function POST() {
     const payload = {
       widget_id: FALLBACK_WIDGET_ID,
       business_id: businessId,
-      // both columns for safety across schemas:
-      event: "trigger_fired",
+      // MUST be one of the allowed values (CHECK constraint)
+      event: "click",
+      // Our tag so the Triggers analytics page can filter
       event_type: "trigger",
       page: "/dashboard/analytics/triggers",
       meta: {
-        reason: "manual_test",
+        why: "manual_test_button",
         trigger_code: "test_manual",
         trigger_type: "manual",
         locale: "en",
