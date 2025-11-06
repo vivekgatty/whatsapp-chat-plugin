@@ -106,7 +106,19 @@ api/widget.js?id=${id}" async></script>`;
               placeholder="eg. 4b5e8f9a-..."
             />
             <p className="mt-1 text-xs text-slate-400">
-              This appears in your embed snippet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
+              This appears in your embed snip
+<div className="mt-6">
+  <label className="block text-sm mb-1">Auto-trigger loader (optional)</label>
+  <textarea
+    readOnly
+    rows={2}
+    className="w-full bg-[#0b1220] text-[#e5ecf5] p-2 rounded-md border border-[#21304a]"
+    defaultValue="&lt;script src=&quot;https://chatmadi.com/api/auto-trigger?wid=&lt;WIDGET_ID&gt;&quot; async&gt;&lt;/script&gt;" />
+  <p className="text-xs text-gray-400 mt-1">
+    Paste this directly under the widget tag to enable automatic rule-based triggers &amp; analytics.
+  </p>
+</div>
+pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
               replace it on your site later.
             </p>
           </div>
@@ -248,6 +260,7 @@ api/widget.js?id=${id}" async></script>`;
     </div>
   );
 }
+
 
 
 
