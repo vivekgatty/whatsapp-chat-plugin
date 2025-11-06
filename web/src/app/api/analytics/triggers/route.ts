@@ -1,0 +1,85 @@
+import { NextResponse } from "next/server";
+import * as SA from "../../../../lib/supabaseAdmin";
+
+export const runtime = "nodejs";
+
+/** Resolve a Supabase admin client regardless of export shape. */
+function getAdmin(): any {
+  const m: any = SA as any;
+  const isClient = (x: any) => x && typeof x === "object" && typeof x.from === "function";
+
+  if (isClient(m)) return m;
+  if (typeof m === "function") {
+    const c = m();
+    if (isClient(c)) return c;
+  }
+  if (m?.default) {
+    if (isClient(m.default)) return m.default;
+    if (typeof m.default === "function") {
+      const c = m.default();
+      if (isClient(c)) return c;
+    }
+  }
+  if (m?.admin) {
+    if (isClient(m.admin)) return m.admin;
+    if (typeof m.admin === "function") {
+      const c = m.admin();
+      if (isClient(c)) return c;
+    }
+  }
+  if (typeof m?.createAdminClient === "function") {
+    const c = m.createAdminClient();
+    if (isClient(c)) return c;
+  }
+  throw new Error("supabaseAdmin must export a client or factory");
+}
+
+// GET /api/analytics/triggers?wid=<widget_id>&days=14&limit=100
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const wid    = searchParams.get("wid")?.trim()
+                 || process.env.DEFAULT_WIDGET_ID
+                 || "bcd51dd2-e61b-41d1-8848-9788eb8d1881"; // fallback known safe ID
+    const days   = Math.max(1, Math.min(90, parseInt(searchParams.get("days") || "14", 10)));
+    const limit  = Math.max(1, Math.min(500, parseInt(searchParams.get("limit") || "100", 10)));
+
+    const sinceISO = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+
+    const sb = getAdmin();
+    // Prefer filtering by widget_id because analytics RPCs use widget scope.
+    let q = sb
+      .from("analytics")
+      .select("id, created_at, event, page, meta, widget_id, business_id")
+      .eq("event", "trigger_fired")
+      .eq("widget_id", wid)
+      .gte("created_at", sinceISO)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    let { data, error } = await q;
+    if (error) {
+      // In case schema differs and widget_id is not present, try business_id fallback.
+      const biz = process.env.DEFAULT_BUSINESS_ID || null;
+      if (!biz) throw error;
+      const q2 = sb
+        .from("analytics")
+        .select("id, created_at, event, page, meta, widget_id, business_id")
+        .eq("event", "trigger_fired")
+        .eq("business_id", biz)
+        .gte("created_at", sinceISO)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      const r2 = await q2;
+      data = r2.data; error = r2.error;
+      if (error) throw error;
+    }
+
+    return NextResponse.json({ items: data ?? [] });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "Failed to list trigger analytics" },
+      { status: 500 }
+    );
+  }
+}
