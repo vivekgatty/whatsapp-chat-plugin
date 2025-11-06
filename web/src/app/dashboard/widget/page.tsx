@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -50,7 +50,20 @@ export default function WidgetSettingsPage() {
   // Build snippet
   const embedSnippet = useMemo(() => {
     const id = settings.widget_id?.trim() || "<WIDGET_ID>";
-    return `<script src="https://chatmadi.com/api/widget.js?id=${id}" async></script>`;
+    return `<script src="https://chatmadi.com/
+{/* Auto-trigger loader (optional) */}
+<div className="mt-6">
+  <label className="block text-sm mb-1">Auto-trigger loader (optional)</label>
+  <textarea
+    readOnly
+    rows={2}
+    className="w-full bg-[#0b1220] text-[#e5ecf5] p-2 rounded-md border border-[#21304a]"
+    defaultValue="&lt;script src=&quot;https://chatmadi.com/api/auto-trigger?wid=&lt;WIDGET_ID&gt;&quot; async&gt;&lt;/script&gt;" />
+  <p className="text-xs text-gray-400 mt-1">
+    Paste this directly under the widget tag to enable automatic rule-based triggers &amp; analytics.
+  </p>
+</div>
+api/widget.js?id=${id}" async></script>`;
   }, [settings.widget_id]);
 
   function field<K extends keyof WidgetSettings>(key: K, val: WidgetSettings[K]) {
@@ -235,3 +248,4 @@ export default function WidgetSettingsPage() {
     </div>
   );
 }
+
