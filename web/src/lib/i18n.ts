@@ -15,10 +15,16 @@ function normalizeLocale(s?: string | null): Locale {
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
-  const m = document.cookie.match(
-    new RegExp("(?:^|; )" + name.replace(/[-.$?*|{}()[\\]\\/+^]/g, "\\$&") + "=([^;]*)")
-  );
-  return m ? decodeURIComponent(m[1]) : null;
+  const list = document.cookie ? document.cookie.split("; ") : [];
+  for (const entry of list) {
+    const eq = entry.indexOf("=");
+    const key = eq >= 0 ? entry.slice(0, eq) : entry;
+    if (key === name) {
+      const raw = eq >= 0 ? entry.slice(eq + 1) : "";
+      try { return decodeURIComponent(raw); } catch { return raw; }
+    }
+  }
+  return null;
 }
 
 function setCookie(name: string, value: string, days = 365) {
