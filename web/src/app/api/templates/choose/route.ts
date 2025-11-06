@@ -105,8 +105,7 @@ export async function GET(req: Request) {
       // No explicit time: assume business time logic can't be applied → default to greeting
       off = false;
     }
-    const kind = (off ? "off_hours" : "greeting") as const;
-
+const kind: "off_hours" | "greeting" = off ? "off_hours" : "greeting";
     const supa = getSupabaseAdmin();
     async function pick(targetLocale: string, widgetFirst: boolean) {
       const base = supa.from("templates").select("id,name,locale,kind,body").eq("kind", kind);
@@ -159,3 +158,4 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok:false, error:e?.message || "unknown" }, { status:500 });
   }
 }
+
