@@ -1,161 +1,159 @@
 ﻿export const runtime = "nodejs";
 
-import { NextResponse } from "next/server";
-import getSupabaseAdmin from "../../../../lib/supabaseAdmin";
+import { NextRequest, NextResponse } from "next/server";
+import getSupabaseAdmin from "../../../lib/supabaseAdmin";
 
-type DayKey = "sun"|"mon"|"tue"|"wed"|"thu"|"fri"|"sat";
-type Range = { start: string; end: string };
-type Hours = Record<DayKey, Range[] | "closed" | undefined>;
+type Row = { id: string; name: string; locale: string; kind: "greeting" | "off_hours"; body: string };
 
-function parseHoursFromQuery(url: URL): Hours {
-  const days: DayKey[] = ["sun","mon","tue","wed","thu","fri","sat"];
-  const out: Hours = {} as any;
-  for (const d of days) {
-    const raw = url.searchParams.get(d);
-    if (!raw) continue;
-    if (raw.toLowerCase() === "closed") { (out as any)[d] = "closed"; continue; }
-    const ranges: Range[] = [];
-    for (const part of raw.split(",")) {
-      const [a,b] = part.split("-");
-      if (!a || !b) continue;
-      ranges.push({ start: a.trim(), end: b.trim() });
-    }
-    (out as any)[d] = ranges;
+const LOCALES = ["en","hi","kn","ta"] as const;
+const DOW_KEYS = ["sun","mon","tue","wed","thu","fri","sat"] as const;
+
+type Range = { start: number; end: number };
+type Week = Record<(typeof DOW_KEYS)[number], Range[]>;
+
+function parseHm(s: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+function parseRanges(s: string): Range[] {
+  const out: Range[] = [];
+  for (const part of s.split(",").map(x => x.trim()).filter(Boolean)) {
+    const [a, b] = part.split("-").map(x => x.trim());
+    const sa = parseHm(a), sb = parseHm(b);
+    if (sa != null && sb != null && sb > sa) out.push({ start: sa, end: sb });
   }
   return out;
 }
-function hasAnyHours(h: Hours) {
-  return Object.keys(h).length > 0;
-}
-function within(day: DayKey, h: number, m: number, hours: Hours): boolean {
-  const spec = hours[day];
-  if (!spec) return false;
-  if (spec === "closed") return false;
-  const cur = h * 60 + m;
-  for (const r of spec) {
-    const [sh, sm] = r.start.split(":").map((x) => parseInt(x, 10));
-    const [eh, em] = r.end.split(":").map((x) => parseInt(x, 10));
-    const s = sh*60 + (sm||0);
-    const e = eh*60 + (em||0);
-    if (cur >= s && cur <= e) return true;
+
+function hoursFromQuery(u: URL): Week | null {
+  let any = false;
+  const wk: Partial<Week> = {};
+  for (const k of DOW_KEYS) {
+    const v = u.searchParams.get(k);
+    if (v == null) continue;
+    any = true;
+    if (v.toLowerCase() === "closed" || v.trim() === "") {
+      wk[k] = [];
+    } else {
+      wk[k] = parseRanges(v);
+    }
   }
-  return false;
-}
-function dayKeyInTZ(tz: string): DayKey {
-  const now = new Date();
-  const wd = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: tz }).format(now).toLowerCase();
-  const map: Record<string, DayKey> = { sun:"sun", mon:"mon", tue:"tue", wed:"wed", thu:"thu", fri:"fri", sat:"sat" };
-  return map[wd as keyof typeof map] ?? "mon";
+  if (!any) return null;
+  // fill any missing day as closed
+  for (const k of DOW_KEYS) {
+    if (!wk[k]) wk[k] = [];
+  }
+  return wk as Week;
 }
 
-const FALLBACK: Record<string, Record<"greeting"|"off_hours", string>> = {
+function defaultWeek(): Week {
+  // Mon–Sat 10:00–18:00, Sun closed
+  const day = [{ start: 10 * 60, end: 18 * 60 }];
+  return {
+    sun: [],
+    mon: day, tue: day, wed: day, thu: day, fri: day, sat: day,
+  };
+}
+
+function isOpenAt(week: Week, dow: number, minutes: number): boolean {
+  const key = DOW_KEYS[dow] as (typeof DOW_KEYS)[number];
+  const ranges = week[key] || [];
+  return ranges.some(r => minutes >= r.start && minutes < r.end);
+}
+
+function getDowInTZ(tz: string): number {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short" });
+  const w = fmt.format(now).toLowerCase().slice(0, 3) as "sun"|"mon"|"tue"|"wed"|"thu"|"fri"|"sat";
+  return Math.max(0, DOW_KEYS.indexOf(w));
+}
+
+function minutesInTZ(tz: string, h?: number, m?: number): number {
+  if (typeof h === "number" && typeof m === "number") return h * 60 + m;
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("en-GB",{ timeZone: tz, hour:"2-digit", minute:"2-digit", hour12:false });
+  const [hh, mm] = fmt.format(now).split(":").map(Number);
+  return hh * 60 + mm;
+}
+
+const DEFAULTS: Record<string, Record<"greeting"|"off_hours", string>> = {
   en: {
     greeting: "Hi! 👋 How can we help today?",
-    off_hours: "Thanks for reaching out! Our team is offline right now. We’ll reply when we’re back online."
+    off_hours: "Thanks for reaching out! Our team is offline right now. We’ll reply when we’re back online.",
   },
   hi: {
     greeting: "नमस्ते! 👋 हम आपकी किस तरह मदद कर सकते हैं?",
-    off_hours: "धन्यवाद! अभी हमारी टीम ऑफलाइन है। हम ऑनलाइन आते ही जवाब देंगे।"
+    off_hours: "धन्यवाद! अभी हमारी टीम ऑफलाइन है, हम ऑनलाइन होते ही जवाब देंगे।",
   },
   kn: {
     greeting: "ನಮಸ್ಕಾರ! 👋 ನಾವು ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
-    off_hours: "ಸಂದೇಶಕ್ಕೆ ಧನ್ಯವಾದಗಳು! ನಮ್ಮ ತಂಡ ಈಗ ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಇದೆ. ಶೀಘ್ರದಲ್ಲೇ ಉತ್ತರಿಸುತ್ತೇವೆ."
+    off_hours: "ಸಂದೇಶಕ್ಕೆ ಧನ್ಯವಾದಗಳು! ನಮ್ಮ ತಂಡ ಈಗ ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಇದೆ. ಶೀಘ್ರದಲ್ಲೇ ಉತ್ತರಿಸುತ್ತೇವೆ.",
   },
   ta: {
     greeting: "வணக்கம்! 👋 இன்று எப்படிச் சேவை செய்யலாம்?",
-    off_hours: "உங்கள் செய்திக்கு நன்றி! இப்போது எங்கள் குழு ஆஃப்லைனில் உள்ளது. விரைவில் பதிலளிப்போம்."
-  }
+    off_hours: "உங்கள் செய்திக்கு நன்றி! இப்போது எங்கள் குழு ஆஃப்லைனில் உள்ளது. விரைவில் பதிலளிப்போம்.",
+  },
 };
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const wid = (url.searchParams.get("wid") || "").trim() || null;
-    let locale = (url.searchParams.get("locale") || "en").trim().toLowerCase();
-    const h = parseInt(url.searchParams.get("h") || "", 10);
-    const m = parseInt(url.searchParams.get("m") || "", 10);
+    const u = new URL(req.url);
+    const wid = u.searchParams.get("wid") || null;
 
-    // 1) Inline hours first
-    let hours = parseHoursFromQuery(url);
-    let tz = (url.searchParams.get("tz") || "").trim();
+    const localeRaw = (u.searchParams.get("locale") || "en").toLowerCase();
+    const locale = (LOCALES as readonly string[]).includes(localeRaw) ? (localeRaw as (typeof LOCALES)[number]) : "en";
 
-    // 2) If no inline hours, try DB hours
-    if (!hasAnyHours(hours) && wid) {
-      const supa = getSupabaseAdmin();
-      const { data } = await supa
-        .from("widget_hours")
-        .select("tz,hours")
-        .eq("widget_id", wid)
-        .maybeSingle();
-      if (data?.hours && typeof data.hours === "object") {
-        hours = data.hours as Hours;
-      }
-      if (!tz && data?.tz) tz = data.tz;
-    }
+    const tz = u.searchParams.get("tz") || "Asia/Kolkata";
+    const h = u.searchParams.get("h");
+    const m = u.searchParams.get("m");
+    const H = h != null && h !== "" ? parseInt(h, 10) : undefined;
+    const M = m != null && m !== "" ? parseInt(m, 10) : undefined;
 
-    // 3) Fallback tz if still empty
-    if (!tz) tz = "Asia/Kolkata";
+    // Hours: inline > (TODO: DB) > fallback Mon–Sat 10–18, Sun closed
+    const inline = hoursFromQuery(u);
+    const week = inline ?? defaultWeek();
 
-    // Decide kind using either inline or DB hours; if no hours at all, treat as off-hours only if h/m provided & not in any range
-    const dkey = dayKeyInTZ(tz);
-    let off = true;
-    if (!Number.isNaN(h) && !Number.isNaN(m) && hasAnyHours(hours)) {
-      off = !within(dkey, h, m, hours);
-    } else if (Number.isNaN(h) || Number.isNaN(m)) {
-      // No explicit time: assume business time logic can't be applied → default to greeting
-      off = false;
-    }
-const kind: "off_hours" | "greeting" = off ? "off_hours" : "greeting";
+    const dow = getDowInTZ(tz);
+    const minutes = minutesInTZ(tz, H, M);
+
+    const off = !isOpenAt(week, dow, minutes);
+    const kind: "off_hours" | "greeting" = off ? "off_hours" : "greeting";
+
     const supa = getSupabaseAdmin();
-    async function pick(targetLocale: string, widgetFirst: boolean) {
-      const base = supa.from("templates").select("id,name,locale,kind,body").eq("kind", kind);
-      if (widgetFirst) {
-        if (wid) {
-          const a = await base.eq("locale", targetLocale).eq("widget_id", wid).limit(1);
-          if (a.data?.length) return a.data[0];
-        }
-        const b = await base.eq("locale", targetLocale).is("widget_id", null).limit(1);
-        if (b.data?.length) return b.data[0];
-      } else {
-        const b = await base.eq("locale", targetLocale).is("widget_id", null).limit(1);
-        if (b.data?.length) return b.data[0];
-        if (wid) {
-          const a = await base.eq("locale", targetLocale).eq("widget_id", wid).limit(1);
-          if (a.data?.length) return a.data[0];
-        }
-      }
-      return null;
+
+    async function pick(targetLocale: string) {
+      const { data } = await supa
+        .from("templates")
+        .select("id,name,locale,kind,body")
+        .eq("kind", kind)
+        .eq("locale", targetLocale)
+        .limit(5);
+      if (!data || data.length === 0) return null;
+      return data[0] as Row;
     }
 
-    let chosen = await pick(locale, true);
-    if (!chosen && locale !== "en") chosen = await pick("en", true);
+    let chosen = await pick(locale);
+    if (!chosen && locale !== "en") chosen = await pick("en");
 
-    if (chosen) {
-      return NextResponse.json({
-        ok: true,
-        decision: { tz, off, kind },
-        chosen: { ...chosen, source: "db" },
-        candidatesCount: 1
-      });
-    }
-
-    const fbLocale = FALLBACK[locale] ? locale : "en";
-    const body = FALLBACK[fbLocale][kind];
+    const defaults = DEFAULTS[locale] ?? DEFAULTS["en"];
     return NextResponse.json({
       ok: true,
       decision: { tz, off, kind },
-      chosen: {
+      chosen: chosen ?? {
         id: null,
-        name: kind === "greeting" ? "Greeting (default)" : "Off-hours (default)",
-        locale: fbLocale,
+        name: kind === "off_hours" ? "Off-hours (default)" : "Greeting (default)",
+        locale,
         kind,
-        body,
-        source: "default"
+        body: defaults[kind],
+        source: "default",
       },
-      candidatesCount: 0
+      candidatesCount: chosen ? 1 : 0,
     });
-  } catch (e:any) {
-    return NextResponse.json({ ok:false, error:e?.message || "unknown" }, { status:500 });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || "unknown" }, { status: 500 });
   }
 }
-
