@@ -47,24 +47,18 @@ export default function WidgetSettingsPage() {
     }
   }, []);
 
-  // Build snippet
-  const embedSnippet = useMemo(() => {
-    const id = settings.widget_id?.trim() || "<WIDGET_ID>";
-    return `<script src="https://chatmadi.com/
-{/* Auto-trigger loader (optional) */}
-<div className="mt-6">
-  <label className="block text-sm mb-1">Auto-trigger loader (optional)</label>
-  <textarea
-    readOnly
-    rows={2}
-    className="w-full bg-[#0b1220] text-[#e5ecf5] p-2 rounded-md border border-[#21304a]"
-    defaultValue="&lt;script src=&quot;https://chatmadi.com/api/auto-trigger?wid=&lt;WIDGET_ID&gt;&quot; async&gt;&lt;/script&gt;" />
-  <p className="text-xs text-gray-400 mt-1">
-    Paste this directly under the widget tag to enable automatic rule-based triggers &amp; analytics.
-  </p>
-</div>
-api/widget.js?id=${id}" async></script>`;
-  }, [settings.widget_id]);
+  const id = (settings.widget_id || "").trim() || "<WIDGET_ID>";
+
+  // Build snippets (avoid template literals to prevent accidental JSX bleed)
+  const embedSnippet = useMemo(
+    () => '<script src="https://chatmadi.com/api/widget.js?id=' + id + '" async></script>',
+    [id]
+  );
+
+  const autoTriggerSnippet = useMemo(
+    () => '<script src="https://chatmadi.com/api/auto-trigger?wid=' + id + '" async></script>',
+    [id]
+  );
 
   function field<K extends keyof WidgetSettings>(key: K, val: WidgetSettings[K]) {
     setSettings((s) => ({ ...s, [key]: val }));
@@ -95,8 +89,9 @@ api/widget.js?id=${id}" async></script>`;
       </a>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Form */}
+        {/* Left: form */}
         <div className="space-y-6">
+          {/* Widget ID */}
           <div>
             <label className="mb-1 block text-sm">Widget ID</label>
             <input
@@ -106,23 +101,26 @@ api/widget.js?id=${id}" async></script>`;
               placeholder="eg. 4b5e8f9a-..."
             />
             <p className="mt-1 text-xs text-slate-400">
-              This appears in your embed snip
-<div className="mt-6">
-  <label className="block text-sm mb-1">Auto-trigger loader (optional)</label>
-  <textarea
-    readOnly
-    rows={2}
-    className="w-full bg-[#0b1220] text-[#e5ecf5] p-2 rounded-md border border-[#21304a]"
-    defaultValue="&lt;script src=&quot;https://chatmadi.com/api/auto-trigger?wid=&lt;WIDGET_ID&gt;&quot; async&gt;&lt;/script&gt;" />
-  <p className="text-xs text-gray-400 mt-1">
-    Paste this directly under the widget tag to enable automatic rule-based triggers &amp; analytics.
-  </p>
-</div>
-pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
-              replace it on your site later.
+              This appears in your embed snippet. If unsure, keep{" "}
+              <code>&lt;WIDGET_ID&gt;</code> and replace it on your site later.
             </p>
           </div>
 
+          {/* Auto-trigger loader (optional) */}
+          <div>
+            <label className="block text-sm">Auto-trigger loader (optional)</label>
+            <textarea
+              readOnly
+              rows={2}
+              className="h-20 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
+              value={autoTriggerSnippet}
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Paste this directly under the widget tag to enable automatic rule-based triggers &amp; analytics.
+            </p>
+          </div>
+
+          {/* Theme color + position */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-sm">Theme color (hex)</label>
@@ -157,6 +155,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
             </div>
           </div>
 
+          {/* Icon */}
           <div>
             <label className="mb-1 block text-sm">Icon</label>
             <select
@@ -170,6 +169,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
             </select>
           </div>
 
+          {/* CTA */}
           <div>
             <label className="mb-1 block text-sm">CTA text</label>
             <input
@@ -180,6 +180,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
             />
           </div>
 
+          {/* Prefill message */}
           <div>
             <label className="mb-1 block text-sm">Prefill message</label>
             <textarea
@@ -190,6 +191,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
             />
           </div>
 
+          {/* Pre-chat */}
           <div className="space-y-3">
             <label className="block text-sm">Pre-chat (collect before opening WhatsApp)</label>
             <label className="flex items-center gap-2 text-sm">
@@ -212,6 +214,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
             </label>
           </div>
 
+          {/* Actions */}
           <div className="flex items-center gap-3">
             <button
               onClick={save}
@@ -229,7 +232,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
           </div>
         </div>
 
-        {/* Right: preview + snippet */}
+        {/* Right: preview + main embed snippet */}
         <div className="space-y-6">
           <div>
             <div className="mb-2 text-sm">Live preview</div>
@@ -244,7 +247,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
           </div>
 
           <div>
-            <div className="mb-2 text-sm">defaultValue="&lt;script src=&quot;https://chatmadi.com/api/widget.js?id=&lt;WIDGET_ID&gt;&quot; async&gt;&lt;/script&gt;"mbed snippet</div>
+            <label className="mb-1 block text-sm">Embed snippet</label>
             <textarea
               className="h-28 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               readOnly
@@ -260,9 +263,3 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
     </div>
   );
 }
-
-
-
-
-
-
