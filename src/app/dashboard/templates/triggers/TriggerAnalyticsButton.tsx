@@ -8,16 +8,17 @@ export default function TriggerAnalyticsButton() {
       aria-label="View Trigger events analytics"
       style={{
         position: "fixed",
+        bottom: 16,     // bottom-right to avoid any header overlap
         right: 16,
-        top: 76,       // sits below your top nav; tweak if needed
-        zIndex: 1000,
-        padding: "8px 12px",
+        zIndex: 5000,   // very high to ensure it's visible above content
+        padding: "10px 14px",
         borderRadius: 9999,
         background: "#f59e0b", // amber
         color: "#111",
-        fontWeight: 600,
+        fontWeight: 700,
         textDecoration: "none",
-        boxShadow: "0 6px 18px rgba(0,0,0,.25)",
+        boxShadow: "0 8px 22px rgba(0,0,0,.35)",
+        letterSpacing: ".2px",
       }}
     >
       Trigger analytics
