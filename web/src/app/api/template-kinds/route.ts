@@ -1,7 +1,7 @@
 ﻿export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import getSupabaseAdmin from "../../../../lib/supabaseAdmin";
+import getSupabaseAdmin from "../../../lib/supabaseAdmin";
 
 type KindRow = {
   id: string;
