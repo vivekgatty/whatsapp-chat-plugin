@@ -17,38 +17,30 @@ function getAdminClient(): any {
 }
 
 async function resolveBusinessId(supabase: any): Promise<string> {
-  // 1) Env
   const fromEnv =
     process.env.DEFAULT_BUSINESS_ID || process.env.NEXT_PUBLIC_DEFAULT_BUSINESS_ID || "";
   if (fromEnv) return fromEnv;
 
-  // 2) From the fallback widget's business_id
-  {
-    const { data, error } = await supabase
-      .from("widgets")
-      .select("business_id")
-      .eq("id", FALLBACK_WIDGET_ID)
-      .maybeSingle();
-    if (error) throw error;
-    if (data?.business_id) return data.business_id;
-  }
+  const { data: wById, error: e1 } = await supabase
+    .from("widgets")
+    .select("business_id")
+    .eq("id", FALLBACK_WIDGET_ID)
+    .maybeSingle();
+  if (e1) throw e1;
+  if (wById?.business_id) return wById.business_id;
 
-  // 3) Newest widget that already has a business_id
-  {
-    const { data, error } = await supabase
-      .from("widgets")
-      .select("business_id")
-      .not("business_id", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (error) throw error;
-    const bid = data?.[0]?.business_id;
-    if (bid) return bid;
-  }
+  const { data: wAny, error: e2 } = await supabase
+    .from("widgets")
+    .select("business_id")
+    .not("business_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (e2) throw e2;
+  const bid = wAny?.[0]?.business_id;
+  if (bid) return bid;
 
-  // 4) Give a clear error so we know to set DEFAULT_BUSINESS_ID or link a widget
   throw new Error(
-    "No business_id resolvable. Set DEFAULT_BUSINESS_ID in env or link a widget to a business."
+    "No business_id resolvable. Set DEFAULT_BUSINESS_ID or link a widget to a business."
   );
 }
 
@@ -60,7 +52,9 @@ export async function POST() {
     const payload = {
       widget_id: FALLBACK_WIDGET_ID,
       business_id: businessId,
+      // both columns for safety across schemas:
       event: "trigger_fired",
+      event_type: "trigger",
       page: "/dashboard/analytics/triggers",
       meta: {
         reason: "manual_test",
@@ -73,7 +67,7 @@ export async function POST() {
     const { error } = await supabase.from("analytics").insert(payload);
     if (error) throw error;
 
-    return NextResponse.json({ ok: true, inserted: payload }, { status: 200 });
+    return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || String(e) }, { status: 500 });
   }
