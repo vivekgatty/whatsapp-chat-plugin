@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { TRIGGERS, TRIGGER_INFO, type TriggerCode } from "../../lib/triggers";
+import { TRIGGERS, TRIGGER_INFO, type TriggerCode } from "../../../lib/triggers";
 
 type Template = {
   id: string;
