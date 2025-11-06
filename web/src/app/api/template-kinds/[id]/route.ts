@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 import getSupabaseAdmin from "../../../../lib/supabaseAdmin";
 
 // PATCH body: { key?, label? }
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, ctx: any): Promise<Response> {
   try {
-    const id = params.id;
+    const id = ctx?.params?.id as string;
     const body = await req.json().catch(() => ({}));
     const patch: any = {};
     if (typeof body?.key === "string") patch.key = body.key.trim();
@@ -30,9 +30,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, ctx: any): Promise<Response> {
   try {
-    const id = params.id;
+    const id = ctx?.params?.id as string;
     const supa = getSupabaseAdmin();
     const { error } = await supa.from("template_kinds").delete().eq("id", id);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
