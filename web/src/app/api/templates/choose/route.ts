@@ -24,7 +24,9 @@ function parseHoursFromQuery(url: URL): Hours {
   }
   return out;
 }
-
+function hasAnyHours(h: Hours) {
+  return Object.keys(h).length > 0;
+}
 function within(day: DayKey, h: number, m: number, hours: Hours): boolean {
   const spec = hours[day];
   if (!spec) return false;
@@ -39,28 +41,11 @@ function within(day: DayKey, h: number, m: number, hours: Hours): boolean {
   }
   return false;
 }
-
 function dayKeyInTZ(tz: string): DayKey {
-  // Map current date in TZ to DayKey
   const now = new Date();
   const wd = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: tz }).format(now).toLowerCase();
-  // "sun","mon","tue","wed","thu","fri","sat" from "Sun","Mon",...
   const map: Record<string, DayKey> = { sun:"sun", mon:"mon", tue:"tue", wed:"wed", thu:"thu", fri:"fri", sat:"sat" };
   return map[wd as keyof typeof map] ?? "mon";
-}
-
-function decideKind(url: URL) {
-  const tz = url.searchParams.get("tz") || "Asia/Kolkata";
-  const h = parseInt(url.searchParams.get("h") || "", 10);
-  const m = parseInt(url.searchParams.get("m") || "", 10);
-  const hours = parseHoursFromQuery(url);
-
-  let off = true; // default off unless proven open
-  if (!Number.isNaN(h) && !Number.isNaN(m)) {
-    const d = dayKeyInTZ(tz);
-    off = !within(d, h, m, hours);
-  }
-  return { tz, off, kind: off ? "off_hours" : "greeting" as const };
 }
 
 const FALLBACK: Record<string, Record<"greeting"|"off_hours", string>> = {
@@ -86,36 +71,65 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const wid = (url.searchParams.get("wid") || "").trim() || null;
-    // Normalize locale and fallback list
     let locale = (url.searchParams.get("locale") || "en").trim().toLowerCase();
-    const { tz, off, kind } = decideKind(url);
+    const h = parseInt(url.searchParams.get("h") || "", 10);
+    const m = parseInt(url.searchParams.get("m") || "", 10);
+
+    // 1) Inline hours first
+    let hours = parseHoursFromQuery(url);
+    let tz = (url.searchParams.get("tz") || "").trim();
+
+    // 2) If no inline hours, try DB hours
+    if (!hasAnyHours(hours) && wid) {
+      const supa = getSupabaseAdmin();
+      const { data } = await supa
+        .from("widget_hours")
+        .select("tz,hours")
+        .eq("widget_id", wid)
+        .maybeSingle();
+      if (data?.hours && typeof data.hours === "object") {
+        hours = data.hours as Hours;
+      }
+      if (!tz && data?.tz) tz = data.tz;
+    }
+
+    // 3) Fallback tz if still empty
+    if (!tz) tz = "Asia/Kolkata";
+
+    // Decide kind using either inline or DB hours; if no hours at all, treat as off-hours only if h/m provided & not in any range
+    const dkey = dayKeyInTZ(tz);
+    let off = true;
+    if (!Number.isNaN(h) && !Number.isNaN(m) && hasAnyHours(hours)) {
+      off = !within(dkey, h, m, hours);
+    } else if (Number.isNaN(h) || Number.isNaN(m)) {
+      // No explicit time: assume business time logic can't be applied → default to greeting
+      off = false;
+    }
+    const kind = (off ? "off_hours" : "greeting") as const;
 
     const supa = getSupabaseAdmin();
-
-    // Helper to try a single fetch
-    async function tryFetch(targetLocale: string, widgetFirst: boolean) {
-      const sel = supa.from("templates").select("id,name,locale,kind,body").eq("kind", kind);
+    async function pick(targetLocale: string, widgetFirst: boolean) {
+      const base = supa.from("templates").select("id,name,locale,kind,body").eq("kind", kind);
       if (widgetFirst) {
         if (wid) {
-          const a = await sel.eq("locale", targetLocale).eq("widget_id", wid).limit(1);
-          if (a.data && a.data.length) return a.data[0];
+          const a = await base.eq("locale", targetLocale).eq("widget_id", wid).limit(1);
+          if (a.data?.length) return a.data[0];
         }
-        const b = await sel.eq("locale", targetLocale).is("widget_id", null).limit(1);
-        if (b.data && b.data.length) return b.data[0];
+        const b = await base.eq("locale", targetLocale).is("widget_id", null).limit(1);
+        if (b.data?.length) return b.data[0];
       } else {
-        const b = await sel.eq("locale", targetLocale).is("widget_id", null).limit(1);
-        if (b.data && b.data.length) return b.data[0];
+        const b = await base.eq("locale", targetLocale).is("widget_id", null).limit(1);
+        if (b.data?.length) return b.data[0];
         if (wid) {
-          const a = await sel.eq("locale", targetLocale).eq("widget_id", wid).limit(1);
-          if (a.data && a.data.length) return a.data[0];
+          const a = await base.eq("locale", targetLocale).eq("widget_id", wid).limit(1);
+          if (a.data?.length) return a.data[0];
         }
       }
       return null;
     }
 
-    // Preference order: widget+locale → default+locale → widget+en → default+en
-    let chosen = await tryFetch(locale, true);
-    if (!chosen && locale !== "en") chosen = await tryFetch("en", true);
+    let chosen = await pick(locale, true);
+    if (!chosen && locale !== "en") chosen = await pick("en", true);
 
     if (chosen) {
       return NextResponse.json({
@@ -126,15 +140,14 @@ export async function GET(req: Request) {
       });
     }
 
-    // Hardcoded fallback
     const fbLocale = FALLBACK[locale] ? locale : "en";
-    const body = FALLBACK[fbLocale][kind as "greeting"|"off_hours"];
+    const body = FALLBACK[fbLocale][kind];
     return NextResponse.json({
       ok: true,
       decision: { tz, off, kind },
       chosen: {
         id: null,
-        name: (kind === "greeting" ? "Greeting (default)" : "Off-hours (default)"),
+        name: kind === "greeting" ? "Greeting (default)" : "Off-hours (default)",
         locale: fbLocale,
         kind,
         body,
@@ -142,7 +155,7 @@ export async function GET(req: Request) {
       },
       candidatesCount: 0
     });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "unknown" }, { status: 500 });
+  } catch (e:any) {
+    return NextResponse.json({ ok:false, error:e?.message || "unknown" }, { status:500 });
   }
 }
