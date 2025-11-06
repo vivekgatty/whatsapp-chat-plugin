@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type WidgetSettings = {
   widget_id: string;
@@ -33,6 +33,8 @@ function cx(...a: Array<string | false | null | undefined>) {
 export default function WidgetSettingsPage() {
   const [settings, setSettings] = useState<WidgetSettings>(DEFAULTS);
   const [okMsg, setOkMsg] = useState<string | null>(null);
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [copiedAuto, setCopiedAuto] = useState(false);
 
   // Load from localStorage only (no backend calls)
   useEffect(() => {
@@ -47,18 +49,24 @@ export default function WidgetSettingsPage() {
     }
   }, []);
 
-  const id = (settings.widget_id || "").trim() || "<WIDGET_ID>";
+  const id = settings.widget_id?.trim() || "<WIDGET_ID>";
+  const embedSnippet = `<script src="https://chatmadi.com/api/widget.js?id=${id}" async></script>`;
+  const autoTriggerSnippet = `<script src="https://chatmadi.com/api/auto-trigger?wid=${id}" async></script>`;
 
-  // Build snippets (avoid template literals to prevent accidental JSX bleed)
-  const embedSnippet = useMemo(
-    () => '<script src="https://chatmadi.com/api/widget.js?id=' + id + '" async></script>',
-    [id]
-  );
-
-  const autoTriggerSnippet = useMemo(
-    () => '<script src="https://chatmadi.com/api/auto-trigger?wid=' + id + '" async></script>',
-    [id]
-  );
+  function copy(text: string, which: "embed" | "auto") {
+    try {
+      navigator.clipboard.writeText(text);
+      if (which === "embed") {
+        setCopiedEmbed(true);
+        setTimeout(() => setCopiedEmbed(false), 1600);
+      } else {
+        setCopiedAuto(true);
+        setTimeout(() => setCopiedAuto(false), 1600);
+      }
+    } catch {
+      // noop
+    }
+  }
 
   function field<K extends keyof WidgetSettings>(key: K, val: WidgetSettings[K]) {
     setSettings((s) => ({ ...s, [key]: val }));
@@ -89,9 +97,8 @@ export default function WidgetSettingsPage() {
       </a>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Left: form */}
+        {/* Form (left) */}
         <div className="space-y-6">
-          {/* Widget ID */}
           <div>
             <label className="mb-1 block text-sm">Widget ID</label>
             <input
@@ -108,19 +115,27 @@ export default function WidgetSettingsPage() {
 
           {/* Auto-trigger loader (optional) */}
           <div>
-            <label className="block text-sm">Auto-trigger loader (optional)</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="block text-sm">Auto-trigger loader (optional)</label>
+              <button
+                type="button"
+                onClick={() => copy(autoTriggerSnippet, "auto")}
+                className="rounded bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700"
+              >
+                {copiedAuto ? "Copied!" : "Copy"}
+              </button>
+            </div>
             <textarea
               readOnly
               rows={2}
-              className="h-20 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
+              className="w-full bg-[#0b1220] text-[#e5ecf5] p-2 rounded-md border border-[#21304a]"
               value={autoTriggerSnippet}
             />
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="text-xs text-gray-400 mt-1">
               Paste this directly under the widget tag to enable automatic rule-based triggers &amp; analytics.
             </p>
           </div>
 
-          {/* Theme color + position */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-sm">Theme color (hex)</label>
@@ -155,7 +170,6 @@ export default function WidgetSettingsPage() {
             </div>
           </div>
 
-          {/* Icon */}
           <div>
             <label className="mb-1 block text-sm">Icon</label>
             <select
@@ -169,7 +183,6 @@ export default function WidgetSettingsPage() {
             </select>
           </div>
 
-          {/* CTA */}
           <div>
             <label className="mb-1 block text-sm">CTA text</label>
             <input
@@ -180,7 +193,6 @@ export default function WidgetSettingsPage() {
             />
           </div>
 
-          {/* Prefill message */}
           <div>
             <label className="mb-1 block text-sm">Prefill message</label>
             <textarea
@@ -191,7 +203,6 @@ export default function WidgetSettingsPage() {
             />
           </div>
 
-          {/* Pre-chat */}
           <div className="space-y-3">
             <label className="block text-sm">Pre-chat (collect before opening WhatsApp)</label>
             <label className="flex items-center gap-2 text-sm">
@@ -214,7 +225,6 @@ export default function WidgetSettingsPage() {
             </label>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-3">
             <button
               onClick={save}
@@ -232,7 +242,7 @@ export default function WidgetSettingsPage() {
           </div>
         </div>
 
-        {/* Right: preview + main embed snippet */}
+        {/* Right: preview + main embed */}
         <div className="space-y-6">
           <div>
             <div className="mb-2 text-sm">Live preview</div>
@@ -247,7 +257,16 @@ export default function WidgetSettingsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm">Embed snippet</label>
+            <div className="mb-1 flex items-center justify-between">
+              <div className="text-sm">Embed snippet</div>
+              <button
+                type="button"
+                onClick={() => copy(embedSnippet, "embed")}
+                className="rounded bg-slate-800 px-3 py-1 text-xs hover:bg-slate-700"
+              >
+                {copiedEmbed ? "Copied!" : "Copy"}
+              </button>
+            </div>
             <textarea
               className="h-28 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               readOnly
