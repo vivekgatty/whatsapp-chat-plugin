@@ -244,7 +244,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
           </div>
 
           <div>
-            <div className="mb-2 text-sm">Embed snippet</div>
+            <div className="mb-2 text-sm">defaultValue="&lt;script src=&quot;https://chatmadi.com/api/widget.js?id=&lt;WIDGET_ID&gt;&quot; async&gt;&lt;/script&gt;"mbed snippet</div>
             <textarea
               className="h-28 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
               readOnly
@@ -260,6 +260,7 @@ pet. If unsure, keep <code>&lt;WIDGET_ID&gt;</code> and
     </div>
   );
 }
+
 
 
 
