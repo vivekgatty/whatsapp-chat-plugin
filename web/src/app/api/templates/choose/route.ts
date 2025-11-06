@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import getSupabaseAdmin from "../../../../lib/supabaseAdmin";
 
-/** ---------- Off-hours helpers (same rules as /api/offhours/resolve) ---------- */
+/** ---------- Off-hours helpers (same as before) ---------- */
 function parseWindow(v?: string | null): [number, number] | null {
   const s = (v || "").trim().toLowerCase();
   if (!s || s === "closed" || s === "off" || s === "x") return null;
@@ -35,8 +35,6 @@ function nowInTZ(tz: string, forceHM?: {h?: number, m?: number}) {
   }
   return { weekday, hour, minute, hhmm: `${pad2(hour)}:${pad2(minute)}` };
 }
-
-/** Decide off-hours -> returns { kind, off, why? } */
 function decideKind(u: URL) {
   const tz = u.searchParams.get("tz") || "Asia/Kolkata";
   const h  = u.searchParams.get("h");
@@ -85,57 +83,40 @@ function decideKind(u: URL) {
     }
   }
 
-  return {
-    tz,
-    off,
-    kind: off ? "off_hours" : "greeting",
-    why: wantWhy ? (why || null) : undefined,
-  };
+  return { tz, off, kind: off ? "off_hours" : "greeting", why: wantWhy ? (why || null) : undefined };
 }
 
-/** Rank candidates by (1) kind match, (2) locale match, (3) widget specificity */
+/** Rank by (1) kind match, (2) locale match) */
 function rankCandidate(
   r: any,
   targetKind: string,
-  targetLocale: string,
-  wid: string | null
+  targetLocale: string
 ) {
   const kindScore   = (r.kind === targetKind) ? 2 : (r.kind === "greeting" ? 1 : 0);
   const localeScore = (r.locale === targetLocale) ? 2 : (r.locale === "en" ? 1 : 0);
-  const widScore    = (wid && r.widget_id === wid) ? 2 : (r.widget_id ? 1 : 0); // wid>any wid>null
-  // bigger is better
-  return (kindScore * 100) + (localeScore * 10) + (widScore);
+  return (kindScore * 100) + (localeScore * 10);
 }
 
 export async function GET(req: NextRequest) {
   try {
     const u = new URL(req.url);
-    const wid = (u.searchParams.get("wid") || "").trim() || null;
+    // accepted but currently ignored since templates.widget_id does not exist:
+    const _wid = (u.searchParams.get("wid") || "").trim() || null;
     const locale = (u.searchParams.get("locale") || "en").trim();
 
-    const decision = decideKind(u); // { tz, off, kind, why? }
+    const decision = decideKind(u);
     const targetKind = decision.kind;
 
-    // Fetch candidate templates
     const supa = getSupabaseAdmin();
-    // We’ll fetch a reasonable superset and sort in memory
     const kinds = Array.from(new Set([targetKind, "greeting"]));
     const locales = Array.from(new Set([locale, "en"]));
 
-    // Build filter: kind IN kinds, locale IN locales, and widget match or global
-    // We fetch both widget-specific and global in one go.
-    let q = supa
+    const { data, error } = await supa
       .from("templates")
-      .select("id,name,locale,kind,body,widget_id")
+      .select("id,name,locale,kind,body")  // no widget_id here
       .in("kind", kinds as any)
       .in("locale", locales as any);
 
-    if (wid) {
-      // include both: this wid OR global (null)
-      q = q.or(`widget_id.eq.${wid},widget_id.is.null`);
-    }
-
-    const { data, error } = await q;
     if (error) {
       return NextResponse.json({ ok:false, error: error.message }, { status: 500 });
     }
@@ -146,21 +127,18 @@ export async function GET(req: NextRequest) {
         ok: false,
         error: "No templates found for the requested kind/locale (including fallbacks).",
         decision,
-        tried: { wid, locale, kinds, locales }
+        tried: { locale, kinds, locales }
       }, { status: 404 });
     }
 
-    // Choose best
-    const ranked = candidates
-      .map(r => ({ r, score: rankCandidate(r, targetKind, locale, wid) }))
-      .sort((a,b) => b.score - a.score);
-
-    const top = ranked[0].r;
+    const top = candidates
+      .map(r => ({ r, score: rankCandidate(r, targetKind, locale) }))
+      .sort((a,b) => b.score - a.score)[0].r;
 
     return NextResponse.json({
       ok: true,
-      decision,                    // { tz, off, kind, why? }
-      chosen: top,                 // { id,name,locale,kind,body,widget_id }
+      decision,
+      chosen: top,
       candidatesCount: candidates.length,
     });
   } catch (e:any) {
