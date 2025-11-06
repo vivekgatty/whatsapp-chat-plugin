@@ -114,7 +114,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
       return {
         code: manual,
         type: "manual",
-        why: manual:,
+        why: `manual:${manual}`,
       };
     }
   }
@@ -130,7 +130,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
       return {
         code: "utm_campaign",
         type: "campaign",
-        why: utm_campaign:,
+        why: `utm_campaign:${campaign}`,
       };
     }
   }
@@ -143,7 +143,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
       return {
         code: intentCode,
         type: "intent",
-        why: intent:,
+        why: `intent:${intentCode}`,
       };
     }
   }
@@ -158,7 +158,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
         return {
           code: "page_context",
           type: "context",
-          why: page_context:,
+          why: `page_context:${normalized}`,
         };
       }
     }
@@ -171,7 +171,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
       return {
         code: "geo_locale",
         type: "locale",
-        why: locale:,
+        why: `locale:${loc}`,
       };
     }
   }
