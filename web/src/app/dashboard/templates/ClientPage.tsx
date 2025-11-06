@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { TRIGGERS, TRIGGER_INFO, type TriggerCode } from "../../lib/triggers";
 
 type Template = {
   id: string;
   business_id: string;
   name: string;
   locale: string;
-  trigger: "default" | "off_hours";
+  trigger: TriggerCode | string;
   message: string;
   active: boolean;
   created_at: string;
@@ -15,7 +16,6 @@ type Template = {
 };
 
 const LOCALES = ["en", "hi", "kn", "ta"] as const;
-const TRIGGERS = ["default", "off_hours"] as const;
 
 export default function ClientPage() {
   const [locale, setLocale] = useState<string>("en");
@@ -88,6 +88,7 @@ export default function ClientPage() {
   }
 
   const hasItems = useMemo(() => items && items.length > 0, [items]);
+  const triggerHelp = (t: string) => TRIGGER_INFO[t as TriggerCode] || "";
 
   return (
     <div className="mx-auto max-w-6xl p-4 space-y-6">
@@ -129,6 +130,7 @@ export default function ClientPage() {
             >
               {TRIGGERS.map((t) => (<option key={t} value={t}>{t}</option>))}
             </select>
+            <div className="text-xs opacity-70 mt-1">{triggerHelp((form.trigger as string) || "default")}</div>
           </div>
         </div>
 
@@ -139,6 +141,9 @@ export default function ClientPage() {
             value={form.message || ""}
             onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           />
+          <div className="text-[11px] opacity-60 mt-1">
+            Tips: You can use placeholders like {"{utm_campaign}"}, {"{page_title}"}, {"{next_open}"}; we will fill them when the trigger fires.
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -200,11 +205,12 @@ export default function ClientPage() {
                 <td className="p-2">
                   <select
                     className="bg-slate-950 border border-slate-700 rounded px-2 py-1"
-                    defaultValue={it.trigger}
-                    onChange={(e) => updateTemplate(it.id, { trigger: e.target.value as any })}
+                    defaultValue={it.trigger as string}
+                    onChange={(e) => updateTemplate(it.id, { trigger: e.target.value })}
                   >
                     {TRIGGERS.map((t) => (<option key={t} value={t}>{t}</option>))}
                   </select>
+                  <div className="text-[11px] opacity-60 mt-1">{triggerHelp(it.trigger as string)}</div>
                 </td>
                 <td className="p-2">
                   <input
