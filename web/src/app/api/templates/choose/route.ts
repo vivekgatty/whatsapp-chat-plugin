@@ -1,7 +1,7 @@
 ﻿export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import getSupabaseAdmin from "../../../lib/supabaseAdmin";
+import getSupabaseAdmin from "../../../../lib/supabaseAdmin";
 
 type Row = { id: string; name: string; locale: string; kind: "greeting" | "off_hours"; body: string };
 
@@ -157,3 +157,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: e?.message || "unknown" }, { status: 500 });
   }
 }
+
