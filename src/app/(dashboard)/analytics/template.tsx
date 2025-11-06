@@ -1,4 +1,5 @@
 export default function AnalyticsTemplate({ children }: { children: React.ReactNode }) {
+  // Non-invasive: fixed link, no dependencies, no layout changes
   return (
     <>
       <a
@@ -6,11 +7,11 @@ export default function AnalyticsTemplate({ children }: { children: React.ReactN
         style={{
           position: "fixed",
           right: 16,
-          top: 76,
+          top: 76,              // below your top nav; adjust if needed
           zIndex: 1000,
           padding: "8px 12px",
           borderRadius: 9999,
-          background: "#f59e0b",
+          background: "#f59e0b", // amber-ish
           color: "#111",
           fontWeight: 600,
           textDecoration: "none",
