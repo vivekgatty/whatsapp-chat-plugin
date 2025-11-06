@@ -4,6 +4,7 @@ import React from "react";
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative w-full">
+      {/* Toolbar (top-right) */}
       <div className="flex items-center justify-end gap-2 mb-3">
         <Link
           href="/dashboard/analytics/triggers"
@@ -17,6 +18,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {children}
 
+      {/* Floating fallback (always visible) */}
       <Link
         href="/dashboard/analytics/triggers"
         prefetch
