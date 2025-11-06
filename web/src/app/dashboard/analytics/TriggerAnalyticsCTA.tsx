@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 export default function TriggerAnalyticsCTA() {
   const pathname = usePathname();
-  // Render only on the main analytics page (not on /analytics/triggers itself)
+  // Show only on /dashboard/analytics (not on /analytics/triggers)
   if (pathname !== "/dashboard/analytics") return null;
 
   return (
