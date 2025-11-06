@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 /**
  * Returns recent "trigger_fired" analytics events, shaping fields from meta JSON.
- * Query params:
- *  - days: number of days back (default 30)
- *  - limit: max rows (default 200, max 1000)
+ * Query params: days (default 30), limit (default 200, max 1000)
  */
 export async function GET(req: Request) {
   try {
@@ -14,8 +12,8 @@ export async function GET(req: Request) {
     const limit = Math.max(1, Math.min(1000, Number(url.searchParams.get("limit") || 200)));
     const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    const sb = supabaseAdmin();
-    // Only select columns that definitely exist
+    const sb = getSupabaseAdmin();
+
     const { data, error } = await sb
       .from("analytics")
       .select("id, created_at, event, page, meta")
@@ -24,9 +22,7 @@ export async function GET(req: Request) {
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     const items = (data || []).map((r) => {
       const m: any = r?.meta || {};
