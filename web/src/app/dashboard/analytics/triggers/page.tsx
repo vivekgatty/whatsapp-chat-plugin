@@ -79,12 +79,52 @@ export default function Page() {
   useEffect(() => { load(); /* on mount */ }, []);
   useEffect(() => { /* reload when filters change */ load(); }, [days, limit]);
 
+  async function emitTest() {
+    try {
+      const locale = (typeof navigator !== "undefined" && navigator.language) || "en";
+      const page = (typeof window !== "undefined" && window.location?.href) || "";
+      const referrer = (typeof document !== "undefined" && document.referrer) || "";
+
+      const body = {
+        // send both for compatibility with your existing /api/analytics handler
+        event: "trigger_fired",
+        event_type: "trigger_fired",
+        wid: new URLSearchParams((typeof document !== "undefined" ? (document.currentScript as any)?.src?.split('?')[1] : "")).get("wid")
+            || (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("wid") : null)
+            || undefined,
+        meta: {
+          trigger_code: "sales_inquiry",
+          trigger_type: "manual_test",
+          reason: "manual_test",
+          value: "dev",
+          locale,
+          page,
+          referrer
+        }
+      };
+
+      const r = await fetch("/api/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j?.error || "Emit failed");
+
+      await load();
+      alert("Test trigger event emitted.");
+    } catch (e: any) {
+      alert(e?.message || "Failed to emit test trigger");
+    }
+  }
+
   const hasRows = useMemo(() => items && items.length > 0, [items]);
 
   return (
     <div className="mx-auto max-w-6xl p-4 space-y-4">
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-semibold">Analytics · Trigger events</h1>
+
         <div className="ms-auto flex items-center gap-2">
           <label className="text-sm opacity-80">Days</label>
           <select
@@ -114,6 +154,14 @@ export default function Page() {
             className="ms-3 px-3 py-1 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700 disabled:opacity-60"
           >
             {loading ? "Refreshing…" : "Refresh"}
+          </button>
+
+          <button
+            onClick={emitTest}
+            className="ms-3 px-3 py-1 rounded bg-amber-500 text-black border border-amber-400 hover:bg-amber-400"
+            title="Insert a sample trigger_fired event to verify analytics pipeline"
+          >
+            Emit test trigger
           </button>
         </div>
       </div>
