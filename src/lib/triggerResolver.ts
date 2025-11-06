@@ -5,23 +5,13 @@
 };
 
 export type TriggerContext = {
-  /** Full URL (recommended) so we can parse query params */
   url?: string | null;
-  /** Current path (e.g., /products/plan-pro). Used to derive page_context slug. */
   pathname?: string | null;
-  /** Document referrer (optional, useful for analytics/edge cases) */
   referrer?: string | null;
-  /** Locale chosen in widget (or browser language, like 'en', 'hi', 'kn', 'ta') */
   locale?: string | null;
-  /** Has the visitor been seen before (cookie/localStorage)? */
   seenFlag?: boolean | null;
-  /** Explicit manual override, e.g. '?trigger=support_help' or widget option */
   manualOverride?: string | null;
-
-  /** Optional pre-parsed intent (if caller already read ?intent) */
   intent?: string | null;
-
-  /** Optional UTM bag if caller already parsed it */
   utm?: {
     campaign?: string | null;
     source?: string | null;
@@ -30,8 +20,6 @@ export type TriggerContext = {
     content?: string | null;
   } | null;
 };
-
-// ---------------------- helpers ----------------------
 
 function safeLower(s?: string | null): string {
   return (s ?? "").toString().trim().toLowerCase();
@@ -51,12 +39,10 @@ function parseFromUrlStr(url?: string | null): URLSearchParams {
   }
 }
 
-/** Normalise intent query into a supported system trigger code */
 function normalizeIntent(raw?: string | null): string | null {
   const v = safeLower(raw);
   if (!v) return null;
 
-  // Canonical system intent codes used in your templates dropdown
   const INTENTS = new Set([
     "sales_inquiry",
     "support_help",
@@ -65,22 +51,17 @@ function normalizeIntent(raw?: string | null): string | null {
     "whatsapp_optin_confirm",
   ]);
 
-  // Common aliases -> canonical
   const ALIASES: Record<string, string> = {
     sales: "sales_inquiry",
     pricing: "sales_inquiry",
     buy: "sales_inquiry",
     purchase: "sales_inquiry",
-
     support: "support_help",
     help: "support_help",
-
     demo: "demo_booking",
     book_demo: "demo_booking",
-
     quote: "quote_request",
     estimate: "quote_request",
-
     optin: "whatsapp_optin_confirm",
     subscribe: "whatsapp_optin_confirm",
     whatsapp_optin: "whatsapp_optin_confirm",
@@ -89,25 +70,19 @@ function normalizeIntent(raw?: string | null): string | null {
   if (INTENTS.has(v)) return v;
   if (ALIASES[v]) return ALIASES[v];
 
-  // try transforming sales-inquiry -> sales_inquiry, etc.
   const underscored = v.replace(/-/g, "_");
   if (INTENTS.has(underscored)) return underscored;
 
   return null;
 }
 
-// ---------------------- resolver ----------------------
-
 /**
- * Resolve a single system trigger with deterministic priority:
- * manual > utm_campaign > intent > page_context > locale > lifecycle
- *
- * Returns undefined if nothing matches (caller should fall back to default).
+ * Priority: manual > utm_campaign > intent > page_context > locale > lifecycle
  */
 export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | undefined {
   const search = parseFromUrlStr(ctx.url);
 
-  // 1) manual (explicit override)
+  // 1) manual override
   {
     const manual = safeLower(ctx.manualOverride || search.get("trigger"));
     if (manual) {
@@ -121,12 +96,8 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
 
   // 2) utm_campaign
   {
-    const campaign = slugify(
-      ctx.utm?.campaign ??
-      search.get("utm_campaign")
-    );
+    const campaign = slugify(ctx.utm?.campaign ?? search.get("utm_campaign"));
     if (campaign) {
-      // We use a generic 'utm_campaign' template; pass value in 'why'
       return {
         code: "utm_campaign",
         type: "campaign",
@@ -135,7 +106,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
     }
   }
 
-  // 3) intent (from ?intent=... or ctx.intent)
+  // 3) intent
   {
     const intentParam = ctx.intent ?? search.get("intent");
     const intentCode = normalizeIntent(intentParam);
@@ -148,11 +119,10 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
     }
   }
 
-  // 4) page_context (derive from pathname)
+  // 4) page_context
   {
     const path = (ctx.pathname ?? "").trim();
     if (path && path !== "/") {
-      // Use the full path (without leading slash) as context info
       const normalized = slugify(path.replace(/^\/+/, ""));
       if (normalized) {
         return {
@@ -164,7 +134,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
     }
   }
 
-  // 5) locale (geo_locale system code)
+  // 5) locale
   {
     const loc = slugify(ctx.locale);
     if (loc) {
@@ -176,7 +146,7 @@ export function resolveSystemTrigger(ctx: TriggerContext): TriggerResolution | u
     }
   }
 
-  // 6) lifecycle (first_visit / returning_visit)
+  // 6) lifecycle
   {
     const seen = !!ctx.seenFlag;
     return {
