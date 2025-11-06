@@ -1,54 +1,47 @@
 import { NextResponse } from "next/server";
-import * as Admin from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-// Resolve an admin client regardless of export style
-function getAdminClient(): any {
-  const f =
-    (Admin as any).supabaseAdmin ??
-    (Admin as any).getSupabaseAdmin ??
-    (Admin as any).createAdminClient ??
-    (Admin as any).default;
-  if (typeof f !== "function") {
-    throw new Error("supabaseAdmin must export a function that returns a Supabase client");
-  }
-  return f();
-}
-
+/**
+ * Returns recent "trigger_fired" analytics events, shaping fields from meta JSON.
+ * Query params:
+ *  - days: number of days back (default 30)
+ *  - limit: max rows (default 200, max 1000)
+ */
 export async function GET(req: Request) {
   try {
-    const supabase = getAdminClient();
-
     const url = new URL(req.url);
-    const days = Math.max(1, Math.min(365, Number(url.searchParams.get("days") ?? 30)));
-    const limit = Math.max(1, Math.min(1000, Number(url.searchParams.get("limit") ?? 200)));
+    const days = Math.max(1, Math.min(365, Number(url.searchParams.get("days") || 30)));
+    const limit = Math.max(1, Math.min(1000, Number(url.searchParams.get("limit") || 200)));
     const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    // Pull rows inserted by the test button and future trigger emissions.
-    const { data, error } = await supabase
+    const sb = supabaseAdmin();
+    // Only select columns that definitely exist
+    const { data, error } = await sb
       .from("analytics")
-      .select("created_at,event,event_type,page,meta,locale")
+      .select("id, created_at, event, page, meta")
+      .eq("event", "trigger_fired")
       .gte("created_at", sinceIso)
-      .eq("event_type", "trigger")
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
-    const items =
-      (data ?? []).map((r: any) => {
-        const m = r?.meta ?? {};
-        return {
-          when: r.created_at,
-          trigger: m.trigger_code || r.event || "unknown",
-          type: m.trigger_type || r.event_type || "trigger",
-          why: m.why || "",
-          page: r.page || "",
-          locale: m.locale || r.locale || "",
-        };
-      });
+    const items = (data || []).map((r) => {
+      const m: any = r?.meta || {};
+      return {
+        when: r.created_at,
+        trigger: m.trigger || m.trigger_code || m.code || "(unknown)",
+        type: m.type || m.trigger_type || "manual",
+        why: m.why || m.reason || m.via || "",
+        page: r.page || m.page || m.referrer || "(unknown)",
+        locale: m.locale || m.lang || "",
+      };
+    });
 
-    return NextResponse.json({ items }, { status: 200 });
+    return NextResponse.json({ items });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || String(e) }, { status: 500 });
+    return NextResponse.json({ error: e?.message || "Unknown error" }, { status: 500 });
   }
 }
