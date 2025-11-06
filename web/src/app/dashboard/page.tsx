@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 
 import { getSupabaseServer } from "../../lib/supabaseServer";
 
@@ -46,6 +46,20 @@ export default async function DashboardPage() {
         Dashboard{" "}
         <span className="ml-2 rounded bg-slate-800 px-2 py-1 align-super text-xs">FREE</span>
       </h1>
+<div data-id="quick-links-lang-hours" className="mt-6 flex flex-wrap gap-2">
+  <a
+    href="/dashboard/language"
+    className="rounded bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700"
+  >
+    Languages
+  </a>
+  <a
+    href="/dashboard/hours"
+    className="rounded bg-slate-800 px-3 py-2 text-sm hover:bg-slate-700"
+  >
+    Business Hours
+  </a>
+</div>
       <nav className="mt-2 mb-4 flex flex-wrap gap-2 text-sm">
         <a href="/dashboard" className="rounded bg-slate-800 px-3 py-1.5 hover:bg-slate-700">
           Overview
@@ -157,3 +171,4 @@ export default async function DashboardPage() {
     </div>
   );
 }
+
