@@ -1,62 +1,68 @@
-﻿import { NextResponse } from "next/server";
-import supabaseAdmin from "../../../lib/supabaseAdmin";
+﻿export const runtime = "nodejs";
 
-export const runtime = "nodejs";
+import { NextRequest, NextResponse } from "next/server";
+import getSupabaseAdmin from "../../../lib/supabaseAdmin";
 
-async function resolveBusinessId(search: URLSearchParams) {
-  const sb = supabaseAdmin();
-  const direct = search.get("business_id");
-  if (direct) return direct;
-
-  const wid = search.get("wid");
+async function resolveBusinessId(supa: any, wid?: string | null, bid?: string | null) {
+  if (bid) return bid;
   if (wid) {
-    const { data, error } = await sb.from("widgets").select("business_id").eq("id", wid).maybeSingle();
-    if (!error && data && data.business_id) return data.business_id as string;
+    const { data, error } = await supa.from("widgets").select("business_id").eq("id", wid).maybeSingle();
+    if (!error && data?.business_id) return data.business_id as string;
   }
-  const fallback = process.env.DEFAULT_BUSINESS_ID || "";
-  if (!fallback) throw new Error("No business_id. Provide ?wid= or ?business_id= or set DEFAULT_BUSINESS_ID.");
-  return fallback;
+  return process.env.DEFAULT_BUSINESS_ID ?? null;
 }
 
-export async function GET(req: Request) {
+// GET /api/templates?wid=<uuid>&bid=<uuid>&locale=en&kind=greeting
+export async function GET(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const sb = supabaseAdmin();
-    const business_id = await resolveBusinessId(url.searchParams);
-    const locale = url.searchParams.get("locale") || undefined;
-    const kind = url.searchParams.get("kind") || undefined;
+    const u = new URL(req.url);
+    const wid = u.searchParams.get("wid");
+    const bid = u.searchParams.get("bid");
+    const locale = u.searchParams.get("locale");
+    const kind = u.searchParams.get("kind");
 
-    let q = sb.from("templates").select("*").eq("business_id", business_id).order("updated_at", { ascending: false });
+    const supa = getSupabaseAdmin();
+    const business_id = await resolveBusinessId(supa, wid, bid);
+
+    let q = supa.from("templates").select("*").order("created_at", { ascending: false }) as any;
+    if (business_id) q = q.eq("business_id", business_id);
     if (locale) q = q.eq("locale", locale);
     if (kind) q = q.eq("kind", kind);
 
     const { data, error } = await q;
-    if (error) throw error;
-    return NextResponse.json({ ok: true, templates: data });
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, templates: data ?? [] });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message || String(e) }, { status: 400 });
+    return NextResponse.json({ ok: false, error: e?.message || "unknown" }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+// POST /api/templates   body: { wid?: string, bid?: string, name, locale, kind, body }
+export async function POST(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const sb = supabaseAdmin();
-    const business_id = await resolveBusinessId(url.searchParams);
-    const body = await req.json();
+    const supa = getSupabaseAdmin();
+    const body = await req.json().catch(() => ({}));
 
-    const payload = {
-      business_id,
-      locale: String(body.locale || "en"),
-      kind: String(body.kind || "greeting"),
-      name: String(body.name || ""),
-      body: String(body.body || ""),
-    };
+    const name = (body?.name ?? "").trim();
+    const locale = (body?.locale ?? "").trim();
+    const kind = (body?.kind ?? "").trim();
+    const text = (body?.body ?? "").trim();
+    const wid: string | null = (body?.wid ?? "").trim() || null;
+    const bid: string | null = (body?.bid ?? "").trim() || null;
 
-    const { data, error } = await sb.from("templates").insert(payload).select("*").single();
-    if (error) throw error;
+    if (!name || !locale || !kind || !text) {
+      return NextResponse.json({ ok: false, error: "name, locale, kind, body are required" }, { status: 400 });
+    }
+
+    const business_id = await resolveBusinessId(supa, wid, bid);
+    const payload: any = { name, locale, kind, body: text };
+    if (business_id) payload.business_id = business_id;
+
+    const { data, error } = await supa.from("templates").insert(payload).select("*").single();
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+
     return NextResponse.json({ ok: true, template: data });
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message || String(e) }, { status: 400 });
+    return NextResponse.json({ ok: false, error: e?.message || "unknown" }, { status: 500 });
   }
 }
