@@ -66,7 +66,7 @@ async function insertEvent(payload: {
     .insert({
       widget_id: payload.widget_id,
       business_id: payload.business_id,
-      event: "trigger_fired",
+      event: "trigger_fired", event_type: "trigger",
       page: payload.page ?? null,
       meta: payload.meta,
     })
@@ -209,3 +209,4 @@ export async function POST(req: NextRequest) {
   });
   return NextResponse.json(res);
 }
+
