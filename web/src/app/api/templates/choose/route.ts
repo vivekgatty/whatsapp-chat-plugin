@@ -1,7 +1,7 @@
 ﻿export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import getSupabaseAdmin from "../../../../../lib/supabaseAdmin";
+import getSupabaseAdmin from '../../../../lib/supabaseAdmin';
 
 type TemplateRow = {
   id: string;
@@ -223,3 +223,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: e?.message || "unknown error" }, { status: 500 });
   }
 }
+
