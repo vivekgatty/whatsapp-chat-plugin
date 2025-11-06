@@ -4,17 +4,22 @@ export const SUPPORTED = ["en", "hi", "kn", "ta"] as const;
 export type Locale = typeof SUPPORTED[number];
 const DEFAULT_LOCALE: Locale = "en";
 
+/** Safe cookie reader: no regex, SSR-safe guard */
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
-  const re = new RegExp(
-    "(?:^|; )" + name.replace(/[-.$?*|{}()\[\\]\\/\\+^]/g, "\\$&") + "=([^;]*)"
-  );
-  const m = document.cookie.match(re);
-  return m ? decodeURIComponent(m[1]) : null;
+  const target = name + "=";
+  const parts = document.cookie.split(";");
+  for (const raw of parts) {
+    const s = raw.trim();
+    if (s.startsWith(target)) {
+      return decodeURIComponent(s.slice(target.length));
+    }
+  }
+  return null;
 }
 
 export function getLocale(): Locale {
-  const raw = (typeof document !== "undefined" ? getCookie("cm_locale") : null) || DEFAULT_LOCALE;
+  const raw = getCookie("cm_locale") || DEFAULT_LOCALE;
   return (SUPPORTED as readonly string[]).includes(raw) ? (raw as Locale) : DEFAULT_LOCALE;
 }
 
@@ -29,7 +34,7 @@ export function setLocale(loc: string): Locale {
 const cache: Record<string, Messages> = {};
 
 export async function loadMessages(loc?: string): Promise<Messages> {
-  const lang = loc || getLocale();
+  const lang = (loc && (SUPPORTED as readonly string[]).includes(loc)) ? (loc as Locale) : getLocale();
   if (cache[lang]) return cache[lang];
   try {
     const res = await fetch(`/locales/${lang}.json`, { cache: "no-store" });
