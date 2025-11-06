@@ -1,13 +1,10 @@
-import AnalyticsButton from "./AnalyticsButton";
+﻿import type { ReactNode } from "react";
+import TriggerAnalyticsButton from "./TriggerAnalyticsButton";
 
-export default function TriggersTemplate({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Template({ children }: { children: ReactNode }) {
   return (
     <>
-      <AnalyticsButton />
+      <TriggerAnalyticsButton />
       {children}
     </>
   );
