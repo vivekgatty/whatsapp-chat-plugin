@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 // We only import types/consts for compile-time; UI script below embeds plain JS.
-import { ALLOWED_TRIGGER_TYPES } from "../../../lib/customTriggers";
+import { ALLOWED_TRIGGER_TYPES } from "../../../../lib/customTriggers";
 
 export default function Page() {
   const allowed = JSON.stringify(ALLOWED_TRIGGER_TYPES);
@@ -24,7 +24,7 @@ export default function Page() {
 
       {/* Upgrade banner placeholder */}
       <div id="upgradeBanner" className="hidden rounded border border-amber-400/50 bg-amber-500/10 text-amber-200 p-3">
-        <b>Pro required:</b> Custom triggers need an active ₹199/month subscription.
+        <b>Pro required:</b> Custom triggers need an active â‚¹199/month subscription.
         <a className="underline ms-2" href="/dashboard/billing">Upgrade now</a>
       </div>
 
@@ -34,7 +34,7 @@ export default function Page() {
           <div>
             <label className="block text-sm mb-1">Code (unique)</label>
             <input id="ct_code" className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1" placeholder="e.g., diwali_sale" />
-            <div className="text-xs opacity-60 mt-1">3–30 chars: a-z, 0-9, _</div>
+            <div className="text-xs opacity-60 mt-1">3â€“30 chars: a-z, 0-9, _</div>
           </div>
           <div>
             <label className="block text-sm mb-1">Label</label>
