@@ -1,57 +1,49 @@
-﻿export type Locale = "en" | "hi" | "kn" | "ta";
-export const LOCALES: Locale[] = ["en", "hi", "kn", "ta"];
+﻿export type Messages = Record<string, string>;
 
-import en from "../i18n/en.json";
-import hi from "../i18n/hi.json";
-import kn from "../i18n/kn.json";
-import ta from "../i18n/ta.json";
-
-const MAP: Record<Locale, Record<string, string>> = { en, hi, kn, ta };
-
-function normalizeLocale(s?: string | null): Locale {
-  const v = (s || "").toLowerCase().slice(0, 2) as Locale;
-  return (LOCALES as readonly string[]).includes(v) ? v : "en";
-}
+export const SUPPORTED = ["en", "hi", "kn", "ta"] as const;
+export type Locale = typeof SUPPORTED[number];
+const DEFAULT_LOCALE: Locale = "en";
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
-  const list = document.cookie ? document.cookie.split("; ") : [];
-  for (const entry of list) {
-    const eq = entry.indexOf("=");
-    const key = eq >= 0 ? entry.slice(0, eq) : entry;
-    if (key === name) {
-      const raw = eq >= 0 ? entry.slice(eq + 1) : "";
-      try { return decodeURIComponent(raw); } catch { return raw; }
-    }
+  const re = new RegExp(
+    "(?:^|; )" + name.replace(/[-.$?*|{}()\[\\]\\/\\+^]/g, "\\$&") + "=([^;]*)"
+  );
+  const m = document.cookie.match(re);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+export function getLocale(): Locale {
+  const raw = (typeof document !== "undefined" ? getCookie("cm_locale") : null) || DEFAULT_LOCALE;
+  return (SUPPORTED as readonly string[]).includes(raw) ? (raw as Locale) : DEFAULT_LOCALE;
+}
+
+export function setLocale(loc: string): Locale {
+  const val = (SUPPORTED as readonly string[]).includes(loc) ? (loc as Locale) : DEFAULT_LOCALE;
+  if (typeof document !== "undefined") {
+    document.cookie = `cm_locale=${encodeURIComponent(val)}; Max-Age=31536000; Path=/; SameSite=Lax`;
   }
-  return null;
+  return val;
 }
 
-function setCookie(name: string, value: string, days = 365) {
-  if (typeof document === "undefined") return;
-  const d = new Date(Date.now() + days * 864e5);
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${d.toUTCString()}`;
-}
+const cache: Record<string, Messages> = {};
 
-export function getActiveLocale(): Locale {
+export async function loadMessages(loc?: string): Promise<Messages> {
+  const lang = loc || getLocale();
+  if (cache[lang]) return cache[lang];
   try {
-    if (typeof window !== "undefined") {
-      const urlLang = new URL(window.location.href).searchParams.get("lang");
-      if (urlLang) return normalizeLocale(urlLang);
+    const res = await fetch(`/locales/${lang}.json`, { cache: "no-store" });
+    const j = (await res.json()) as Messages;
+    cache[lang] = j || {};
+    return cache[lang];
+  } catch {
+    if (lang !== DEFAULT_LOCALE) {
+      return loadMessages(DEFAULT_LOCALE);
     }
-    const fromCookie = getCookie("cm_locale");
-    if (fromCookie) return normalizeLocale(fromCookie);
-    if (typeof navigator !== "undefined") return normalizeLocale(navigator.language);
-  } catch {}
-  return "en";
+    return {};
+  }
 }
 
-export function setActiveLocale(loc: Locale) {
-  setCookie("cm_locale", loc, 365);
-}
-
-export function t(key: string, loc?: Locale): string {
-  const l = loc || getActiveLocale();
-  const dict = MAP[l] || MAP.en;
-  return dict[key] ?? MAP.en[key] ?? key;
+export function t(key: string, msgs: Messages, fallback?: string) {
+  return (msgs && msgs[key]) ?? fallback ?? key;
 }

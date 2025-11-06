@@ -1,0 +1,13 @@
+﻿{
+  "dashboard.title": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+  "language.title": "ಭಾಷೆ",
+  "language.select": "ಭಾಷೆ ಆಯ್ಕೆಮಾಡಿ",
+  "language.save": "ಭಾಷೆ ಉಳಿಸಿ",
+  "language.saved": "ಉಳಿಸಲಾಗಿದೆ!",
+  "templates.title": "ಟೆಂಪ್ಲೇಟ್‌ಗಳು",
+  "templates.embedHeading": "ಎಂಬೆಡ್ ಸ್ನಿಪೆಟ್",
+  "templates.autoHeading": "ಆಟೋ-ಟ್ರಿಗರ್ ಲೋಡರ್ (ಐಚ್ಛಿಕ)",
+  "templates.refresh": "ರಿಫ್ರೆಶ್",
+  "templates.manageKinds": "ಕೈಂಡ್‌ಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+  "templates.new": "ಹೊಸದು"
+}

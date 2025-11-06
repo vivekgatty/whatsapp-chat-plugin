@@ -1,0 +1,13 @@
+﻿{
+  "dashboard.title": "டாஷ்போர்டு",
+  "language.title": "மொழி",
+  "language.select": "மொழியைத் தேர்ந்தெடுக்கவும்",
+  "language.save": "மொழியைச் சேமிக்கவும்",
+  "language.saved": "சேமிக்கப்பட்டது!",
+  "templates.title": "டெம்ப்ளேட்கள்",
+  "templates.embedHeading": "எம்பெட் ச்னிப்பெட்",
+  "templates.autoHeading": "ஆட்டோ-டிரிகர் லோடர் (விருப்பத்தேர்வு)",
+  "templates.refresh": "ரிப்ரெஷ்",
+  "templates.manageKinds": "கைன்ட்ஸை மேலாண்மை செய்",
+  "templates.new": "புதியது"
+}

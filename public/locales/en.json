@@ -1,0 +1,13 @@
+﻿{
+  "dashboard.title": "Dashboard",
+  "language.title": "Language",
+  "language.select": "Select language",
+  "language.save": "Save language",
+  "language.saved": "Saved!",
+  "templates.title": "Templates",
+  "templates.embedHeading": "Embed snippet",
+  "templates.autoHeading": "Auto-trigger loader (optional)",
+  "templates.refresh": "Refresh",
+  "templates.manageKinds": "Manage kinds",
+  "templates.new": "New"
+}

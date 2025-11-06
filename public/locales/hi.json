@@ -1,0 +1,13 @@
+﻿{
+  "dashboard.title": "डैशबोर्ड",
+  "language.title": "भाषा",
+  "language.select": "भाषा चुनें",
+  "language.save": "भाषा सहेजें",
+  "language.saved": "सहेजा गया!",
+  "templates.title": "टेम्पलेट्स",
+  "templates.embedHeading": "एम्बेड स्निपेट",
+  "templates.autoHeading": "ऑटो-ट्रिगर लोडर (वैकल्पिक)",
+  "templates.refresh": "रिफ्रेश",
+  "templates.manageKinds": "काइंड्स प्रबंधित करें",
+  "templates.new": "नया"
+}
