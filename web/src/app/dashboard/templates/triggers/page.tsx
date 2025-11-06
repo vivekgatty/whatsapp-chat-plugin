@@ -1,17 +1,24 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// We only import types/consts for compile-time; UI script below embeds plain JS.
-import { ALLOWED_TRIGGER_TYPES } from "../../../../lib/customTriggers";
+// Defensive import (works whether the module uses named or namespace export)
+import * as CT from "../../../../lib/customTriggers";
+
+// Server-side fallback list if module export is missing/empty
+const FALLBACK_TYPES = ["manual", "url_param", "utm", "path_match"] as const;
+const allowedTypes =
+  (CT as any)?.ALLOWED_TRIGGER_TYPES && (CT as any).ALLOWED_TRIGGER_TYPES.length
+    ? (CT as any).ALLOWED_TRIGGER_TYPES
+    : FALLBACK_TYPES;
 
 export default function Page() {
-  const allowed = JSON.stringify(ALLOWED_TRIGGER_TYPES);
+  // Embed the list for the client script (stringified safely)
+  const allowed = JSON.stringify(allowedTypes);
 
-  // Small helper map to show example matcher JSON per type (client-side only)
   const sampleByType = JSON.stringify({
-    manual: { via: "intent_param_or_widget_setting" },
-    url_param: { key: "intent", value: "offers" },
-    utm: { campaign: "diwali2025", source: "google" },
+    manual:     { via: "intent_param_or_widget_setting" },
+    url_param:  { key: "intent", value: "offers" },
+    utm:        { campaign: "diwali2025", source: "google" },
     path_match: { regex: "^/product/.+" },
   });
 
@@ -24,7 +31,7 @@ export default function Page() {
 
       {/* Upgrade banner placeholder */}
       <div id="upgradeBanner" className="hidden rounded border border-amber-400/50 bg-amber-500/10 text-amber-200 p-3">
-        <b>Pro required:</b> Custom triggers need an active â‚¹199/month subscription.
+        <b>Pro required:</b> Custom triggers need an active ₹199/month subscription.
         <a className="underline ms-2" href="/dashboard/billing">Upgrade now</a>
       </div>
 
@@ -34,7 +41,7 @@ export default function Page() {
           <div>
             <label className="block text-sm mb-1">Code (unique)</label>
             <input id="ct_code" className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1" placeholder="e.g., diwali_sale" />
-            <div className="text-xs opacity-60 mt-1">3â€“30 chars: a-z, 0-9, _</div>
+            <div className="text-xs opacity-60 mt-1">3–30 chars: a-z, 0-9, _</div>
           </div>
           <div>
             <label className="block text-sm mb-1">Label</label>
@@ -87,7 +94,7 @@ export default function Page() {
       <script id="ct_allowed" type="application/json" dangerouslySetInnerHTML={{ __html: allowed }} />
       <script id="ct_samples" type="application/json" dangerouslySetInnerHTML={{ __html: sampleByType }} />
 
-      {/* Client-side script (no framework) */}
+      {/* Client-side script with robust fallbacks */}
       <script
         dangerouslySetInnerHTML={{
           __html: `
@@ -98,21 +105,28 @@ export default function Page() {
   const errBox = $('#ct_error');
   const okBox = $('#ct_success');
 
-  const allowed = JSON.parse(document.getElementById('ct_allowed').textContent || '[]');
-  const samples = JSON.parse(document.getElementById('ct_samples').textContent || '{}');
+  function parseBlob(id, fallback){
+    try {
+      const el = document.getElementById(id);
+      const txt = (el && el.textContent) ? el.textContent : '';
+      return txt ? JSON.parse(txt) : fallback;
+    } catch(e){ return fallback; }
+  }
+
+  const allowed = parseBlob('ct_allowed', ["manual","url_param","utm","path_match"]);
+  const samples = parseBlob('ct_samples', {
+    manual:{}, url_param:{ key:"intent", value:"offers" }, utm:{ campaign:"" }, path_match:{ regex:"^/product/.+" }
+  });
 
   const typeSelect = $('#ct_type');
   function renderTypeOptions(){
-    typeSelect.innerHTML = allowed.map(t => '<option value="'+t+'">'+t+'</option>').join('');
+    typeSelect.innerHTML = (allowed || []).map(t => '<option value="'+t+'">'+t+'</option>').join('');
   }
-
   function setSampleFor(type){
     const area = $('#ct_matchers');
     const sample = samples[type] || {};
-    area.value = JSON.stringify(sample, null, 2);
+    try { area.value = JSON.stringify(sample, null, 2); } catch(_) {}
   }
-
-  typeSelect.addEventListener('change', (e) => setSampleFor(e.target.value));
 
   function flash(el, msg, isError){
     if (!el) return;
@@ -127,7 +141,6 @@ export default function Page() {
       const r = await fetch('/api/triggers?active=0',{ cache:'no-store' });
       const j = await r.json();
 
-      // Gate UI if not allowed to write
       if (j && j.can_write === false) {
         banner.classList.remove('hidden');
         $('#ct_create').setAttribute('disabled','true');
@@ -144,7 +157,7 @@ export default function Page() {
 
       body.innerHTML = items.map(it => {
         const matchers = JSON.stringify(it.matchers || {}, null, 2);
-        const select = allowed.map(t => '<option value="'+t+'" '+(t===it.type?'selected':'')+'>'+t+'</option>').join('');
+        const select = (allowed || []).map(t => '<option value="'+t+'" '+(t===it.type?'selected':'')+'>'+t+'</option>').join('');
         return \`
           <tr data-id="\${it.id}" class="border-t border-slate-800 align-top">
             <td class="p-2 text-xs font-mono">\${it.code}</td>
@@ -186,8 +199,8 @@ export default function Page() {
     const j = await r.json();
     if (!r.ok) { flash(errBox, j?.error || 'Create failed', true); return; }
     flash(okBox, 'Created'); 
-    // reset minimal
-    $('#ct_code').value = ''; $('#ct_label').value=''; setSampleFor(type);
+    $('#ct_code').value = ''; $('#ct_label').value='';
+    setSampleFor(type);
     await loadList();
   }
 
@@ -232,9 +245,9 @@ export default function Page() {
     await loadList();
   }
 
-  // Wire up
+  // Wire up and init
   renderTypeOptions();
-  setSampleFor($('#ct_type').value || allowed[0] || 'manual');
+  setSampleFor($('#ct_type').value || (allowed && allowed[0]) || 'manual');
   $('#ct_create').addEventListener('click', (e)=>{ e.preventDefault(); createTrigger(); });
   body.addEventListener('click', (e)=>{
     const btn = e.target.closest('button[data-act]');
@@ -246,10 +259,9 @@ export default function Page() {
     else if (act==='del') deleteRow(tr);
   });
 
-  // Initial load
   loadList();
-
-})();`
+})();
+          `,
         }}
       />
     </div>
