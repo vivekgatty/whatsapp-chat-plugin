@@ -1,0 +1,11 @@
+﻿# Chatmadi robots.txt
+# Allow public pages and docs; block internal dashboards & APIs.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+
+# Sitemaps (the main index plus a docs map; guides map will be added when guides go live)
+Sitemap: https://chatmadi.com/sitemap.xml
+Sitemap: https://chatmadi.com/sitemap-docs.xml
