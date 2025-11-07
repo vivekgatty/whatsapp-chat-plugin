@@ -5,7 +5,7 @@ import { Section } from "@/components/docs";
 export const metadata = {
   title: "FAQ — Chatmadi WhatsApp Chat Plugin",
   description:
-    "Complete FAQ for Chatmadi: basics, install, widget behavior, templates, languages, business hours, auto-trigger, analytics, leads, billing, security, API, and platform-specific guides.",
+    "Complete FAQ for Chatmadi: basics, install, widget, templates, languages, business hours, auto-trigger, analytics, leads, billing, security, API, and platform-specific guides.",
 };
 
 function Q({ q, children }: { q: string; children: React.ReactNode }) {
@@ -72,7 +72,7 @@ export default function FAQDocs() {
               var show = !q || text.indexOf(q) !== -1;
               d.style.display = show ? '' : 'none';
               if(show) visible++;
-              if(!show) d.open = false; // collapse hidden items
+              if(!show) d.open = false;
             });
             if(countEl) countEl.textContent = String(visible);
           }
@@ -85,6 +85,7 @@ export default function FAQDocs() {
       <Section title="A) Basics & Concepts">
         <h2 id="basics" className="sr-only">Basics & Concepts</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="What is Chatmadi and what problem does it solve?">
             <ul className="list-disc pl-5">
               <li>Adds a WhatsApp chat bubble so visitors can message you instantly.</li>
@@ -130,6 +131,50 @@ export default function FAQDocs() {
               <li>Yes—use one Widget ID per site unless you want shared analytics/templates.</li>
             </ul>
           </Q>
+
+          {/* new (8) */}
+          <Q q="Do I need a WhatsApp Business number or will a personal number work?">
+            <ul className="list-disc pl-5">
+              <li>Both work; we open a <code>wa.me</code> chat to whatever number you configure.</li>
+              <li>Use international E.164 format (e.g., <code>+919876543210</code>) in <Link className="underline" href="/dashboard/widgets">Widget settings</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="Can I use a landline number or VoIP?">
+            <ul className="list-disc pl-5">
+              <li>No—WhatsApp requires a mobile-activated number. Use a number registered with WhatsApp/WhatsApp Business.</li>
+            </ul>
+          </Q>
+          <Q q="Can I show different messages on different pages?">
+            <ul className="list-disc pl-5">
+              <li>Yes—use separate Widget IDs per site/section, or advanced rules via the optional auto-trigger snippet.</li>
+              <li>See <Link className="underline" href="/docs/install#auto-trigger">Install ▸ Auto-trigger</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="Does Chatmadi keep a copy of WhatsApp conversations?">
+            <ul className="list-disc pl-5">
+              <li>No—chats happen in WhatsApp. We only log widget events and optional leads. See <Link className="underline" href="/privacy">Privacy Policy</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="Can I migrate from another chat widget easily?">
+            <ul className="list-disc pl-5">
+              <li>Yes—remove the old script, paste Chatmadi before <code>&lt;/body&gt;</code>, verify in <Link className="underline" href="/dashboard/analytics">Analytics</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="Does Chatmadi work on AMP pages?">
+            <ul className="list-disc pl-5">
+              <li>AMP disallows arbitrary JS. Link a floating CTA to your WhatsApp instead, or use non-AMP pages for chat.</li>
+            </ul>
+          </Q>
+          <Q q="Can I use Chatmadi with consent managers (GDPR/CCPA)?">
+            <ul className="list-disc pl-5">
+              <li>Yes—allow the loader after consent. See <Link className="underline" href="/docs/troubleshooting#csp-cors">CSP/consent notes</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="Does Chatmadi support right-to-left languages (Arabic/Hebrew)?">
+            <ul className="list-disc pl-5">
+              <li>Yes for templates; widget UI is neutral. You can add RTL templates and test in <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link>.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -137,6 +182,7 @@ export default function FAQDocs() {
       <Section title="B) Install & Setup">
         <h2 id="install" className="sr-only">Install & Setup</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="Exactly where do I paste the embed code?">
             <ul className="list-disc pl-5">
               <li>Before <code>&lt;/body&gt;</code> in your theme/layout. See <Link className="underline" href="/docs/install#platforms">Install ▸ Platforms</Link>.</li>
@@ -168,6 +214,33 @@ export default function FAQDocs() {
               <li>Use the platform’s “custom code”/“HTML” block (see <Link className="underline" href="/docs/install">Install</Link>).</li>
             </ul>
           </Q>
+
+          {/* new (5) */}
+          <Q q="Should I use separate Widget IDs for staging and production?">
+            <ul className="list-disc pl-5">
+              <li>Yes—keep analytics clean. Create one Widget ID per environment in <Link className="underline" href="/dashboard/widgets">Widget settings</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="Why do I see two bubbles after installation?">
+            <ul className="list-disc pl-5">
+              <li>The snippet may be injected twice (e.g., GTM + theme). Remove duplicates and keep only one include.</li>
+            </ul>
+          </Q>
+          <Q q="Do CDN caches delay configuration changes?">
+            <ul className="list-disc pl-5">
+              <li>No reinstall needed—config is fetched live by the loader. Hard refresh if you don’t see changes.</li>
+            </ul>
+          </Q>
+          <Q q="How do I inject the script only on selected pages?">
+            <ul className="list-disc pl-5">
+              <li>In GTM, use Page Path triggers; in themes, conditionally render the snippet based on route.</li>
+            </ul>
+          </Q>
+          <Q q="Does it work on Single Page Apps (no full reload)?">
+            <ul className="list-disc pl-5">
+              <li>Yes—loaded once. Route changes don’t require re-injecting the script. Verify analytics still fire.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -175,6 +248,7 @@ export default function FAQDocs() {
       <Section title="C) Widget Behavior">
         <h2 id="widget" className="sr-only">Widget Behavior</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="Bubble is behind other elements—how to fix z-index?">
             <ul className="list-disc pl-5">
               <li>Add small CSS override per <Link className="underline" href="/docs/troubleshooting#bubble-missing">Troubleshooting ▸ A.5</Link>.</li>
@@ -200,6 +274,33 @@ export default function FAQDocs() {
               <li>Yes—button semantics + focus styles; see <Link className="underline" href="/docs/troubleshooting#layout-issues">layout tips</Link>.</li>
             </ul>
           </Q>
+
+          {/* new (5) */}
+          <Q q="Can I offset the bubble from the edge or raise its size slightly?">
+            <ul className="list-disc pl-5">
+              <li>Use the position and theme controls in <Link className="underline" href="/dashboard/widgets">Widget settings</Link>. Advanced custom CSS is possible via your theme if needed.</li>
+            </ul>
+          </Q>
+          <Q q="Can I show different CTAs on desktop vs mobile?">
+            <ul className="list-disc pl-5">
+              <li>Simple approach: load a different Widget ID per device class using GTM device targeting.</li>
+            </ul>
+          </Q>
+          <Q q="Can the click open WhatsApp Web on desktop and app on mobile automatically?">
+            <ul className="list-disc pl-5">
+              <li>Yes—WhatsApp handles this via <code>wa.me</code>. We pass your number + prefill text; platform chooses Web/app.</li>
+            </ul>
+          </Q>
+          <Q q="Can I deep link to a specific WhatsApp catalog or product?">
+            <ul className="list-disc pl-5">
+              <li>Not at the moment via the widget; you can add catalog links inside your website content as complements.</li>
+            </ul>
+          </Q>
+          <Q q="Can I log when users attempt to click but WhatsApp is blocked by the device?">
+            <ul className="list-disc pl-5">
+              <li>We log the click event. If WhatsApp can’t open, the event still appears in <Link className="underline" href="/dashboard/analytics">Analytics</Link>.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -207,6 +308,7 @@ export default function FAQDocs() {
       <Section title="D) Templates & Languages">
         <h2 id="templates" className="sr-only">Templates & Languages</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="How are greeting vs. off-hours chosen?">
             <ul className="list-disc pl-5">
               <li>We check your Business hours and time; see <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> and <Link className="underline" href="/api/templates/choose">/api/templates/choose</Link>.</li>
@@ -232,6 +334,33 @@ export default function FAQDocs() {
               <li>Use QA links and modify <code>locale=</code> in the URL to simulate.</li>
             </ul>
           </Q>
+
+          {/* new (5) */}
+          <Q q="Do you support template variables (like {{name}})?">
+            <ul className="list-disc pl-5">
+              <li>Not yet—keep text generic and welcoming. If needed, you can maintain page-specific Widget IDs with tailored copy.</li>
+            </ul>
+          </Q>
+          <Q q="Is there a character limit for message bodies?">
+            <ul className="list-disc pl-5">
+              <li>WhatsApp supports long messages, but concise works best. Keep to a couple of short sentences.</li>
+            </ul>
+          </Q>
+          <Q q="Can I include emojis and line breaks in templates?">
+            <ul className="list-disc pl-5">
+              <li>Yes. Use them sparingly; test in <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> to confirm rendering.</li>
+            </ul>
+          </Q>
+          <Q q="What is the minimum set of templates to create?">
+            <ul className="list-disc pl-5">
+              <li>At least one <code>greeting</code> and one <code>off_hours</code> in your primary locale. Add other locales as needed.</li>
+            </ul>
+          </Q>
+          <Q q="Can I prioritize a locale (e.g., always show Hindi if available)?">
+            <ul className="list-disc pl-5">
+              <li>Templates follow requested locale with fallback to English. For strict locale targeting, segment traffic with different Widget IDs.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -239,6 +368,7 @@ export default function FAQDocs() {
       <Section title="E) Business Hours">
         <h2 id="hours" className="sr-only">Business Hours</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="Where do I set hours, timezone, and closed days?">
             <ul className="list-disc pl-5">
               <li>Go to <Link className="underline" href="/dashboard/hours">Business hours</Link>. You can add multiple windows per day.</li>
@@ -254,6 +384,33 @@ export default function FAQDocs() {
               <li>Yes—your configured timezone controls the logic automatically.</li>
             </ul>
           </Q>
+
+          {/* new (5) */}
+          <Q q="Can I add two windows in one day (e.g., 10:00–13:00 and 15:00–18:00)?">
+            <ul className="list-disc pl-5">
+              <li>Yes—add multiple ranges per day in <Link className="underline" href="/dashboard/hours">Business hours</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="How do I mark a public holiday as closed?">
+            <ul className="list-disc pl-5">
+              <li>Temporarily clear that day’s ranges or toggle “closed” for that date (manual). Holiday calendars are planned.</li>
+            </ul>
+          </Q>
+          <Q q="We operate 24/7—what should I set?">
+            <ul className="list-disc pl-5">
+              <li>Set a single window covering the day (e.g., 00:00–23:59) for all days. Then only <code>greeting</code> will show.</li>
+            </ul>
+          </Q>
+          <Q q="Our shift crosses midnight—how to configure?">
+            <ul className="list-disc pl-5">
+              <li>Split into two windows: e.g., 20:00–23:59 on Day 1 and 00:00–04:00 on Day 2.</li>
+            </ul>
+          </Q>
+          <Q q="Can I preview which kind will show at a given time?">
+            <ul className="list-disc pl-5">
+              <li>Yes—use <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> or call <Link className="underline" href="/api/templates/choose">/api/templates/choose</Link> with <code>h</code>/<code>m</code> params.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -261,6 +418,7 @@ export default function FAQDocs() {
       <Section title="F) Auto-trigger">
         <h2 id="trigger" className="sr-only">Auto-trigger</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="Auto-trigger didn’t fire—what did I miss?">
             <ul className="list-disc pl-5">
               <li>You must include the optional snippet from <Link className="underline" href="/docs/install#auto-trigger">Install ▸ Auto-trigger</Link>.</li>
@@ -277,6 +435,33 @@ export default function FAQDocs() {
               <li>Yes—add simple path/UTM checks around the optional script.</li>
             </ul>
           </Q>
+
+          {/* new (5) */}
+          <Q q="What’s a sensible delay before auto-open to avoid being intrusive?">
+            <ul className="list-disc pl-5">
+              <li>3–8 seconds on landing pages, longer on articles. Always A/B test impact on bounce and CTR.</li>
+            </ul>
+          </Q>
+          <Q q="How do I cap frequency (e.g., once per day)?">
+            <ul className="list-disc pl-5">
+              <li>Use a small cookie/localStorage flag in your optional snippet. See patterns in <Link className="underline" href="/docs/troubleshooting#auto-trigger">Troubleshooting</Link>.</li>
+            </ul>
+          </Q>
+          <Q q="Can I trigger on exit-intent?">
+            <ul className="list-disc pl-5">
+              <li>You can approximate with mouseout/top-edge checks on desktop. Test carefully; don’t nag users.</li>
+            </ul>
+          </Q>
+          <Q q="Will auto-trigger conflict with my page modal?">
+            <ul className="list-disc pl-5">
+              <li>Space modals to avoid overlap. Prefer showing the chat only after a modal closes.</li>
+            </ul>
+          </Q>
+          <Q q="Can I programmatically open/close the bubble from my app code?">
+            <ul className="list-disc pl-5">
+              <li>Yes—expose a small global from your optional snippet to call open/close after your conditions are met.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -284,6 +469,7 @@ export default function FAQDocs() {
       <Section title="G) Analytics & Leads">
         <h2 id="analytics" className="sr-only">Analytics & Leads</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="Which events are tracked and where do I see them?">
             <ul className="list-disc pl-5">
               <li>Impressions, opens, closes, clicks; leads separately. See <Link className="underline" href="/dashboard/analytics">Analytics</Link>.</li>
@@ -300,8 +486,35 @@ export default function FAQDocs() {
             </ul>
           </Q>
           <Q q="Where do I view leads?">
-          <ul className="list-disc pl-5">
+            <ul className="list-disc pl-5">
               <li>In the dashboard (or your CRM if a webhook is configured). Keep pre-chat short to reduce drop-off.</li>
+            </ul>
+          </Q>
+
+          {/* new (5) */}
+          <Q q="Do bots inflate impressions?">
+            <ul className="list-disc pl-5">
+              <li>Most crawlers don’t execute our JS. Analytics count client-side events from real browsers.</li>
+            </ul>
+          </Q>
+          <Q q="How fast are analytics updated?">
+            <ul className="list-disc pl-5">
+              <li>Near real-time. Refresh the dashboard; clear cache if numbers seem stale.</li>
+            </ul>
+          </Q>
+          <Q q="Can I export analytics as CSV?">
+            <ul className="list-disc pl-5">
+              <li>Roadmap item. For now, you can mirror events via your own endpoint using a webhook/proxy pattern.</li>
+            </ul>
+          </Q>
+          <Q q="What happens if my lead webhook is down?">
+            <ul className="list-disc pl-5">
+              <li>Leads still store in Chatmadi; webhook retries are limited—monitor your endpoint health.</li>
+            </ul>
+          </Q>
+          <Q q="Can I attribute leads to pages or campaigns?">
+            <ul className="list-disc pl-5">
+              <li>Yes—page path and optional UTM/metadata can be included in lead payloads/analytics meta.</li>
             </ul>
           </Q>
         </div>
@@ -311,6 +524,7 @@ export default function FAQDocs() {
       <Section title="H) Plans & Billing">
         <h2 id="billing" className="sr-only">Plans & Billing</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="Is there a Free plan and can I switch plans anytime?">
             <ul className="list-disc pl-5">
               <li>Yes—see <Link className="underline" href="/dashboard/billing">Billing</Link> for tiers and upgrades/downgrades.</li>
@@ -326,6 +540,33 @@ export default function FAQDocs() {
               <li>Yes—plan changes don’t alter your Widget ID or templates.</li>
             </ul>
           </Q>
+
+          {/* new (5) */}
+          <Q q="Do you offer annual billing or discounts?">
+            <ul className="list-disc pl-5">
+              <li>Yes—annual tiers are discounted. See <Link className="underline" href="/dashboard/billing">Billing</Link> for details.</li>
+            </ul>
+          </Q>
+          <Q q="What happens if payment fails?">
+            <ul className="list-disc pl-5">
+              <li>We’ll retry and notify you. After a grace period, premium features may pause until resolved.</li>
+            </ul>
+          </Q>
+          <Q q="Can I get invoices in my company’s name with GST?">
+            <ul className="list-disc pl-5">
+              <li>Yes—add billing details in your profile; invoices reflect that information.</li>
+            </ul>
+          </Q>
+          <Q q="Does the Free plan include analytics?">
+            <ul className="list-disc pl-5">
+              <li>Yes—core event counts are visible. Advanced reports may require a paid tier.</li>
+            </ul>
+          </Q>
+          <Q q="Will my widget stop working if my plan expires?">
+            <ul className="list-disc pl-5">
+              <li>Core chat continues; premium extras may be disabled until renewal.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -333,6 +574,7 @@ export default function FAQDocs() {
       <Section title="I) Security, Privacy & Compliance">
         <h2 id="security" className="sr-only">Security, Privacy & Compliance</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="What data does Chatmadi store?">
             <ul className="list-disc pl-5">
               <li>Widget events and optional lead form data. WhatsApp conversations happen in WhatsApp, not on Chatmadi.</li>
@@ -349,6 +591,33 @@ export default function FAQDocs() {
               <li>See <Link className="underline" href="/docs/troubleshooting#csp-cors">Troubleshooting ▸ CSP/CORS</Link> for minimal policies.</li>
             </ul>
           </Q>
+
+          {/* new (5) */}
+          <Q q="Where are your servers located and do you encrypt data in transit?">
+            <ul className="list-disc pl-5">
+              <li>We use reputable cloud regions with TLS for all endpoints. Persistent data is stored securely.</li>
+            </ul>
+          </Q>
+          <Q q="Can I request data export or deletion for compliance?">
+            <ul className="list-disc pl-5">
+              <li>Yes—contact support with your Widget ID/business details; we’ll process per policy.</li>
+            </ul>
+          </Q>
+          <Q q="How do you handle DDoS or abuse attempts?">
+            <ul className="list-disc pl-5">
+              <li>Rate limits and upstream protections are in place; suspicious traffic is mitigated.</li>
+            </ul>
+          </Q>
+          <Q q="Do you store WhatsApp phone numbers of visitors?">
+            <ul className="list-disc pl-5">
+              <li>No—unless a visitor submits a lead form you’ve enabled; then the provided fields are stored.</li>
+            </ul>
+          </Q>
+          <Q q="Can I restrict the widget to certain referrers or origins?">
+            <ul className="list-disc pl-5">
+              <li>Yes—contact support for origin restrictions if you need stricter embedding rules.</li>
+            </ul>
+          </Q>
         </div>
       </Section>
 
@@ -356,6 +625,7 @@ export default function FAQDocs() {
       <Section title="J) Developers & API">
         <h2 id="api" className="sr-only">Developers & API</h2>
         <div className="space-y-4">
+          {/* existing */}
           <Q q="What does /api/widget.js do?">
             <ul className="list-disc pl-5">
               <li>Loads settings, renders bubble, emits analytics, and opens WhatsApp. Details in <Link className="underline" href="/docs/dashboard#widget-settings">Dashboard ▸ Widget settings</Link>.</li>
@@ -368,7 +638,7 @@ export default function FAQDocs() {
           </Q>
           <Q q="How do I test /api/templates/choose quickly?">
             <ul className="list-disc pl-5">
-              <li>Use <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> and open each “link”; change <code>locale</code>, <code>h</code>, and <code>m</code> to simulate.</li>
+              <li>Use <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> and open each link; change <code>locale</code>, <code>h</code>, and <code>m</code> to simulate.</li>
             </ul>
           </Q>
           <Q q="Can I lazy-load or defer the widget even more?">
@@ -379,6 +649,33 @@ export default function FAQDocs() {
           <Q q="Do you publish breaking changes?">
             <ul className="list-disc pl-5">
               <li>We avoid them; release notes will call out anything that needs action.</li>
+            </ul>
+          </Q>
+
+          {/* new (5) */}
+          <Q q="Are there API rate limits I should know about?">
+            <ul className="list-disc pl-5">
+              <li>Yes—reasonable per-IP and per-Widget ID limits apply to protect service stability.</li>
+            </ul>
+          </Q>
+          <Q q="Can I self-host the loader script?">
+            <ul className="list-disc pl-5">
+              <li>Not recommended—config and updates ship via our CDN. Self-hosting risks stale behavior.</li>
+            </ul>
+          </Q>
+          <Q q="Do you support ES module imports instead of a script tag?">
+            <ul className="list-disc pl-5">
+              <li>Use the provided script tag for consistency and minimal overhead.</li>
+            </ul>
+          </Q>
+          <Q q="Can I post analytics from my server (server-to-server)?">
+            <ul className="list-disc pl-5">
+              <li>Client events are preferred. Server relays are possible; preserve the <code>wid</code> and event semantics.</li>
+            </ul>
+          </Q>
+          <Q q="How do I debug CORS issues calling your APIs?">
+            <ul className="list-disc pl-5">
+              <li>Use same-origin fetches from the browser where possible; for server calls, ensure proper headers per <Link className="underline" href="/docs/troubleshooting#csp-cors">CSP/CORS</Link>.</li>
             </ul>
           </Q>
         </div>
