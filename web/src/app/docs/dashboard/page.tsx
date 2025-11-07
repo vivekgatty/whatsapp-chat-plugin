@@ -15,8 +15,8 @@ export default function DashboardDocs() {
       </h1>
 
       {/* Overview */}
-      <Section id="overview" title="Overview">
-        <h2 className="sr-only">Overview</h2>
+      <Section title="Overview">
+        <h2 id="overview" className="sr-only">Overview</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>Quick links to all sections.</strong> The Overview page is
@@ -51,8 +51,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Widget settings */}
-      <Section id="widget-settings" title="Widget settings">
-        <h2 className="sr-only">Widget settings</h2>
+      <Section title="Widget settings">
+        <h2 id="widget-settings" className="sr-only">Widget settings</h2>
 
         <h3 id="widget-id" className="mt-4 text-xl font-semibold">Widget ID</h3>
         <ol className="list-decimal space-y-3 pl-5">
@@ -139,8 +139,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Templates */}
-      <Section id="templates" title="Templates">
-        <h2 className="sr-only">Templates</h2>
+      <Section title="Templates">
+        <h2 id="templates" className="sr-only">Templates</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>Filters and basics.</strong> Use the top controls to filter by Widget ID, locale, and kind
@@ -159,8 +159,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Templates QA */}
-      <Section id="templates-qa" title="Templates QA">
-        <h2 className="sr-only">Templates QA</h2>
+      <Section title="Templates QA">
+        <h2 id="templates-qa" className="sr-only">Templates QA</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>What it does.</strong> This page runs live checks against{" "}
@@ -178,8 +178,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Languages */}
-      <Section id="languages" title="Languages">
-        <h2 className="sr-only">Languages</h2>
+      <Section title="Languages">
+        <h2 id="languages" className="sr-only">Languages</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>How locale is chosen.</strong> The widget can read browser preferences and also respects explicit
@@ -195,8 +195,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Business Hours */}
-      <Section id="hours" title="Business hours">
-        <h2 className="sr-only">Business hours</h2>
+      <Section title="Business hours">
+        <h2 id="hours" className="sr-only">Business hours</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>Set windows &amp; time zone.</strong> Define your open windows (e.g., Mon–Sat 10:00–18:00; Sun
@@ -213,8 +213,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Analytics */}
-      <Section id="analytics" title="Analytics">
-        <h2 className="sr-only">Analytics</h2>
+      <Section title="Analytics">
+        <h2 id="analytics" className="sr-only">Analytics</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>What we log.</strong> The widget records impressions (bubble views), opens, closes, and clicks.
@@ -232,8 +232,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Leads */}
-      <Section id="leads" title="Leads">
-        <h2 className="sr-only">Leads</h2>
+      <Section title="Leads">
+        <h2 id="leads" className="sr-only">Leads</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>Where they appear.</strong> Leads created from the pre-chat panel or API appear in your dashboard.
@@ -248,8 +248,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Billing */}
-      <Section id="billing" title="Billing">
-        <h2 className="sr-only">Billing</h2>
+      <Section title="Billing">
+        <h2 id="billing" className="sr-only">Billing</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>Plans &amp; upgrades.</strong> Use{" "}
@@ -265,8 +265,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Profile */}
-      <Section id="profile" title="Profile">
-        <h2 className="sr-only">Profile</h2>
+      <Section title="Profile">
+        <h2 id="profile" className="sr-only">Profile</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>Business details &amp; WhatsApp number format.</strong> Keep your business name and WhatsApp number
@@ -281,8 +281,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* Widget behavior & customization */}
-      <Section id="behavior" title="Widget behavior & customization">
-        <h2 className="sr-only">Widget behavior & customization</h2>
+      <Section title="Widget behavior & customization">
+        <h2 id="behavior" className="sr-only">Widget behavior & customization</h2>
         <ol className="list-decimal space-y-3 pl-5">
           <li>
             <strong>How the bubble renders.</strong> The script loads async and applies settings at runtime. It’s
@@ -299,8 +299,8 @@ export default function DashboardDocs() {
       </Section>
 
       {/* APIs for developers */}
-      <Section id="apis" title="APIs (for developers)">
-        <h2 className="sr-only">APIs (for developers)</h2>
+      <Section title="APIs (for developers)">
+        <h2 id="apis" className="sr-only">APIs (for developers)</h2>
 
         <h3 id="api-widget" className="mt-4 text-xl font-semibold">/api/widget.js</h3>
         <ol className="list-decimal space-y-3 pl-5">
