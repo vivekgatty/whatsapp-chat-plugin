@@ -60,7 +60,7 @@ export default function Page() {
         <h2 className="text-lg font-medium">Shopify</h2>
         <ol className="list-decimal space-y-1 pl-5 text-slate-200">
           <li>Online Store &rarr; Themes &rarr; Edit code.</li>
-          <li>Open <code>theme.liquid</code> and paste the snippets before <code>{{ "</body>" }}</code>.</li>
+          <li>Open <code>theme.liquid</code> and paste the snippets before <code>{"</body>"}</code>.</li>
         </ol>
       </section>
 
@@ -97,3 +97,4 @@ export default function Page() {
     </div>
   );
 }
+
