@@ -9,15 +9,8 @@ export const generateMetadata = (): Metadata =>
       "Detailed, step-by-step explanations for every control in the ChatMadi dashboard: Overview, Widget settings, Templates, Languages, Business hours, Analytics, Billing, Profile, and more—with internal links and examples.",
     image: "/og/chatmadi-og.png",
   });
-
-// ---- end: auto SEO header ----import Link from "next/link";
+import Link from "next/link";
 import { Section, CodeBlock } from "@/components/docs";
-
-export const metadata = {
-  title: "Dashboard guide – button-by-button | Chatmadi Docs",
-  description:
-    "A practical, numbered, step-by-step guide to the Chatmadi dashboard. Learn exactly what each button does with examples, internal links, and tips.",
-};
 
 export default function DashboardDocs() {
   return (
@@ -358,4 +351,5 @@ export default function DashboardDocs() {
     </div>
   );
 }
+
 
