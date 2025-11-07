@@ -1,4 +1,4 @@
-/* CHATMADI_HEADER_V5 */
+﻿/* CHATMADI_HEADER_V5 */
 "use client";
 
 import Link from "next/link";
@@ -20,7 +20,7 @@ function isButtonsOnlyRow(el: HTMLElement) {
   return true;
 }
 
-/** Hide duplicate “pills” + “action” rows inside <main> only. */
+/** Hide duplicate â€œpillsâ€ + â€œactionâ€ rows inside <main> only. */
 function hideDashboardDuplicates() {
   const main = document.querySelector("main");
   if (!main) return;
@@ -110,3 +110,4 @@ export default function GlobalTopBar() {
     </div>
   );
 }
+

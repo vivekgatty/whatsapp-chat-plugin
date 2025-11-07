@@ -16,7 +16,7 @@ export default function DashboardDocs() {
           The Overview page acts like a control board with shortcuts to everything you’ll need while setting up or
           maintaining your WhatsApp chat widget. Think of it as a table of contents that’s always two clicks away. Each
           button at the top—{" "}
-          <Link className="underline" href="/dashboard"<Link href="/docs" className="mr-2 inline-block rounded border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800">Docs</Link> >Overview</Link>,{" "}
+          <Link className="underline" href="/dashboard">Overview</Link>,{" "}
           <Link className="underline" href="/dashboard/widgets">Widget settings</Link>,{" "}
           <Link className="underline" href="/dashboard/templates">Templates</Link>,{" "}
           <Link className="underline" href="/dashboard/analytics">Analytics</Link>,{" "}
@@ -281,4 +281,5 @@ export default function DashboardDocs() {
     </div>
   );
 }
+
 
