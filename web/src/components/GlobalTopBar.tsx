@@ -1,4 +1,4 @@
-﻿/* CHATMADI_HEADER_V5 */
+/* CHATMADI_HEADER_V5 */
 "use client";
 
 import Link from "next/link";
@@ -20,7 +20,7 @@ function isButtonsOnlyRow(el: HTMLElement) {
   return true;
 }
 
-/** Hide duplicate â€œpillsâ€ + â€œactionâ€ rows inside <main> only. */
+/** Hide duplicate �pills� + �action� rows inside <main> only. */
 function hideDashboardDuplicates() {
   const main = document.querySelector("main");
   if (!main) return;
@@ -75,15 +75,12 @@ export default function GlobalTopBar() {
           >
             Widget settings
           </Link>
-
-          {/* NEW: Templates pill */}
           <Link
             href="/dashboard/templates"
             className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
           >
             Templates
           </Link>
-
           <Link
             href="/dashboard/analytics"
             className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
@@ -96,12 +93,22 @@ export default function GlobalTopBar() {
           >
             Billing
           </Link>
+
+          {/* NEW: Docs tab */}
+          <Link
+            href="/docs"
+            className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
+          >
+            Docs
+          </Link>
+
           <Link
             href="/dashboard/profile"
             className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1 text-sm hover:bg-slate-800"
           >
             Edit profile
           </Link>
+
           <div className="ms-auto">
             <SignOutButton />
           </div>
@@ -110,4 +117,3 @@ export default function GlobalTopBar() {
     </div>
   );
 }
-
