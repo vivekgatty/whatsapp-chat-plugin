@@ -1,30 +1,26 @@
-﻿export default function Page() {
+﻿"use client";
+import { Section } from "@/components/docs";
+
+export default function FAQ() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">FAQ</h1>
+    <div>
+      <h1 className="mb-4 text-2xl font-bold">FAQ</h1>
 
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-medium">Where do I find my Widget ID?</h2>
-          <p className="text-slate-300">Dashboard → Widget settings (it also appears in the embed snippet box).</p>
-        </div>
+      <Section title="Do I need coding knowledge?">
+        <p>No. You paste two small tags (copy buttons provided) and you’re done.</p>
+      </Section>
 
-        <div>
-          <h2 className="text-lg font-medium">How do languages work?</h2>
-          <p className="text-slate-300">
-            We match on the requested locale; if not found we fall back to English defaults.
-            You can create per-locale templates under <strong>Templates</strong>.
-          </p>
-        </div>
+      <Section title="Will it slow down my site?">
+        <p>Scripts are async and tiny. They don’t block page rendering.</p>
+      </Section>
 
-        <div>
-          <h2 className="text-lg font-medium">What about off-hours?</h2>
-          <p className="text-slate-300">
-            If your hours indicate “closed” at a given time, <code>off_hours</code> messages are selected.
-            Use <strong>Languages</strong> and <strong>Business hours</strong> pages to configure inputs and test via the QA page.
-          </p>
-        </div>
-      </div>
+      <Section title="How do languages work?">
+        <p>We pick a template based on the user’s locale, with safe fallbacks to English/default.</p>
+      </Section>
+
+      <Section title="How do business hours work?">
+        <p>You set your open windows and timezone. During open hours we send a greeting; otherwise an off-hours message.</p>
+      </Section>
     </div>
   );
 }
