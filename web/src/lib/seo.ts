@@ -1,79 +1,99 @@
 ﻿import type { Metadata } from "next";
 
-export const SITE_NAME = "ChatMadi";
-export const SITE_URL  = "https://chatmadi.com";
+/**
+ * Central SEO helper for pages.
+ * Usage pattern in a page file:
+ *   import { pageMetadata } from "@/lib/seo";
+ *   export const generateMetadata = () =>
+ *     pageMetadata({ title: "Docs", path: "/docs", description: "..." });
+ */
 
-export function makeTitle(part?: string): string {
-  if (!part) return `${SITE_NAME} — WhatsApp Chat Plugin for Websites`;
-  return `${part} · ${SITE_NAME}`;
-}
+export const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") || "https://chatmadi.com";
 
-export function canonicalUrl(path: string = "/"): string {
-  try {
-    // Normalize: ensure leading slash, strip trailing slash (except root)
-    const clean = ("/" + (path || "/")).replace(/\/+/, "/").replace(/\/$/, "") || "/";
-    return new URL(clean, SITE_URL).toString();
-  } catch {
-    return SITE_URL;
-  }
-}
+const DEFAULTS = {
+  title: "ChatMadi — WhatsApp Chat Plugin for Websites",
+  description:
+    "Add a fast, lightweight WhatsApp chat bubble to your website. Copy-paste install, multilingual templates, off-hours auto-replies, analytics, and more.",
+  image: "/og/chatmadi-og.png",
+  siteName: "ChatMadi",
+  twitterHandle: "@chatmadi", // update if you want; empty is OK
+};
 
-export function pageMetadata(opts: {
+type PageSEOInput = {
   title?: string;
   description?: string;
-  path?: string;             // e.g. "/docs/faq"
-  image?: string;            // absolute or path (we'll resolve)
-  noindex?: boolean;
-  locale?: string;           // e.g. "en"
-  alternates?: Record<string, string>; // map of locale->path
-} = {}): Metadata {
-  const {
+  path?: string;          // e.g. "/docs/faq"
+  image?: string;         // absolute or relative
+  noindex?: boolean;      // true to noindex a page
+};
+
+function absUrl(pathOrUrl?: string): string | undefined {
+  if (!pathOrUrl) return undefined;
+  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
+  return `${SITE}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+}
+
+/**
+ * Build Metadata with solid defaults + OG/Twitter cards.
+ * Backwards compatible with previous usage across docs pages.
+ */
+export function pageMetadata(input: PageSEOInput = {}): Metadata {
+  const title = input.title || DEFAULTS.title;
+  const description = input.description || DEFAULTS.description;
+  const url = absUrl(input.path || "/");
+  const imageAbs = absUrl(input.image || DEFAULTS.image);
+
+  // OpenGraph defaults
+  const openGraph: NonNullable<Metadata["openGraph"]> = {
+    type: "website",
+    url,
+    siteName: DEFAULTS.siteName,
     title,
-    description = "Add a WhatsApp chat bubble to your website in minutes. Copy a single script, customize the button, set business hours, multilingual auto-replies, track analytics, and capture leads.",
-    path = "/",
-    image,
-    noindex = false,
-    locale = "en",
-    alternates = {},
-  } = opts;
-
-  const url = canonicalUrl(path);
-  const img = image
-    ? (image.startsWith("http") ? image : `${SITE_URL}${image.startsWith("/") ? "" : "/"}${image}`)
-    : `${SITE_URL}/og/chatmadi-og.png`;
-
-  // Build locale alternates (hreflang)
-  const alt: NonNullable<Metadata["alternates"]> = {
-    canonical: url,
-    languages: Object.fromEntries(
-      Object.entries(alternates).map(([loc, p]) => [loc, canonicalUrl(p)])
-    ),
+    description,
+    images: imageAbs ? [{ url: imageAbs }] : undefined,
   };
 
-  const robots: Metadata["robots"] = noindex
-    ? { index: false, follow: false, nocache: true, noimageindex: true }
+  // Twitter Card defaults
+  const twitter: NonNullable<Metadata["twitter"]> = {
+    card: "summary_large_image",
+    title,
+    description,
+    images: imageAbs ? [imageAbs] : undefined,
+    site: DEFAULTS.twitterHandle || undefined,
+    creator: DEFAULTS.twitterHandle || undefined,
+  };
+
+  const robots: NonNullable<Metadata["robots"]> | undefined = input.noindex
+    ? { index: false, follow: false, nocache: true }
     : { index: true, follow: true };
 
+  const alternates: NonNullable<Metadata["alternates"]> = {
+    canonical: url,
+  };
+
   return {
-    title: makeTitle(title),
+    title,
     description,
-    metadataBase: new URL(SITE_URL),
+    openGraph,
+    twitter,
     robots,
-    alternates: alt,
-    openGraph: {
-      type: "website",
-      url,
-      siteName: SITE_NAME,
-      title: makeTitle(title),
-      description,
-      images: [{ url: img }],
-      locale,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: makeTitle(title),
-      description,
-      images: [img],
+    alternates,
+    // extra helpful defaults
+    metadataBase: new URL(SITE),
+    keywords: [
+      "WhatsApp chat plugin",
+      "WhatsApp widget",
+      "website WhatsApp button",
+      "chat bubble",
+      "customer support",
+      "lead generation",
+      "multilingual auto reply",
+      "business hours auto reply",
+    ],
+    other: {
+      // Helpful for social scrapers that miss OG
+      "og:locale": "en_IN",
     },
   };
 }
