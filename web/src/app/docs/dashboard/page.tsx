@@ -1,4 +1,16 @@
-﻿import Link from "next/link";
+﻿import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const generateMetadata = (): Metadata =>
+  pageMetadata({
+    title: "Dashboard Docs — Button-by-Button Guide",
+    path: "/docs/dashboard",
+    description:
+      "Detailed, step-by-step explanations for every control in the ChatMadi dashboard: Overview, Widget settings, Templates, Languages, Business hours, Analytics, Billing, Profile, and more—with internal links and examples.",
+    image: "/og/chatmadi-og.png",
+  });
+
+// ---- end: auto SEO header ----import Link from "next/link";
 import { Section, CodeBlock } from "@/components/docs";
 
 export const metadata = {
@@ -346,3 +358,4 @@ export default function DashboardDocs() {
     </div>
   );
 }
+
