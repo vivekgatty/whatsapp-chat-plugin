@@ -1,117 +1,99 @@
-// src/app/docs/install/page.tsx
-export default function InstallDocs() {
+﻿import CopySnippet from "../../../components/docs/CopySnippet";
+
+const EMBED = `<script src="https://chatmadi.com/api/widget.js?id=<WIDGET_ID>" async></script>`;
+const AUTO  = `<script src="https://chatmadi.com/api/auto-trigger?wid=<WIDGET_ID>" async></script>`;
+
+export default function Page() {
   return (
-    <div
-      style={{
-        padding: 24,
-        maxWidth: 860,
-        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-      }}
-    >
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 12 }}>
-        Install the WhatsApp Chat Plugin
-      </h1>
+    <div className="space-y-8">
+      <h1 className="text-2xl font-semibold">Install guide</h1>
 
-      <p style={{ marginBottom: 12 }}>
-        Paste your <code>&lt;script&gt;</code> tag right before the closing{" "}
-        <code>&lt;/body&gt;</code> of your site.
-      </p>
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">What to paste</h2>
+        <p className="text-slate-300">Add the main widget tag (required), and optionally the auto-trigger loader.</p>
+        <CopySnippet label="Embed widget" code={EMBED} />
+        <CopySnippet label="Auto-trigger (optional)" code={AUTO} />
+      </section>
 
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 16 }}>Embed snippet</h2>
-      <p>
-        Basic form using the widget <code>id</code>:
-      </p>
-      <pre
-        style={{
-          background: "#0b0b0b",
-          color: "#eaeaea",
-          padding: 12,
-          borderRadius: 8,
-          border: "1px solid #333",
-          overflowX: "auto",
-        }}
-      >
-        {`<script src="https://YOUR-SITE.com/api/widget.js?id=YOUR_WIDGET_ID" async></script>`}
-      </pre>
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Plain HTML site</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-slate-200">
+          <li>Open your site&apos;s HTML (usually <code>index.html</code>).</li>
+          <li>Paste the embed snippet before the closing <code>&lt;/body&gt;</code>.</li>
+          <li>Optionally paste the auto-trigger tag right below it.</li>
+          <li>Reload your site — you should see the bubble in the corner.</li>
+        </ol>
+      </section>
 
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 16 }}>
-        Data-attributes (override config from HTML)
-      </h2>
-      <p>
-        You can set or override options directly on the script tag using{" "}
-        <strong>data-attributes</strong>:
-      </p>
-      <ul>
-        <li>
-          <code>data-id</code> – widget id (required if you don’t use <code>?id=</code>)
-        </li>
-        <li>
-          <code>data-position</code> – <code>left</code> | <code>right</code>
-        </li>
-        <li>
-          <code>data-theme-color</code> – hex like <code>#10b981</code>
-        </li>
-        <li>
-          <code>data-icon</code> – <code>whatsapp</code> | <code>message</code>
-        </li>
-        <li>
-          <code>data-cta-text</code> – accessible label/text
-        </li>
-        <li>
-          <code>data-prefill-message</code> – WhatsApp prefilled message
-        </li>
-        <li>
-          <code>data-wa-number</code> – optional override for WhatsApp number
-        </li>
-      </ul>
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">WordPress (Block Editor)</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-slate-200">
+          <li>Pages &rarr; Edit your page.</li>
+          <li>Add a <strong>Custom HTML</strong> block near the end of the page.</li>
+          <li>Paste the snippets; publish / update.</li>
+          <li>Visit the page and verify the bubble renders.</li>
+        </ol>
+      </section>
 
-      <p style={{ marginTop: 8 }}>Example using data-attributes:</p>
-      <pre
-        style={{
-          background: "#0b0b0b",
-          color: "#eaeaea",
-          padding: 12,
-          borderRadius: 8,
-          border: "1px solid #333",
-          overflowX: "auto",
-        }}
-      >
-        {`<script
-  src="https://YOUR-SITE.com/api/widget.js"
-  data-id="YOUR_WIDGET_ID"
-  data-position="right"
-  data-theme-color="#10b981"
-  data-icon="whatsapp"
-  data-cta-text="Chat with us on WhatsApp"
-  data-prefill-message="Hey! I'd like to know more."
-  async
-></script>`}
-      </pre>
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Elementor (WordPress)</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-slate-200">
+          <li>Drag a <strong>HTML</strong> widget to the page footer area.</li>
+          <li>Paste the snippets; update &amp; view page.</li>
+        </ol>
+      </section>
 
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 16 }}>Where to place the script</h2>
-      <ol>
-        <li>Open your site’s HTML layout/template.</li>
-        <li>
-          Scroll to the bottom and place the script tag <strong>just before</strong>{" "}
-          <code>&lt;/body&gt;</code>.
-        </li>
-        <li>Deploy or refresh your page and look for the green WhatsApp bubble.</li>
-      </ol>
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Webflow</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-slate-200">
+          <li>Project Settings &rarr; Custom Code.</li>
+          <li>Paste the snippets inside the <strong>Before &lt;/body&gt; tag</strong> box; publish.</li>
+        </ol>
+      </section>
 
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 16 }}>Verifying installation</h2>
-      <ul>
-        <li>Open the page and check the bottom-left/right for the bubble.</li>
-        <li>
-          Open DevTools → Network: you should see <code>GET /api/widget.js</code> and{" "}
-          <code>POST /api/log</code> calls.
-        </li>
-        <li>Click the bubble; WhatsApp should open with your prefilled message.</li>
-      </ul>
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Wix / Squarespace</h2>
+        <p className="text-slate-300">Use the custom code / embed HTML feature and paste the snippets near the end of the page or in global footer.</p>
+      </section>
 
-      <p style={{ marginTop: 16, opacity: 0.75, fontSize: 13 }}>
-        Tip: Need a plain page to test quickly? Use <code>/sample-plain.html</code> from this app
-        while developing.
-      </p>
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Shopify</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-slate-200">
+          <li>Online Store &rarr; Themes &rarr; Edit code.</li>
+          <li>Open <code>theme.liquid</code> and paste the snippets before <code>{{ "</body>" }}</code>.</li>
+        </ol>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">React / Next.js</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-slate-200">
+          <li>Add the snippets in <code>_document</code> (Next.js) or in your app&apos;s footer component using <code>dangerouslySetInnerHTML</code>.</li>
+          <li>Or inject them via a layout wrapper that renders in <code>&lt;body&gt;</code>.</li>
+        </ol>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Vue / Angular / Vite</h2>
+        <p className="text-slate-300">Paste in the global HTML template (e.g., <code>index.html</code> in Vite, <code>public/index.html</code> in CRA), just before <code>&lt;/body&gt;</code>.</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-medium">Google Tag Manager</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-slate-200">
+          <li>Create a new <strong>Custom HTML</strong> tag with the embed snippet.</li>
+          <li>Trigger on <strong>All Pages</strong>; publish container.</li>
+          <li>Optionally add a second tag for the auto-trigger loader.</li>
+        </ol>
+      </section>
+
+      <div className="rounded-lg border border-slate-700 bg-slate-900 p-4">
+        <h2 className="mb-2 text-lg font-medium">Verify it works</h2>
+        <ul className="list-disc space-y-1 pl-5 text-slate-200">
+          <li>Open your site and confirm the chat bubble shows at the chosen corner.</li>
+          <li>Use the <strong>Templates QA</strong> page to check multilingual / off-hours messages.</li>
+          <li>Open your site’s console to confirm no CSP / network errors.</li>
+        </ul>
+      </div>
     </div>
   );
 }
