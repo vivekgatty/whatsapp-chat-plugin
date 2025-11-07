@@ -1,207 +1,347 @@
 ﻿import Link from "next/link";
-import { Section } from "@/components/docs";
+import { Section, CodeBlock } from "@/components/docs";
 
-/**
- * Dashboard docs (pointer-first, with internal links).
- * Each bullet ≈100+ words for readability + SEO depth.
- */
+export const metadata = {
+  title: "Dashboard guide – button-by-button | Chatmadi Docs",
+  description:
+    "A practical, numbered, step-by-step guide to the Chatmadi dashboard. Learn exactly what each button does with examples, internal links, and tips.",
+};
 
 export default function DashboardDocs() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 space-y-10">
-      <h1 className="text-2xl font-semibold mb-2">Dashboard guide (button-by-button)</h1>
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <h1 id="dashboard" className="mb-6 text-3xl font-semibold">
+        Dashboard guide (button-by-button)
+      </h1>
 
-      <Section title="Overview">
-        <ul className="list-disc pl-6 space-y-3">
+      {/* Overview */}
+      <Section id="overview" title="Overview">
+        <h2 className="sr-only">Overview</h2>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Quick links to all sections.</strong> The Overview page acts like your command center with clear links
-            to every major part of the product—
-            <Link className="underline" href="/dashboard">Overview</Link>,{" "}
+            <strong>Quick links to all sections.</strong> The Overview page is
+            your command center with one-click access to{" "}
+            <Link className="underline" href="/docs/dashboard#overview">Overview</Link>,{" "}
             <Link className="underline" href="/dashboard/widgets">Widget settings</Link>,{" "}
             <Link className="underline" href="/dashboard/templates">Templates</Link>,{" "}
             <Link className="underline" href="/dashboard/analytics">Analytics</Link>,{" "}
             <Link className="underline" href="/dashboard/billing">Billing</Link>, and{" "}
-            <Link className="underline" href="/dashboard/profile">Edit profile</Link>. Think of it as a live table of contents:
-            when you sign in, you can jump straight to configuration, content, reports, and account areas without hunting
-            through menus. For new users, start with{" "}
-            <Link className="underline" href="/docs/install">Install</Link> to copy your embed code, then visit{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link> to set color and position, and{" "}
-            <Link className="underline" href="/dashboard/templates">Templates</Link> to add your greeting/off-hours messages.
+            <Link className="underline" href="/dashboard/profile">Edit profile</Link>. Think of it as the table of
+            contents for your project. New users can start at{" "}
+            <Link className="underline" href="/docs/install">Install</Link> to copy the embed code, then hop to{" "}
+            <Link className="underline" href="/dashboard/widgets">Widget settings</Link> to choose color/position and to{" "}
+            <Link className="underline" href="/dashboard/templates">Templates</Link> to add greeting + off-hours messages.
+            This keeps onboarding simple and predictable.
           </li>
           <li>
-            <strong>Use it as a home base after sign-in.</strong> Return to Overview whenever you finish a task to stay oriented.
-            From there, you can validate changes quickly: open{" "}
-            <Link className="underline" href="/dashboard/analytics">Analytics</Link> to confirm impressions and clicks,
-            check{" "}
-            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> if you use multilingual messages
-            or business hours, and revisit{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link> if you want to tweak the button
-            position or the WhatsApp prefill text. If anything looks off, the{" "}
-            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link> page lists copy-paste checks,
-            CSP notes, and a quick smoke test using the{" "}
+            <strong>Use it as your home base after sign-in.</strong> Each time you finish a change, jump back to
+            Overview to keep momentum. From there you can quickly open{" "}
+            <Link className="underline" href="/dashboard/analytics">Analytics</Link> to confirm impressions, opens, and
+            clicks; review{" "}
+            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> if you rely on multilingual
+            or business-hours logic; and revisit{" "}
+            <Link className="underline" href="/dashboard/widgets">Widget settings</Link> to tweak button position or
+            WhatsApp prefill. If something looks off, go to{" "}
+            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link> for copy–paste checks, CSP
+            notes, and quick smoke tests with{" "}
             <Link className="underline" href="/api/analytics">/api/analytics</Link> and{" "}
-            <Link className="underline" href="/api/track-lead">/api/track-lead</Link> endpoints.
+            <Link className="underline" href="/api/track-lead">/api/track-lead</Link>.
           </li>
-        </ul>
+        </ol>
       </Section>
 
-      <Section title="Widget settings">
-        <h3 className="text-lg font-medium mt-4 mb-1">Widget ID</h3>
-        <ul className="list-disc pl-6 space-y-3">
-          <li>
-            <strong>What it is and where it’s used.</strong> Your Widget ID is the unique identifier that connects the
-            bubble on your website to the configuration you see in{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link>. You’ll paste it inside the install
-            snippets from{" "}
-            <Link className="underline" href="/docs/install">Install</Link>. Keep it private—anyone with the ID could reuse
-            your configuration. If you manage several sites, assign one Widget ID per site so you get clean{" "}
-            <Link className="underline" href="/dashboard/analytics">Analytics</Link> and a per-site set of{" "}
-            <Link className="underline" href="/dashboard/templates">Templates</Link>. You can always confirm the active ID at
-            the top of{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link> or use the “Use my widget ID”
-            helper in the left Docs sidebar, which auto-injects the ID into any copy buttons on the docs pages.
-          </li>
-        </ul>
+      {/* Widget settings */}
+      <Section id="widget-settings" title="Widget settings">
+        <h2 className="sr-only">Widget settings</h2>
 
-        <h3 className="text-lg font-medium mt-4 mb-1">Theme color</h3>
-        <ul className="list-disc pl-6 space-y-3">
+        <h3 id="widget-id" className="mt-4 text-xl font-semibold">Widget ID</h3>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Pick a color your visitors trust.</strong> The theme color controls the chat bubble and helps it blend
-            into your brand without disappearing. Choose a primary or accent color that contrasts enough with your site so
-            the bubble remains visible. Update the color in{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link>, then reload your page—the snippet
-            pulls the latest settings on each view. If you are testing on a staging site, try two or three accessible colors
-            and compare click-through in{" "}
-            <Link className="underline" href="/dashboard/analytics">Analytics</Link>. Keep a note in{" "}
-            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link> if you use strict CSP.
+            <strong>What it is and where it appears.</strong> The Widget ID is the unique identifier used by your
+            embed code to fetch live settings. You’ll see it in the dashboard and inside the snippets on{" "}
+            <Link className="underline" href="/docs/install">Install</Link>. Keep it private; anyone with the ID could
+            copy your configuration. Managing multiple sites? Give each site its own Widget ID so their themes,
+            positions, languages, business hours, and templates stay independent and analytics remain accurate.
           </li>
-        </ul>
+          <li>
+            <strong>How it’s used across the app.</strong> When you press the copy buttons on{" "}
+            <Link className="underline" href="/docs/install">Install</Link>, the ID is injected automatically. Pages
+            like{" "}
+            <Link className="underline" href="/dashboard/templates">Templates</Link>,{" "}
+            <Link className="underline" href="/dashboard/analytics">Analytics</Link>, and{" "}
+            <Link className="underline" href="/dashboard/languages">Languages</Link>{" "}
+            use the ID to load or filter their data. If your site looks like it has the wrong theme or messages,
+            double-check you embedded the snippet with the intended Widget ID.
+          </li>
+        </ol>
 
-        <h3 className="text-lg font-medium mt-4 mb-1">Button position</h3>
-        <ul className="list-disc pl-6 space-y-3">
+        <h3 id="theme" className="mt-6 text-xl font-semibold">Theme color</h3>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Choose bottom-left or bottom-right.</strong> Most sites use bottom-right because it avoids overlapping
-            typical navigation, but bottom-left can work better if you have sticky share bars or mobile UI that lives on
-            the right. The widget is responsive and shifts above common mobile chrome. If you already use another floating
-            widget (for example a “Back to top” button), place that on the opposite side so the chat bubble has room.
-            Configure position in{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link> and validate on phone and desktop.
+            <strong>Pick a color that builds trust.</strong> Choose a color that matches your brand or contrasts well
+            with the background so the bubble is visible but not distracting. Updates apply instantly because the
+            widget fetches settings on every page view. If you work in sprints, do a quick visual QA on a few key pages
+            after saving—home, a long article page, and a checkout page—to ensure legibility everywhere.
           </li>
-        </ul>
+          <li>
+            <strong>Small teams tip.</strong> If you aren’t sure which shade to choose, match your site’s primary button
+            color. This keeps the UI consistent and helps users immediately recognize the bubble as an action—just like
+            “Add to cart” or “Sign up”.
+          </li>
+        </ol>
 
-        <h3 className="text-lg font-medium mt-4 mb-1">Icon, CTA text, Prefill message</h3>
-        <ul className="list-disc pl-6 space-y-3">
+        <h3 id="position" className="mt-6 text-xl font-semibold">Button position</h3>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Make the first impression count.</strong> The icon sets the small glyph in the bubble; the CTA text is
-            the short label like “Chat with us”; and the Prefill message is what opens inside WhatsApp, saving your visitor
-            from typing. A friendly starter such as “Hi! I’m interested in <em>your service</em>” works well. Configure all
-            three in{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link>. Keep it short and clear; you can
-            tweak later based on real questions in{" "}
-            <Link className="underline" href="/dashboard/analytics">Analytics</Link>. Emojis are fine—use sparingly so the
-            message stays readable.
+            <strong>Bottom-right vs. bottom-left.</strong> Most sites use bottom-right because it avoids typical
+            navigation patterns and language pickers that live on the left. If you have other floating UI (e.g., cookie
+            banners), choose the opposite side so nothing overlaps. Check on mobile too—the bubble rises above common
+            UI like OS home bars.
           </li>
-        </ul>
+          <li>
+            <strong>Accessibility check.</strong> After moving the button, verify keyboard focus reaches it and screen
+            readers announce it properly. The fastest way is to tab through your page and listen for “Open WhatsApp
+            chat” (or your CTA text).
+          </li>
+        </ol>
 
-        <h3 className="text-lg font-medium mt-4 mb-1">Pre-chat requirements</h3>
-        <ul className="list-disc pl-6 space-y-3">
+        <h3 id="cta-prefill" className="mt-6 text-xl font-semibold">Icon, CTA text, Prefill message</h3>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Collect name/phone if you need it.</strong> If you want a tiny form before opening WhatsApp—e.g., Name
-            and a short Message—enable pre-chat in{" "}
-            <Link className="underline" href="/dashboard/widgets">Widget settings</Link>. This helps teams route chats and
-            improves lead quality in{" "}
-            <Link className="underline" href="/dashboard/analytics">Analytics</Link>. Keep the form minimal; the goal is to
-            start the conversation, not create friction. Use{" "}
-            <Link className="underline" href="/dashboard/templates">Templates</Link> to keep replies consistent and{" "}
-            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> to verify multilingual behavior.
+            <strong>Design the first impression.</strong> The icon is the small graphic in the bubble; the CTA is the
+            short text next to it (for example, “Chat with us”). Keep it friendly and clear. The Prefill is the message
+            users see inside WhatsApp when the chat opens (e.g., “Hi, I’m interested in [your product].”). Keep it short
+            to reduce friction; you can add emoji and variables later as you learn from{" "}
+            <Link className="underline" href="/dashboard/analytics">Analytics</Link> questions.
           </li>
-        </ul>
+          <li>
+            <strong>Consistency tip.</strong> Use one CTA pattern across your site—home, product pages, and support
+            pages—so users don’t need to re-learn what the bubble does in different places.
+          </li>
+        </ol>
 
-        <h3 className="text-lg font-medium mt-4 mb-1">Copy buttons (Embed &amp; Auto-trigger) + live preview</h3>
-        <ul className="list-disc pl-6 space-y-3">
+        <h3 id="copy-buttons" className="mt-6 text-xl font-semibold">Copy buttons (Embed &amp; Auto-trigger) + preview</h3>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Install in seconds.</strong> The <em>Embed</em> button copies the one-tag script you paste into your
-            site (see{" "}
-            <Link className="underline" href="/docs/install">Install</Link>). The <em>Auto-trigger</em> button copies an
-            extra tag for timed/scroll triggers. Both snippets replace <code>&lt;WIDGET_ID&gt;</code> if you use the “Use my
-            widget ID” helper in the docs sidebar. After pasting, reload your page to see a live bubble. If nothing shows,
-            visit{" "}
-            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link> for CSP and caching checks.
+            <strong>Embed snippet.</strong> Copies the basic loader you’ll paste before{" "}
+            <code>&lt;/body&gt;</code>. See the full walkthrough in{" "}
+            <Link className="underline" href="/docs/install">Install</Link> for{" "}
+            HTML/WordPress/Webflow/Wix/Squarespace/Shopify/React/Vue/Angular/GTM. After pasting, refresh your site and
+            confirm you can see the bubble. The embedded script is async and tiny, so it won’t block rendering.
           </li>
-        </ul>
-
-        <h3 className="text-lg font-medium mt-4 mb-1">Examples (placement, CSP notes)</h3>
-        <ul className="list-disc pl-6 space-y-3">
           <li>
-            <strong>Where to paste and what to whitelist.</strong> For HTML sites, paste before <code>&lt;/body&gt;</code>.
-            For WordPress, use <em>Appearance → Theme File Editor → footer.php</em> or a header/footer plugin; for Shopify,
-            edit <code>theme.liquid</code>; see full step-by-step in{" "}
-            <Link className="underline" href="/docs/install">Install</Link>. If your site uses a Content-Security-Policy,
-            add the script domain to <code>script-src</code> and allow <code>connect-src</code> to the API host. Exact
-            rules are listed under{" "}
-            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link>.
+            <strong>Auto-trigger snippet.</strong> Copies an optional add-on to open the chat automatically under
+            conditions (e.g., delay, exit intent). See{" "}
+            <Link className="underline" href="/docs/install#auto-trigger">Install ▸ Auto-trigger</Link>. Start gently:
+            opening the chat too aggressively can reduce trust.
           </li>
-        </ul>
+        </ol>
       </Section>
 
-      <Section title="Templates">
-        <ul className="list-disc pl-6 space-y-3">
+      {/* Templates */}
+      <Section id="templates" title="Templates">
+        <h2 className="sr-only">Templates</h2>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Filters &amp; creating multilingual replies.</strong> Use the controls at{" "}
-            <Link className="underline" href="/dashboard/templates">Templates</Link> to filter by Widget ID, Locale, and
-            Kind. Create a short “greeting” and an “off_hours” message for each language you want (e.g., EN/HI/KN/TA). Use{" "}
-            <Link className="underline" href="/dashboard/templates/kinds">Manage kinds</Link> for custom categories. Validate
-            behavior with{" "}
-            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> which shows PASS/FAIL and what
-            the API would choose for a given time and locale.
+            <strong>Filters and basics.</strong> Use the top controls to filter by Widget ID, locale, and kind
+            (e.g., <code>greeting</code>, <code>off_hours</code>, or custom kinds). Press <em>Refresh</em> after
+            changes. To add your own kinds, open{" "}
+            <Link className="underline" href="/dashboard/templates/kinds">Manage kinds</Link>. New teams should start
+            with at least one greeting and one off-hours template per primary language.
           </li>
-        </ul>
+          <li>
+            <strong>Multilingual examples.</strong> We recommend starting with EN/HI/KN/TA. Each locale can have both
+            greeting and off-hours variants so the chat always feels native. For advanced rules, see{" "}
+            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link> which tests business hours +
+            locale fallbacks.
+          </li>
+        </ol>
       </Section>
 
-      <Section title="Languages & business hours">
-        <ul className="list-disc pl-6 space-y-3">
+      {/* Templates QA */}
+      <Section id="templates-qa" title="Templates QA">
+        <h2 className="sr-only">Templates QA</h2>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>How the right message is chosen.</strong> The chooser endpoint{" "}
-            <Link className="underline" href="/api/templates/choose">/api/templates/choose</Link> considers locale and your
-            Mon–Sat hours (Sun closed by default). Set hours in the dashboard or pass them inline during testing. During
-            off-hours it selects “off_hours”; otherwise it selects “greeting”. The QA screen can include inline hours to
-            simulate scenarios. See full install + hours guidance in{" "}
-            <Link className="underline" href="/docs/install">Install</Link> and deep-dive examples in{" "}
-            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link>.
+            <strong>What it does.</strong> This page runs live checks against{" "}
+            <Link className="underline" href="/api/templates/choose">/api/templates/choose</Link> using your current
+            languages and hours. Toggle “Include inline business hours” to simulate the typical Mon–Sat, Sun-closed
+            pattern and verify the correct message is chosen at 11:15 (greeting) and 23:30 (off-hours).
           </li>
-        </ul>
+          <li>
+            <strong>Reading PASS/FAIL.</strong> If a row fails, click <em>open</em> to see the raw API response and why
+            the fallback occurred (e.g., missing locale template). Fix by adding the missing template in{" "}
+            <Link className="underline" href="/dashboard/templates">Templates</Link> or by adjusting{" "}
+            <Link className="underline" href="/dashboard/hours">Business hours</Link>.
+          </li>
+        </ol>
       </Section>
 
-      <Section title="Analytics & leads">
-        <ul className="list-disc pl-6 space-y-3">
+      {/* Languages */}
+      <Section id="languages" title="Languages">
+        <h2 className="sr-only">Languages</h2>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>What we log and how CTR is shown.</strong>{" "}
-            <Link className="underline" href="/dashboard/analytics">Analytics</Link> aggregates impressions, opens, closes,
-            and clicks and shows a day/page breakdown. CTR is derived from impressions → clicks. Leads appear if you use
-            pre-chat or send the lead payload to{" "}
-            <Link className="underline" href="/api/track-lead">/api/track-lead</Link>. For smoke-testing, post to{" "}
-            <Link className="underline" href="/api/analytics">/api/analytics</Link> and confirm the counts move—see exact
-            shapes in the API section of{" "}
-            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link>.
+            <strong>How locale is chosen.</strong> The widget can read browser preferences and also respects explicit
+            overrides you set. When a locale lacks a matching template, the system falls back to English or the default
+            language. Test the exact behavior in{" "}
+            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link>.
           </li>
-        </ul>
+          <li>
+            <strong>Practical tip.</strong> If most of your audience is bilingual, keep the greeting short and put the
+            key ask first (e.g., “How can we help?”). This reduces the cost of mismatches when fallbacks occur.
+          </li>
+        </ol>
       </Section>
 
-      <Section title="APIs (for developers)">
-        <ul className="list-disc pl-6 space-y-3">
+      {/* Business Hours */}
+      <Section id="hours" title="Business hours">
+        <h2 className="sr-only">Business hours</h2>
+        <ol className="list-decimal space-y-3 pl-5">
           <li>
-            <strong>Endpoints at a glance.</strong> The embed script{" "}
-            <Link className="underline" href="/api/widget.js">/api/widget.js</Link> loads the bubble and emits events used
-            by{" "}
-            <Link className="underline" href="/api/analytics">/api/analytics</Link>. Optional{" "}
-            <Link className="underline" href="/api/auto-trigger">/api/auto-trigger</Link> helps you control timing rules.
-            Lead capture goes to{" "}
-            <Link className="underline" href="/api/track-lead">/api/track-lead</Link>. Message selection lives at{" "}
-            <Link className="underline" href="/api/templates/choose">/api/templates/choose</Link> and supports locale +
-            hours fallbacks. See code snippets and example payloads in{" "}
-            <Link className="underline" href="/docs/troubleshooting">Troubleshooting</Link>.
+            <strong>Set windows &amp; time zone.</strong> Define your open windows (e.g., Mon–Sat 10:00–18:00; Sun
+            closed) and set the correct time zone. Hours feed into{" "}
+            <Link className="underline" href="/api/templates/choose">/api/templates/choose</Link> so the API returns a
+            greeting inside windows and an off-hours message after hours.
           </li>
-        </ul>
+          <li>
+            <strong>Inline hours for QA.</strong> You can even pass hours as query params to the API for one-off tests.
+            See examples on{" "}
+            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link>.
+          </li>
+        </ol>
+      </Section>
+
+      {/* Analytics */}
+      <Section id="analytics" title="Analytics">
+        <h2 className="sr-only">Analytics</h2>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>What we log.</strong> The widget records impressions (bubble views), opens, closes, and clicks.
+            CTR is computed from impressions and clicks. Use the day and page tables to find where users interact most,
+            then refine your CTA or move the bubble position accordingly.
+          </li>
+          <li>
+            <strong>Smoke test endpoints.</strong> If numbers look low, quickly test{" "}
+            <Link className="underline" href="/api/analytics">/api/analytics</Link> and{" "}
+            <Link className="underline" href="/api/track-lead">/api/track-lead</Link> with minimal payloads (see{" "}
+            <Link className="underline" href="/docs/troubleshooting#smoke">Troubleshooting ▸ Smoke test</Link>). If
+            calls succeed but charts stay empty, double-check you embedded the snippet with the correct Widget ID.
+          </li>
+        </ol>
+      </Section>
+
+      {/* Leads */}
+      <Section id="leads" title="Leads">
+        <h2 className="sr-only">Leads</h2>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>Where they appear.</strong> Leads created from the pre-chat panel or API appear in your dashboard.
+            For advanced workflows (Google Sheets/CRM), use a webhook as described in{" "}
+            <Link className="underline" href="/docs/troubleshooting#webhooks">Troubleshooting ▸ Webhooks</Link>.
+          </li>
+          <li>
+            <strong>Quality tip.</strong> Keep the pre-chat form lightweight—name and message are usually enough. Every
+            extra required field reduces completions.
+          </li>
+        </ol>
+      </Section>
+
+      {/* Billing */}
+      <Section id="billing" title="Billing">
+        <h2 className="sr-only">Billing</h2>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>Plans &amp; upgrades.</strong> Use{" "}
+            <Link className="underline" href="/dashboard/billing">Billing</Link> to upgrade or downgrade. If you test
+            payments, confirm your webhook in the provider dashboard points to the correct production URL.
+          </li>
+          <li>
+            <strong>Common pitfalls.</strong> If plan changes don’t reflect, verify environment variables and webhook
+            secrets (see{" "}
+            <Link className="underline" href="/docs/troubleshooting#billing">Troubleshooting ▸ Billing</Link>).
+          </li>
+        </ol>
+      </Section>
+
+      {/* Profile */}
+      <Section id="profile" title="Profile">
+        <h2 className="sr-only">Profile</h2>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>Business details &amp; WhatsApp number format.</strong> Keep your business name and WhatsApp number
+            correct—these appear in snippets and drivers. Use full international format (e.g., +91…). If messages don’t
+            open WhatsApp, double-check the number formatting here first.
+          </li>
+          <li>
+            <strong>Brand hygiene.</strong> If you rebrand, update logo/CTA tone, template language, and theme color in
+            one pass so your experience stays cohesive.
+          </li>
+        </ol>
+      </Section>
+
+      {/* Widget behavior & customization */}
+      <Section id="behavior" title="Widget behavior & customization">
+        <h2 className="sr-only">Widget behavior & customization</h2>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>How the bubble renders.</strong> The script loads async and applies settings at runtime. It’s
+            designed to be fast and resilient. See{" "}
+            <Link className="underline" href="/docs/install">Install</Link> for safe paste locations and CSP notes.
+          </li>
+          <li>
+            <strong>Auto-trigger rules.</strong> Ship with conservative defaults. If you enable auto-open, prefer a
+            time-based delay or on-scroll trigger. Aggressive rules (every pageview) can lower trust and increase
+            bounce—measure with{" "}
+            <Link className="underline" href="/dashboard/analytics">Analytics</Link>.
+          </li>
+        </ol>
+      </Section>
+
+      {/* APIs for developers */}
+      <Section id="apis" title="APIs (for developers)">
+        <h2 className="sr-only">APIs (for developers)</h2>
+
+        <h3 id="api-widget" className="mt-4 text-xl font-semibold">/api/widget.js</h3>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>What it loads.</strong> Returns the minimal loader that renders the bubble and wires events. It
+            reads your Widget ID and fetches settings. See production-safe placement in{" "}
+            <Link className="underline" href="/docs/install">Install</Link>.
+          </li>
+        </ol>
+
+        <h3 id="api-auto" className="mt-6 text-xl font-semibold">/api/auto-trigger</h3>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>When to include.</strong> Include only if you want automatic chat opens based on behavior. Start
+            with gentle rules and validate with{" "}
+            <Link className="underline" href="/dashboard/analytics">Analytics</Link>.
+          </li>
+        </ol>
+
+        <h3 id="api-analytics" className="mt-6 text-xl font-semibold">/api/analytics &amp; /api/track-lead</h3>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>Payload shapes &amp; examples.</strong> These endpoints log interactions and collect leads. Use the
+            quick tests in{" "}
+            <Link className="underline" href="/docs/troubleshooting#smoke">Troubleshooting ▸ Smoke test</Link> if data
+            seems missing. If your charts show leads but no impressions/opens/clicks, verify your environment variables
+            and that you’re posting the expected fields.
+          </li>
+        </ol>
+
+        <h3 id="api-choose" className="mt-6 text-xl font-semibold">/api/templates/choose</h3>
+        <ol className="list-decimal space-y-3 pl-5">
+          <li>
+            <strong>Parameters, fallbacks &amp; business-hours logic.</strong> Pass <code>wid</code>,{" "}
+            <code>locale</code>, and optionally <code>h</code>/<code>m</code> to simulate a specific time. Provide
+            inline hours via <code>sun=closed</code> or <code>mon=10:00-18:00</code>… for QA scenarios. The endpoint
+            chooses a template in this order: widget-scoped templates in the requested locale, global matches, and
+            finally defaults. Validate everything on{" "}
+            <Link className="underline" href="/dashboard/templates/qa">Templates QA</Link>.
+          </li>
+        </ol>
       </Section>
     </div>
   );
