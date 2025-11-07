@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { breadcrumbJsonLd, faqJsonLd, toJson } from "@/lib/structured";
+import { breadcrumbJsonLd, toJson } from "@/lib/structured";
 
 // -----------------------
 // Data (categories + Q&As)
@@ -264,13 +264,19 @@ export default function FAQPage() {
     })).filter((c) => c.items.length > 0);
   }, [query]);
 
-  // JSON-LD (limit to avoid oversized scripts)
-  const faqLd = faqJsonLd({
-    items: ALL.slice(0, 60).map((i) => ({
-      question: i.q,
-      answer: i.a.replace(/\s+/g, " ").trim(),
-    })),
-  });
+  // JSON-LD (explicit object to avoid helper typing conflicts)
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": ALL.slice(0, 60).map((i) => ({
+      "@type": "Question",
+      "name": i.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": i.a.replace(/\s+/g, " ").trim()
+      }
+    }))
+  };
 
   const crumbs = breadcrumbJsonLd([
     { name: "Docs", url: "https://chatmadi.com/docs" },
@@ -327,7 +333,6 @@ export default function FAQPage() {
                         <p className="leading-relaxed">
                           {qa.a}
                           {" "}
-                          {/* Contextual internal links */}
                           {qa.a.toLowerCase().includes("install") && (
                             <Link href="/docs/install" className="underline">Learn how to install</Link>
                           )}
