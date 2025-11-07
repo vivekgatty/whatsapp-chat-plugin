@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useMemo, useState } from "react";
-import { getWid } from "../../lib/wid";
+import { getWid } from "@/lib/wid";
 
 type Props = {
   code: string;
@@ -41,3 +41,4 @@ export default function CopySnippet({ code, label }: Props) {
     </div>
   );
 }
+
