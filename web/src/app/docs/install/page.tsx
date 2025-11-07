@@ -1,23 +1,8 @@
 ﻿"use client";
 
-import type { Metadata } from "next";
 import Link from "next/link";
 import { useWid } from "@/lib/wid";
 import { breadcrumbJsonLd, toJson } from "@/lib/structured";
-
-export const generateMetadata = (): Metadata => ({
-  title: "Install the WhatsApp Chat Widget — Step-by-Step Guide | ChatMadi Docs",
-  description:
-    "Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js and plain HTML. Includes auto-trigger, CSP notes, QA checks, and troubleshooting links.",
-  alternates: { canonical: "https://chatmadi.com/docs/install" },
-  openGraph: {
-    title: "Install the WhatsApp Chat Widget — ChatMadi",
-    description:
-      "Add the floating WhatsApp bubble in minutes. Platform-specific steps, live snippets, and QA checklist.",
-    url: "https://chatmadi.com/docs/install",
-    images: [{ url: "/og/chatmadi-og.png" }],
-  },
-});
 
 export default function InstallDocs() {
   const [wid] = useWid();
@@ -26,7 +11,7 @@ export default function InstallDocs() {
   const embedSnippet = `<script src="https://chatmadi.com/api/widget.js?wid=${W}"></script>`;
   const autoTriggerSnippet = `<script src="https://chatmadi.com/api/auto-trigger?wid=${W}"></script>`;
 
-  // Breadcrumbs + HowTo JSON-LD (explicit object to avoid typing issues)
+  // Breadcrumbs + HowTo JSON-LD
   const crumbs = breadcrumbJsonLd([
     { name: "Docs", url: "https://chatmadi.com/docs" },
     { name: "Install", url: "https://chatmadi.com/docs/install" },
