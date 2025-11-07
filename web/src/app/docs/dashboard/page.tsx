@@ -1,7 +1,7 @@
 ﻿"use client";
 import Link from "next/link";
 import { Section, CodeBlock } from "@/components/docs";
-import { useWid } from "../../lib/wid";
+import { useWid } from "@/lib/wid";
 
 export default function DashboardDocs() {
   const [wid] = useWid();
@@ -96,3 +96,4 @@ export default function DashboardDocs() {
     </div>
   );
 }
+

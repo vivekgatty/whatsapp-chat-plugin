@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useWid } from "../../lib/wid";
+import { useWid } from "@/lib/wid";
 import { Section, CodeBlock } from "@/components/docs";
 
 export default function InstallPage() {
@@ -128,3 +128,4 @@ export default function InstallPage() {
     </div>
   );
 }
+

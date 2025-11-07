@@ -1,6 +1,6 @@
 ﻿"use client";
 import { Section, CodeBlock } from "@/components/docs";
-import { useWid } from "../../lib/wid";
+import { useWid } from "@/lib/wid";
 
 export default function Troubleshooting() {
   const [wid] = useWid();
@@ -31,3 +31,4 @@ export default function Troubleshooting() {
     </div>
   );
 }
+
