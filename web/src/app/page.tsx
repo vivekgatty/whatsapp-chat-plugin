@@ -1,43 +1,6 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
-import { useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
-
-/** Invisible helper that runs only on the landing page.
- * If URL is /?next=... and the user is signed in, forward to that internal route immediately.
- */
-function NextHop() {
-  // this component renders only on the client
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const router = useRouter();
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    if (!next) return;
-
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-    );
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session) {
-        try {
-          const target = decodeURIComponent(next);
-          // guard against protocol/host injection
-          const safe = target.startsWith("/") ? target : "/dashboard/overview";
-          router.replace(safe);
-        } catch {
-          router.replace("/dashboard/overview");
-        }
-      }
-    });
-  }, [router]);
-
-  return null;
-}
+import NextHop from "@/components/NextHop";
 
 export const metadata: Metadata = {
   title: "ChatMadi — WhatsApp Chat Widget for Websites (₹199/month)",
@@ -114,7 +77,7 @@ export default function Home() {
 
   return (
     <main className="px-4 py-10 sm:px-6 lg:px-8">
-      {/* NEXT-HOP: only affects /?next=... for signed-in users */}
+      {/* Auto-forward signed-in users from /?next=... */}
       <NextHop />
 
       {/* JSON-LD */}
@@ -163,7 +126,7 @@ export default function Home() {
               <Link href="/dashboard/overview" className="underline">Go to Dashboard</Link>.
             </p>
 
-            {/* Trust bullets (no internal links for unauth users) */}
+            {/* Trust bullets — no inline internal links */}
             <ul className="mt-6 grid gap-2 text-slate-200 sm:grid-cols-2">
               <DotItem>Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js, or plain HTML.</DotItem>
               <DotItem>Precision control with Templates, Languages, and Business Hours.</DotItem>
@@ -190,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF / BADGES */}
+      {/* SOCIAL PROOF */}
       <section id="proof" className="mx-auto mt-14 max-w-6xl">
         <div className="rounded-xl border border-slate-800 p-4 text-center text-sm text-slate-400">
           Trusted by lean teams who want conversions without page bloat. Built for speed, clarity, and results.
