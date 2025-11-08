@@ -1,8 +1,5 @@
 ﻿import type { Metadata } from "next";
 
-// NOTE: This file keeps your existing landing content intact.
-// We only add a tiny CSS block to hide the global header on "/".
-
 export const metadata: Metadata = {
   title: "ChatMadi — WhatsApp Chat Widget for Websites (₹199/month)",
   description:
@@ -36,7 +33,7 @@ function DotItem({ children }: { children: React.ReactNode }) {
 }
 
 export default function Home() {
-  // JSON-LD: Organization + SoftwareApplication + WebSite SearchAction
+  // JSON-LD for SEO
   const ld = [
     {
       "@context": "https://schema.org",
@@ -85,23 +82,42 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
       />
 
-      {/* HIDE GLOBAL HEADER ON "/" ONLY */}
-      <style
-        // Keep the header visible on all other routes; hide just on this page
+      {/* Add a page-scoped class to <html> when on "/" and hide any global header/nav */}
+      <script
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{
           __html: `
-          /* Hide top site header/nav ONLY on the landing page */
-          body > header,
-          body > nav[role="navigation"],
-          .site-header,
-          .app-header {
-            display: none !important;
-          }
-        `,
+            try {
+              if (location.pathname === "/") {
+                document.documentElement.classList.add("no-header");
+              } else {
+                document.documentElement.classList.remove("no-header");
+              }
+            } catch (_) {}
+          `,
+        }}
+      />
+      <style
+        // ultra-broad selectors to catch any header/top-nav impl without altering design
+        dangerouslySetInnerHTML={{
+          __html: `
+            html.no-header header,
+            html.no-header nav[role="navigation"],
+            html.no-header .site-header,
+            html.no-header .app-header,
+            html.no-header [data-topnav],
+            html.no-header .top-nav,
+            html.no-header [data-dashboard-nav],
+            html.no-header #__topnav,
+            html.no-header #topnav,
+            html.no-header .sticky.top-0 {
+              display: none !important;
+            }
+          `,
         }}
       />
 
-      {/* === HERO (unchanged content/design) === */}
+      {/* === HERO (content/design unchanged) === */}
       <section id="hero" className="w-full max-w-none">
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-0 lg:grid-cols-2 lg:items-center">
           <div className="px-0">
@@ -112,7 +128,6 @@ export default function Home() {
               A lightweight chat bubble with multilingual templates, off-hours auto-replies, and built-in analytics. No bloat. No hassle. <strong>₹199/month</strong>.
             </p>
 
-            {/* Email → /dashboard (magic link flow continues there) */}
             <form
               className="mt-6 flex max-w-md items-center gap-2"
               action="/dashboard"
@@ -138,7 +153,6 @@ export default function Home() {
               We’ll email you a secure sign-in link. No password needed. Already signed in? Go to Dashboard.
             </p>
 
-            {/* Trust bullets */}
             <ul className="mt-6 grid gap-2 text-slate-200 sm:grid-cols-2">
               <DotItem>
                 Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js, or plain HTML. See the Install Guide.
@@ -155,7 +169,6 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Value box */}
           <div className="rounded-2xl border border-slate-700 p-6">
             <h2 className="text-lg font-semibold">Why teams pick ChatMadi</h2>
             <ul className="mt-3 space-y-2 text-slate-200">
@@ -177,9 +190,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* === The rest of your sections remain unchanged === */}
-
-      {/* SOCIAL PROOF / BADGES */}
+      {/* SOCIAL PROOF */}
       <section id="proof" className="mx-auto mt-14 max-w-7xl">
         <div className="rounded-xl border border-slate-800 p-4 text-center text-sm text-slate-400">
           Trusted by lean teams who want conversions without page bloat. Built for speed, clarity, and results.
@@ -214,7 +225,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURE BLOCKS */}
+      {/* FEATURES */}
       <section id="features" className="mx-auto mt-16 max-w-7xl">
         <h2 className="text-2xl font-semibold">Everything you need to convert</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
@@ -245,7 +256,7 @@ export default function Home() {
               <div className="text-4xl font-bold">₹199</div>
               <div className="pb-1 text-slate-400">/month</div>
             </div>
-            <ul className="mt-4 space-y-2 text-slate-2 00">
+            <ul className="mt-4 space-y-2 text-slate-200">
               <DotItem>WhatsApp chat bubble (fast, lightweight)</DotItem>
               <DotItem>Multilingual templates (EN/HI/KN/TA)</DotItem>
               <DotItem>Off-hours logic + greetings</DotItem>
