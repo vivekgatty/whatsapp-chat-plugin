@@ -1,5 +1,5 @@
 ﻿import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "next/link";`r`nimport NextHop from "@/components/NextHop";`r`nimport RewriteNavWhenAuthed from "@/components/RewriteNavWhenAuthed";
 import NextHop from "@/components/NextHop";
 
 export const metadata: Metadata = {
@@ -76,7 +76,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="px-4 py-10 sm:px-6 lg:px-8">
+    <main className="px-4 py-10 sm:px-6 lg:px-8">`r`n      {/* Auto-forward + fix header links if already signed-in */}`r`n      <NextHop />`r`n      <RewriteNavWhenAuthed />
       {/* Auto-forward signed-in users from /?next=... */}
       <NextHop />
 

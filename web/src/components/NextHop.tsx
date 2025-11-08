@@ -1,37 +1,32 @@
 ﻿"use client";
 import { useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 
 /** Runs only on / (landing).
- * If URL is /?next=... and user is signed in, forward to that internal route.
- * Keeps content untouched; just fixes the stuck-on-landing issue.
+ * If URL is /?next=... and user is signed in (cookie-based), forward immediately.
  */
 export default function NextHop() {
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      if (!next) return;
+    const params = new URLSearchParams(window.location.search);
+    const nextRaw = params.get("next");
+    if (!nextRaw) return;
 
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-      );
+    const forward = async () => {
+      try {
+        const res = await fetch("/api/auth/status", { cache: "no-store" });
+        const json = await res.json();
+        if (!json?.authed) return;
 
-      supabase.auth.getSession().then(({ data }) => {
-        if (data?.session) {
-          let target = "/dashboard/overview";
-          try {
-            const dec = decodeURIComponent(next);
-            if (dec.startsWith("/")) target = dec;
-          } catch {}
-          // use location.replace to avoid back button returning to /?next=...
-          window.location.replace(target);
-        }
-      });
-    } catch {
-      /* no-op */
-    }
+        let target = "/dashboard/overview";
+        try {
+          const dec = decodeURIComponent(nextRaw);
+          if (dec.startsWith("/")) target = dec;
+        } catch {}
+        window.location.replace(target);
+      } catch {
+        /* ignore */
+      }
+    };
+    forward();
   }, []);
 
   return null;
