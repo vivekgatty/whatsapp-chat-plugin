@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next";
-import Link from "next/link";`r`nimport NextHop from "@/components/NextHop";`r`nimport RewriteNavWhenAuthed from "@/components/RewriteNavWhenAuthed";
+import Link from "next/link";
 import NextHop from "@/components/NextHop";
+import RewriteNavWhenAuthed from "@/components/RewriteNavWhenAuthed";`r`n`r`n
 
 export const metadata: Metadata = {
   title: "ChatMadi — WhatsApp Chat Widget for Websites (₹199/month)",
@@ -285,4 +286,5 @@ export default function Home() {
     </main>
   );
 }
+
 
