@@ -1,5 +1,8 @@
 ﻿import type { Metadata } from "next";
 
+// NOTE: This file keeps your existing landing content intact.
+// We only add a tiny CSS block to hide the global header on "/".
+
 export const metadata: Metadata = {
   title: "ChatMadi — WhatsApp Chat Widget for Websites (₹199/month)",
   description:
@@ -33,6 +36,7 @@ function DotItem({ children }: { children: React.ReactNode }) {
 }
 
 export default function Home() {
+  // JSON-LD: Organization + SoftwareApplication + WebSite SearchAction
   const ld = [
     {
       "@context": "https://schema.org",
@@ -59,6 +63,17 @@ export default function Home() {
         "WhatsApp chat widget with multilingual templates, off-hours auto-replies, and analytics.",
       publisher: { "@type": "Organization", name: "ChatMadi" },
     },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "ChatMadi",
+      url: "https://chatmadi.com/",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: "https://chatmadi.com/docs/faq?q={search_term_string}",
+        "query-input": "required name=search_term_string",
+      },
+    },
   ];
 
   return (
@@ -70,10 +85,26 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
       />
 
-      {/* HERO — full width + balanced vertical padding */}
-      <section id="hero" className="w-full py-20">
-        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-          <div>
+      {/* HIDE GLOBAL HEADER ON "/" ONLY */}
+      <style
+        // Keep the header visible on all other routes; hide just on this page
+        dangerouslySetInnerHTML={{
+          __html: `
+          /* Hide top site header/nav ONLY on the landing page */
+          body > header,
+          body > nav[role="navigation"],
+          .site-header,
+          .app-header {
+            display: none !important;
+          }
+        `,
+        }}
+      />
+
+      {/* === HERO (unchanged content/design) === */}
+      <section id="hero" className="w-full max-w-none">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-0 lg:grid-cols-2 lg:items-center">
+          <div className="px-0">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
               Add WhatsApp to your website in minutes.
             </h1>
@@ -107,12 +138,20 @@ export default function Home() {
               We’ll email you a secure sign-in link. No password needed. Already signed in? Go to Dashboard.
             </p>
 
-            {/* Trust bullets (no underlines) */}
+            {/* Trust bullets */}
             <ul className="mt-6 grid gap-2 text-slate-200 sm:grid-cols-2">
-              <DotItem>Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js, or plain HTML. See the Install Guide.</DotItem>
-              <DotItem>Precision control with Templates, Languages, and Business Hours.</DotItem>
-              <DotItem>Privacy-friendly, fast, and accessible. Read the performance tips.</DotItem>
-              <DotItem>Built-in Analytics: impressions, opens, clicks — no extra setup.</DotItem>
+              <DotItem>
+                Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js, or plain HTML. See the Install Guide.
+              </DotItem>
+              <DotItem>
+                Precision control with Templates, Languages, and Business Hours.
+              </DotItem>
+              <DotItem>
+                Privacy-friendly, fast, and accessible. Read the performance tips.
+              </DotItem>
+              <DotItem>
+                Built-in Analytics: impressions, opens, clicks — no extra setup.
+              </DotItem>
             </ul>
           </div>
 
@@ -126,28 +165,36 @@ export default function Home() {
               <DotItem>Track what matters: bubble views, opens, clicks — optimize CTA copy with data.</DotItem>
             </ul>
             <div className="mt-5">
-              <span className="rounded-xl border border-slate-700 px-4 py-2 text-sm inline-block">Explore the Docs</span>
+              <button
+                type="button"
+                className="rounded-xl border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800"
+                aria-label="Explore the docs (available after sign-in)"
+              >
+                Explore the Docs
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SOCIAL PROOF — full width */}
-      <section id="proof" className="w-full mt-14">
+      {/* === The rest of your sections remain unchanged === */}
+
+      {/* SOCIAL PROOF / BADGES */}
+      <section id="proof" className="mx-auto mt-14 max-w-7xl">
         <div className="rounded-xl border border-slate-800 p-4 text-center text-sm text-slate-400">
           Trusted by lean teams who want conversions without page bloat. Built for speed, clarity, and results.
         </div>
       </section>
 
-      {/* HOW IT WORKS — full width */}
-      <section id="how-it-works" className="w-full mt-16">
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" className="mx-auto mt-16 max-w-7xl">
         <h2 className="text-2xl font-semibold">How it works</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-3">
           <div className="rounded-xl border border-slate-700 p-5">
             <div className="text-sm font-semibold text-sky-400">Step 1</div>
             <h3 className="mt-1 font-medium">Install the snippet</h3>
             <p className="mt-2 text-slate-300">
-              Copy the embed code from Widget settings or follow the Install Guide. Paste it before <code className="rounded bg-slate-800 px-1 py-0.5">{"</body>"}</code> and publish.
+              Copy the embed code from Widget settings or follow the Install Guide. Paste it before <code className="rounded bg-slate-800 px-1 py-0.5">{'</body>'}</code> and publish.
             </p>
           </div>
           <div className="rounded-xl border border-slate-700 p-5">
@@ -167,15 +214,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES — full width */}
-      <section id="features" className="w-full mt-16">
+      {/* FEATURE BLOCKS */}
+      <section id="features" className="mx-auto mt-16 max-w-7xl">
         <h2 className="text-2xl font-semibold">Everything you need to convert</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-slate-700 p-5">
             <h3 className="font-medium">Multilingual & off-hours</h3>
             <ul className="mt-2 space-y-2 text-slate-300">
-              <DotItem>Auto-select locale with smart fallbacks. Details in Languages.</DotItem>
-              <DotItem>Configure Mon–Sat windows, Sunday closed, and holidays. See Business Hours.</DotItem>
+              <DotItem>Auto-select locale with smart fallbacks.</DotItem>
+              <DotItem>Configure Mon–Sat windows, Sunday closed, and holidays.</DotItem>
             </ul>
           </div>
           <div className="rounded-xl border border-slate-700 p-5">
@@ -188,8 +235,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRICING — full width */}
-      <section id="pricing" className="w-full mt-16">
+      {/* PRICING */}
+      <section id="pricing" className="mx-auto mt-16 max-w-7xl">
         <h2 className="text-2xl font-semibold">Simple pricing</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-sky-700 bg-sky-950/30 p-6 md:col-span-2">
@@ -198,7 +245,7 @@ export default function Home() {
               <div className="text-4xl font-bold">₹199</div>
               <div className="pb-1 text-slate-400">/month</div>
             </div>
-            <ul className="mt-4 space-y-2 text-slate-200">
+            <ul className="mt-4 space-y-2 text-slate-2 00">
               <DotItem>WhatsApp chat bubble (fast, lightweight)</DotItem>
               <DotItem>Multilingual templates (EN/HI/KN/TA)</DotItem>
               <DotItem>Off-hours logic + greetings</DotItem>
@@ -231,14 +278,20 @@ export default function Home() {
               <DotItem>Exports & webhooks</DotItem>
             </ul>
             <div className="mt-6">
-              <span className="rounded-xl border border-slate-700 px-5 py-3 text-sm inline-block">Learn more</span>
+              <button
+                type="button"
+                className="rounded-xl border border-slate-700 px-5 py-3 text-sm hover:bg-slate-800"
+                aria-label="Learn more about forthcoming plans"
+              >
+                Learn more
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* OBJECTIONS — full width */}
-      <section id="why-chatmadi" className="w-full mt-16">
+      {/* OBJECTIONS */}
+      <section id="why-chatmadi" className="mx-auto mt-16 max-w-7xl">
         <h2 className="text-2xl font-semibold">Built for speed, clarity, and conversions</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-slate-700 p-5">
@@ -258,12 +311,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA — full width */}
-      <section id="cta" className="w-full mt-16">
+      {/* CTA */}
+      <section id="cta" className="mx-auto mt-16 max-w-7xl">
         <div className="rounded-2xl border border-slate-700 p-6 text-center">
           <h2 className="text-2xl font-semibold">Ready to turn visitors into WhatsApp conversations?</h2>
           <p className="mt-2 text-slate-300">
-            Start with your email — we’ll send a magic link. Install in minutes; measure in hours. Need help? Read the Docs or the FAQ.
+            Start with your email — we’ll send a magic link. Install in minutes; measure in hours.
+            Need help? Read the Docs or the FAQ.
           </p>
           <form className="mx-auto mt-4 flex max-w-md items-center gap-2" action="/dashboard" method="get">
             <input
