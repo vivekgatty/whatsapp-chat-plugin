@@ -1,43 +1,47 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { createMiddlewareClient } from "@supabase/ssr";
 
-export const config = {
-  matcher: ["/dashboard/:path*", "/docs/:path*"],
-};
+const PROTECTED_PREFIXES = ["/dashboard", "/docs", "/billing"];
 
 export async function middleware(req: NextRequest) {
-  // Prepare a mutable response so Supabase can update cookies if needed
   const res = NextResponse.next();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get: (name: string) => req.cookies.get(name)?.value,
-        set: (name: string, value: string, options: any) => {
-          res.cookies.set({ name, value, ...options });
-        },
-        remove: (name: string, options: any) => {
-          res.cookies.set({ name, value: "", ...options, maxAge: 0 });
-        },
-      },
-    }
-  );
-
+  // Supabase session check (edge-safe)
+  const supabase = createMiddlewareClient({ req, res });
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) {
-    const loginURL = new URL("/", req.url);
-    // Preserve intended destination so we can send them back after login
-    loginURL.searchParams.set(
-      "next",
-      req.nextUrl.pathname + (req.nextUrl.search || "")
-    );
-    return NextResponse.redirect(loginURL);
+  const url = req.nextUrl;
+  const path = url.pathname;
+
+  const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
+
+  // 1) Gate protected pages when NOT signed in -> bounce to "/" with ?next=
+  if (!session && isProtected) {
+    const to = url.clone();
+    to.pathname = "/";
+    to.searchParams.set("next", path);
+    return NextResponse.redirect(to);
   }
 
+  // 2) If signed in and we land on "/" with ?next=..., honor it immediately
+  if (session && path === "/" && url.searchParams.has("next")) {
+    const next = url.searchParams.get("next") || "/dashboard/overview";
+    return NextResponse.redirect(new URL(next, req.url));
+  }
+
+  // 3) If signed in and we hit plain "/" (no next), send to Overview
+  if (session && path === "/") {
+    return NextResponse.redirect(new URL("/dashboard/overview", req.url));
+  }
+
+  // Otherwise proceed
   return res;
 }
+
+export const config = {
+  // Run on everything except static assets, images, favicons, and API routes
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|og/.*|api/.*).*)",
+  ],
+};
