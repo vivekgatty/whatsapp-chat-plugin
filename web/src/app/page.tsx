@@ -33,7 +33,6 @@ function DotItem({ children }: { children: React.ReactNode }) {
 }
 
 export default function Home() {
-  // JSON-LD kept, but WITHOUT internal /docs search target
   const ld = [
     {
       "@context": "https://schema.org",
@@ -71,8 +70,8 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
       />
 
-      {/* HERO — now fills the first screen, content unchanged */}
-      <section id="hero" className="mx-auto max-w-6xl min-h-screen flex items-center">
+      {/* HERO — full width + even vertical padding; content unchanged */}
+      <section id="hero" className="w-full py-20">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
@@ -86,7 +85,6 @@ export default function Home() {
               <strong>₹199/month</strong>.
             </p>
 
-            {/* Email → /dashboard (magic link flow continues there) */}
             <form
               className="mt-6 flex max-w-md items-center gap-2"
               action="/dashboard"
@@ -113,7 +111,6 @@ export default function Home() {
               <span className="underline">Go to Dashboard</span>.
             </p>
 
-            {/* Trust bullets (same text, links removed) */}
             <ul className="mt-6 grid gap-2 text-slate-200 sm:grid-cols-2">
               <DotItem>
                 Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js, or
@@ -135,7 +132,6 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Value box (same), CTA link removed */}
           <div className="rounded-2xl border border-slate-700 p-6">
             <h2 className="text-lg font-semibold">Why teams pick ChatMadi</h2>
             <ul className="mt-3 space-y-2 text-slate-200">
@@ -153,14 +149,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOCIAL PROOF / BADGES */}
+      {/* SOCIAL PROOF */}
       <section id="proof" className="mx-auto mt-14 max-w-6xl">
         <div className="rounded-xl border border-slate-800 p-4 text-center text-sm text-slate-400">
           Trusted by lean teams who want conversions without page bloat. Built for speed, clarity, and results.
         </div>
       </section>
 
-      {/* HOW IT WORKS (links removed, copy intact) */}
+      {/* HOW IT WORKS */}
       <section id="how-it-works" className="mx-auto mt-16 max-w-6xl">
         <h2 className="text-2xl font-semibold">How it works</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-3">
@@ -193,7 +189,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURE BLOCKS (links removed) */}
+      {/* FEATURES */}
       <section id="features" className="mx-auto mt-16 max-w-6xl">
         <h2 className="text-2xl font-semibold">Everything you need to convert</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
@@ -222,7 +218,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRICING (left intact) */}
+      {/* PRICING */}
       <section id="pricing" className="mx-auto mt-16 max-w-6xl">
         <h2 className="text-2xl font-semibold">Simple pricing</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-3">
@@ -274,7 +270,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* OBJECTIONS (links removed) */}
+      {/* OBJECTIONS */}
       <section id="why-chatmadi" className="mx-auto mt-16 max-w-6xl">
         <h2 className="text-2xl font-semibold">Built for speed, clarity, and conversions</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
@@ -295,7 +291,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA (links removed) */}
+      {/* CTA */}
       <section id="cta" className="mx-auto mt-16 max-w-6xl">
         <div className="rounded-2xl border border-slate-700 p-6 text-center">
           <h2 className="text-2xl font-semibold">Ready to turn visitors into WhatsApp conversations?</h2>
