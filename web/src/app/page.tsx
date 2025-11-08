@@ -1,5 +1,43 @@
 ﻿import type { Metadata } from "next";
-import MagicEmailForm from "@/components/MagicEmailForm";
+import Link from "next/link";
+import { useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
+
+/** Invisible helper that runs only on the landing page.
+ * If URL is /?next=... and the user is signed in, forward to that internal route immediately.
+ */
+function NextHop() {
+  // this component renders only on the client
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const router = useRouter();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+    if (!next) return;
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+    );
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session) {
+        try {
+          const target = decodeURIComponent(next);
+          // guard against protocol/host injection
+          const safe = target.startsWith("/") ? target : "/dashboard/overview";
+          router.replace(safe);
+        } catch {
+          router.replace("/dashboard/overview");
+        }
+      }
+    });
+  }, [router]);
+
+  return null;
+}
 
 export const metadata: Metadata = {
   title: "ChatMadi — WhatsApp Chat Widget for Websites (₹199/month)",
@@ -76,6 +114,9 @@ export default function Home() {
 
   return (
     <main className="px-4 py-10 sm:px-6 lg:px-8">
+      {/* NEXT-HOP: only affects /?next=... for signed-in users */}
+      <NextHop />
+
       {/* JSON-LD */}
       <script
         type="application/ld+json"
@@ -83,8 +124,8 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
       />
 
-      {/* HERO (full-width content area; consistent container for rest of page) */}
-      <section id="hero" className="mx-auto max-w-7xl">
+      {/* HERO */}
+      <section id="hero" className="mx-auto max-w-6xl">
         <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
@@ -95,16 +136,36 @@ export default function Home() {
               <strong>₹199/month</strong>.
             </p>
 
-            {/* MAGIC LINK FORM (was a plain <form>; now calls Supabase) */}
-            <MagicEmailForm cta="Get magic link" />
+            {/* Email → /dashboard (magic link flow continues there) */}
+            <form
+              className="mt-6 flex max-w-md items-center gap-2"
+              action="/dashboard"
+              method="get"
+              aria-label="Start with your email to receive a magic link"
+            >
+              <input
+                name="email"
+                required
+                type="email"
+                placeholder="you@company.com"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-base outline-none ring-0 placeholder:text-slate-500"
+              />
+              <button
+                type="submit"
+                className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-medium hover:bg-sky-500"
+              >
+                Get magic link
+              </button>
+            </form>
 
             <p className="mt-3 text-xs text-slate-400">
-              We’ll email you a secure sign-in link. No password needed. Already signed in? Go to Dashboard.
+              We’ll email you a secure sign-in link. No password needed. Already signed in?{" "}
+              <Link href="/dashboard/overview" className="underline">Go to Dashboard</Link>.
             </p>
 
-            {/* Trust bullets (no internal links shown on public homepage) */}
+            {/* Trust bullets (no internal links for unauth users) */}
             <ul className="mt-6 grid gap-2 text-slate-200 sm:grid-cols-2">
-              <DotItem>Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js, or plain HTML. See the Install Guide.</DotItem>
+              <DotItem>Copy–paste install for WordPress, Webflow, Shopify, Wix, Squarespace, Next.js, or plain HTML.</DotItem>
               <DotItem>Precision control with Templates, Languages, and Business Hours.</DotItem>
               <DotItem>Privacy-friendly, fast, and accessible. Read the performance tips.</DotItem>
               <DotItem>Built-in Analytics: impressions, opens, clicks — no extra setup.</DotItem>
@@ -121,32 +182,31 @@ export default function Home() {
               <DotItem>Track what matters: bubble views, opens, clicks — optimize CTA copy with data.</DotItem>
             </ul>
             <div className="mt-5">
-              <button className="rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-300">
+              <Link href="/docs" className="rounded-xl border border-slate-700 px-4 py-2 text-sm hover:bg-slate-800">
                 Explore the Docs
-              </button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* SOCIAL PROOF / BADGES */}
-      <section id="proof" className="mx-auto mt-14 max-w-7xl">
+      <section id="proof" className="mx-auto mt-14 max-w-6xl">
         <div className="rounded-xl border border-slate-800 p-4 text-center text-sm text-slate-400">
           Trusted by lean teams who want conversions without page bloat. Built for speed, clarity, and results.
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="mx-auto mt-16 max-w-7xl">
+      <section id="how-it-works" className="mx-auto mt-16 max-w-6xl">
         <h2 className="text-2xl font-semibold">How it works</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-3">
           <div className="rounded-xl border border-slate-700 p-5">
             <div className="text-sm font-semibold text-sky-400">Step 1</div>
             <h3 className="mt-1 font-medium">Install the snippet</h3>
             <p className="mt-2 text-slate-300">
-              Copy the embed code from Widget settings or follow the Install Guide. Paste it before
-              <code className="mx-1 rounded bg-slate-800 px-1 py-0.5">{'</body>'}</code>
-              and publish.
+              Copy the embed code from Widget settings or follow the Install Guide. Paste it before{" "}
+              <code className="rounded bg-slate-800 px-1 py-0.5">{"</body>"}</code> and publish.
             </p>
           </div>
           <div className="rounded-xl border border-slate-700 p-5">
@@ -167,28 +227,28 @@ export default function Home() {
       </section>
 
       {/* FEATURE BLOCKS */}
-      <section id="features" className="mx-auto mt-16 max-w-7xl">
+      <section id="features" className="mx-auto mt-16 max-w-6xl">
         <h2 className="text-2xl font-semibold">Everything you need to convert</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-slate-700 p-5">
             <h3 className="font-medium">Multilingual & off-hours</h3>
             <ul className="mt-2 space-y-2 text-slate-300">
-              <DotItem>Auto-select locale with smart fallbacks. Details in Languages.</DotItem>
-              <DotItem>Configure Mon–Sat windows, Sunday closed, and holidays. See Business Hours.</DotItem>
+              <DotItem>Auto-select locale with smart fallbacks.</DotItem>
+              <DotItem>Configure Mon–Sat windows, Sunday closed, and holidays.</DotItem>
             </ul>
           </div>
           <div className="rounded-xl border border-slate-700 p-5">
             <h3 className="font-medium">Copy–paste developer experience</h3>
             <ul className="mt-2 space-y-2 text-slate-300">
               <DotItem>Embed + auto-trigger buttons in Widget settings.</DotItem>
-              <DotItem>Production tips: CSP, placement, QA checks — Troubleshooting.</DotItem>
+              <DotItem>Production tips: CSP, placement, QA checks.</DotItem>
             </ul>
           </div>
         </div>
       </section>
 
       {/* PRICING */}
-      <section id="pricing" className="mx-auto mt-16 max-w-7xl">
+      <section id="pricing" className="mx-auto mt-16 max-w-6xl">
         <h2 className="text-2xl font-semibold">Simple pricing</h2>
         <div className="mt-6 grid gap-6 md:grid-cols-3">
           <div className="rounded-2xl border border-sky-700 bg-sky-950/30 p-6 md:col-span-2">
@@ -204,12 +264,20 @@ export default function Home() {
               <DotItem>Basic analytics (impressions, opens, clicks)</DotItem>
               <DotItem>Install docs & troubleshooting support</DotItem>
             </ul>
-
-            {/* MAGIC LINK FORM in pricing card */}
-            <MagicEmailForm cta="Get magic link" />
-
+            <form className="mt-6 flex max-w-md items-center gap-2" action="/dashboard" method="get">
+              <input
+                name="email"
+                required
+                type="email"
+                placeholder="you@company.com"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-base outline-none ring-0 placeholder:text-slate-500"
+              />
+              <button type="submit" className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-medium hover:bg-sky-500">
+                Get magic link
+              </button>
+            </form>
             <p className="mt-2 text-xs text-slate-400">
-              Passwordless sign-in. Change plans anytime. Questions? See the Billing FAQ.
+              Passwordless sign-in. Change plans anytime.
             </p>
           </div>
 
@@ -222,46 +290,33 @@ export default function Home() {
               <DotItem>Exports & webhooks</DotItem>
             </ul>
             <div className="mt-6">
-              <button className="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-300">
+              <span className="rounded-xl border border-slate-700 px-5 py-3 text-sm opacity-60">
                 Learn more
-              </button>
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* OBJECTIONS */}
-      <section id="why-chatmadi" className="mx-auto mt-16 max-w-7xl">
-        <h2 className="text-2xl font-semibold">Built for speed, clarity, and conversions</h2>
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-slate-700 p-5">
-            <h3 className="font-medium">No bloat</h3>
-            <ul className="mt-2 space-y-2 text-slate-300">
-              <DotItem>Tiny footprint and async loading so your Core Web Vitals stay green.</DotItem>
-              <DotItem>Zero trackers. Your users get help, not delay.</DotItem>
-            </ul>
-          </div>
-          <div className="rounded-xl border border-slate-700 p-5">
-            <h3 className="font-medium">Clear next step</h3>
-            <ul className="mt-2 space-y-2 text-slate-300">
-              <DotItem>CTA is obvious: open WhatsApp and talk. Reduce form drop-offs instantly.</DotItem>
-              <DotItem>Use Template variants to A/B test greeting copy.</DotItem>
-            </ul>
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
-      <section id="cta" className="mx-auto mt-16 max-w-7xl">
+      <section id="cta" className="mx-auto mt-16 max-w-6xl">
         <div className="rounded-2xl border border-slate-700 p-6 text-center">
           <h2 className="text-2xl font-semibold">Ready to turn visitors into WhatsApp conversations?</h2>
           <p className="mt-2 text-slate-300">
             Start with your email — we’ll send a magic link. Install in minutes; measure in hours.
-            Need help? Read the Docs or the FAQ.
           </p>
-
-          {/* MAGIC LINK FORM in footer CTA */}
-          <MagicEmailForm cta="Get magic link" />
+          <form className="mx-auto mt-4 flex max-w-md items-center gap-2" action="/dashboard" method="get">
+            <input
+              name="email"
+              required
+              type="email"
+              placeholder="you@company.com"
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-base outline-none ring-0 placeholder:text-slate-500"
+            />
+            <button type="submit" className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-medium hover:bg-sky-500">
+              Get magic link
+            </button>
+          </form>
         </div>
       </section>
     </main>
