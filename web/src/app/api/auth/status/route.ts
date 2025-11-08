@@ -1,19 +1,27 @@
 ﻿import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 /**
  * Lightweight auth-status probe.
- * We consider the user "authed" if a Supabase auth cookie exists.
- * Supabase sets cookies like: sb-<project-ref>-auth-token (and others).
- * This avoids creating a Supabase server client and sidesteps typing/env pitfalls.
+ * We consider the user "authed" if any Supabase auth cookie exists.
+ * Matches cookies like: sb-<project-ref>-auth-token / -refresh-token / -access-token.
+ * Works across Next 15 runtimes by awaiting cookies() and falling back to header parsing.
  */
 export async function GET() {
-  const store = cookies();
+  const store = await cookies(); // Next 15 can type this as Promise
+  const list = typeof store.getAll === "function" ? store.getAll() : [];
 
-  // Look for any Supabase auth cookie with a non-empty value
-  const authed = store
-    .getAll()
-    .some((c) => /^sb-.*-auth-token$/.test(c.name) && Boolean(c.value));
+  const nameRe = /^sb-.*-(auth|access|refresh)-token$/;
+
+  // Primary: use structured cookies API
+  const hitFromStore = list.some((c) => nameRe.test(c.name) && !!c.value);
+
+  // Fallback: parse raw Cookie header if getAll() is unavailable
+  const hdr = await headers();
+  const cookieHeader = hdr.get("cookie") || "";
+  const hitFromHeader = nameRe.test(cookieHeader);
+
+  const authed = hitFromStore || hitFromHeader;
 
   return NextResponse.json({ authed });
 }
