@@ -1,4 +1,5 @@
-﻿import ClickRewriteForGatedNav from "@/components/ClickRewriteForGatedNav";
+﻿import NavGate from "@/components/NavGate";
+import ClickRewriteForGatedNav from "@/components/ClickRewriteForGatedNav";
 import type { Metadata } from "next";
 import "./globals.css";
 import SiteFooter from "../components/SiteFooter";
@@ -10,12 +11,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full">
-        <style>{
-      html[data-hide-header="1"] header,
-      html[data-hide-header="1"] nav { display: none !important; }
-    }</style>
-      <body className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <html lang="en" className="h-full"><body className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
       <NavGate />
         <GlobalTopBar />
         <main className="flex-1">{children}</main>
@@ -25,5 +21,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+
 
 
