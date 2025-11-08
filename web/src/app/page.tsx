@@ -1,7 +1,7 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
 import NextHop from "@/components/NextHop";
-import RewriteNavWhenAuthed from "@/components/RewriteNavWhenAuthed";`r`n`r`n
+import RewriteNavWhenAuthed from "@/components/RewriteNavWhenAuthed";
 
 export const metadata: Metadata = {
   title: "ChatMadi — WhatsApp Chat Widget for Websites (₹199/month)",
@@ -77,7 +77,10 @@ export default function Home() {
   ];
 
   return (
-    <main className="px-4 py-10 sm:px-6 lg:px-8">`r`n      {/* Auto-forward + fix header links if already signed-in */}`r`n      <NextHop />`r`n      <RewriteNavWhenAuthed />
+    <main className="px-4 py-10 sm:px-6 lg:px-8">
+      {/* Auto-forward + fix header links if already signed-in */}
+      <NextHop />
+      <RewriteNavWhenAuthed />
       {/* Auto-forward signed-in users from /?next=... */}
       <NextHop />
 
