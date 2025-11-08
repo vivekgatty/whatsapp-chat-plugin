@@ -1,30 +1,50 @@
-﻿import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
-// Paths that require an authenticated session.
-const PROTECTED = ["/dashboard", "/docs", "/billing"];
+const PROTECTED_PREFIXES = ["/dashboard", "/docs"];
 
-export function middleware(req: NextRequest) {
-  const { pathname, search } = req.nextUrl;
-
-  // Only act on protected prefixes
-  const needsAuth = PROTECTED.some((p) => pathname.startsWith(p));
-  if (!needsAuth) return NextResponse.next();
-
-  // Supabase sets cookies like: sb-<project>-auth-token
-  const hasSession = req.cookies
-    .getAll()
-    .some((c) => /^sb-.*-auth-token$/.test(c.name) && Boolean(c.value));
-
-  if (hasSession) return NextResponse.next();
-
-  // Not authed → send to /?next=<original>
-  const url = new URL("/", req.url);
-  url.searchParams.set("next", pathname + search);
-  return NextResponse.redirect(url);
+// Detect Supabase auth cookie (sb-<ref>-auth-token) without importing Supabase at the edge.
+function isAuthed(req: NextRequest): boolean {
+  try {
+    return req.cookies
+      .getAll()
+      .some((c) => /^sb-.*-auth-token$/.test(c.name) && Boolean(c.value));
+  } catch {
+    return false;
+  }
 }
 
-// Only run on protected routes (avoids assets/_next)
+export function middleware(req: NextRequest) {
+  const url = new URL(req.url);
+  const path = url.pathname;
+  const authed = isAuthed(req);
+  const wantsProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
+
+  // Unauthed trying to hit protected -> send to "/" with ?next=...
+  if (!authed && wantsProtected) {
+    const nextTarget = path + url.search + url.hash;
+    const dest = new URL("/", req.url);
+    dest.searchParams.set("next", nextTarget);
+    return NextResponse.redirect(dest);
+  }
+
+  // Authed landing on "/" (or "/login") -> go to dashboard/overview or decoded ?next=
+  if (authed && (path === "/" || path === "/login")) {
+    const nextParam = url.searchParams.get("next");
+    const to = nextParam ? decodeURIComponent(nextParam) : "/dashboard/overview";
+    const dest = new URL(to, req.url);
+    // Ensure no lingering ?next= in final URL
+    if (nextParam) dest.search = "";
+    return NextResponse.redirect(dest);
+  }
+
+  return NextResponse.next();
+}
+
 export const config = {
-  matcher: ["/dashboard/:path*", "/docs/:path*", "/billing/:path*"],
+  matcher: [
+    "/",          // home/login
+    "/login",     // if you add a distinct login route later
+    "/dashboard/:path*", 
+    "/docs/:path*",
+  ],
 };
