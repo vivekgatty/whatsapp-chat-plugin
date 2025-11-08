@@ -1,18 +1,9 @@
 ﻿import { redirect } from "next/navigation";
+import type { PageProps } from "next";
 
-type Params = { params: { section: string } };
+export default async function SectionPage({ params }: PageProps<{ section: string }>) {
+  const { section } = await params;
 
-/**
- * Temporary router alias:
- * - /dashboard/widgetsettings => /dashboard/templates#widget
- * - /dashboard/docs           => /dashboard/templates#docs
- * - /dashboard/billing        => /dashboard/analytics#billing
- * - /dashboard/editprofile    => /dashboard/overview#profile
- * - anything else             => /dashboard/overview
- *
- * This removes 404s while we restore proper standalone pages.
- */
-export default function SectionPage({ params }: Params) {
   const map: Record<string, string> = {
     widgetsettings: "/dashboard/templates#widget",
     docs: "/dashboard/templates#docs",
@@ -20,6 +11,5 @@ export default function SectionPage({ params }: Params) {
     editprofile: "/dashboard/overview#profile",
   };
 
-  const target = map[params.section] ?? "/dashboard/overview";
-  redirect(target);
+  redirect(map[section] ?? "/dashboard/overview");
 }
