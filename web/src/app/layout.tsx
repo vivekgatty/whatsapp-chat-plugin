@@ -1,4 +1,5 @@
-﻿import type { Metadata } from "next";
+﻿import ClickRewriteForGatedNav from "@/components/ClickRewriteForGatedNav";
+import type { Metadata } from "next";
 import "./globals.css";
 import SiteFooter from "../components/SiteFooter";
 import GlobalTopBar from "../components/GlobalTopBar";
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GlobalTopBar />
         <main className="flex-1">{children}</main>
         <SiteFooter />
-      </body>
+        <ClickRewriteForGatedNav />
+  </body>
     </html>
   );
 }
+
