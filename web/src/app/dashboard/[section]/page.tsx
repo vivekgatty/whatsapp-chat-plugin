@@ -1,8 +1,9 @@
 ﻿import { redirect } from "next/navigation";
-import type { PageProps } from "next";
 
-export default async function SectionPage({ params }: PageProps<{ section: string }>) {
-  const { section } = await params;
+export default async function SectionPage(
+  props: { params: Promise<{ section: string }> }
+) {
+  const { section } = await props.params;
 
   const map: Record<string, string> = {
     widgetsettings: "/dashboard/templates#widget",
