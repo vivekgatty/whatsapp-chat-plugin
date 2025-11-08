@@ -1,26 +1,19 @@
 ﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
 
+/**
+ * Lightweight auth-status probe.
+ * We consider the user "authed" if a Supabase auth cookie exists.
+ * Supabase sets cookies like: sb-<project-ref>-auth-token (and others).
+ * This avoids creating a Supabase server client and sidesteps typing/env pitfalls.
+ */
 export async function GET() {
-  const cookieStore = cookies();
+  const store = cookies();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set() { /* no-op in API read */ },
-        remove() { /* no-op in API read */ },
-      },
-    }
-  );
+  // Look for any Supabase auth cookie with a non-empty value
+  const authed = store
+    .getAll()
+    .some((c) => /^sb-.*-auth-token$/.test(c.name) && Boolean(c.value));
 
-  const { data, error } = await supabase.auth.getUser();
-  const authed = !!data?.user && !error;
-
-  return NextResponse.json({ ok: true, authed });
+  return NextResponse.json({ authed });
 }
