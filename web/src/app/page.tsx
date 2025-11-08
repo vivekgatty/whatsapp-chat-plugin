@@ -8,7 +8,6 @@ export default function Page() {
   const [status, setStatus] =
     useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  // Uses NEXT_PUBLIC_* envs already in your project
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -23,7 +22,6 @@ export default function Page() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        // After clicking the email link, land in the real dashboard
         emailRedirectTo: `${window.location.origin}/dashboard/overview`,
       },
     });
@@ -32,6 +30,13 @@ export default function Page() {
 
   return (
     <main className="min-h-screen px-4 flex items-start justify-center pt-16">
+      {/* Hide any global header/topbar/nav ONLY on this page (/) */}
+      <style>{`
+        header, nav, .topbar, .site-header, [data-topbar] {
+          display: none !important;
+        }
+      `}</style>
+
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-semibold mb-6">Log in</h1>
 
