@@ -2,16 +2,30 @@
 export const dynamic = "force-dynamic";
 
 import React from "react";
-// IMPORTANT: default import; your repo exports a function that returns the admin client
 import supabaseAdmin from "../../../lib/supabaseAdmin";
 
 type AnyRec = Record<string, any>;
+const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-async function fetchOverview() {
-  const supabase = supabaseAdmin();
+async function resolveWidgetId(widFromUrl?: string) {
+  const db = supabaseAdmin();
 
-  // 1) Newest widget with a business, else fallback
-  const { data: w } = await supabase
+  // 1) If wid is provided as a URL param, validate and verify it exists.
+  if (widFromUrl && UUID_RE.test(widFromUrl)) {
+    const { data: exists } = await db
+      .from("widgets")
+      .select("id")
+      .eq("id", widFromUrl)
+      .maybeSingle();
+
+    if (exists?.id) {
+      return widFromUrl;
+    }
+  }
+
+  // 2) Otherwise prefer newest widget that belongs to a business
+  const { data: w } = await db
     .from("widgets")
     .select("id,business_id,created_at")
     .not("business_id", "is", null)
@@ -19,26 +33,37 @@ async function fetchOverview() {
     .limit(1)
     .maybeSingle();
 
-  const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
-  const widgetId: string = (w as AnyRec)?.id ?? FALLBACK_WIDGET;
-  const businessId: string | null = (w as AnyRec)?.business_id ?? null;
+  if (w?.id) return String(w.id);
 
-  // 2) Business profile (name, logo, email, plan)
+  // 3) Fallback to primary ID
+  return FALLBACK_WIDGET;
+}
+
+async function fetchOverview(widgetId: string) {
+  const supabase = supabaseAdmin();
+
+  // Try to find the business that owns this widget (optional; safe if none)
   let business: AnyRec | null = null;
-  if (businessId) {
-    const { data: biz } = await supabase
-      .from("businesses")
-      .select("id,name,logo_url,email,plan,free_messages_quota,free_message_quota,free_messages_used,free_message_used,free_messages_remaining,free_message_remaining")
-      .eq("id", businessId)
+  try {
+    const { data: w } = await supabase
+      .from("widgets")
+      .select("id,business_id")
+      .eq("id", widgetId)
       .maybeSingle();
-    business = biz ?? null;
-  }
 
-  const planRaw = String(business?.plan ?? "Starter");
-  const planLc = planRaw.toLowerCase();
-  const isPro = planLc.includes("pro") || planLc.includes("paid");
+    if (w?.business_id) {
+      const { data: biz } = await supabase
+        .from("businesses")
+        .select(
+          "id,name,logo_url,email,plan,free_messages_quota,free_messages_used,free_messages_remaining"
+        )
+        .eq("id", w.business_id as string)
+        .maybeSingle();
+      business = biz ?? null;
+    }
+  } catch { /* no-op */ }
 
-  // 3) Analytics (7 days)
+  // 7-day rollups via RPCs (graceful if absent)
   let daily: AnyRec[] = [];
   try {
     const { data: d } = await supabase.rpc("daily_analytics", {
@@ -46,10 +71,10 @@ async function fetchOverview() {
       p_days: 7,
     });
     daily = Array.isArray(d) ? d : [];
-  } catch (_) {
-    daily = [];
-  }
-  const sum = (key: string) => daily.reduce((acc, row) => acc + (Number(row?.[key]) || 0), 0);
+  } catch { /* no-op */ }
+
+  const sum = (k: string) => daily.reduce((acc, r) => acc + (Number(r?.[k]) || 0), 0);
+
   const totals = {
     impressions: sum("impression"),
     opens: sum("open"),
@@ -58,53 +83,52 @@ async function fetchOverview() {
     leads: sum("leads"),
   };
 
-  // 4) Top pages (7 days)
-  let pages: AnyRec[] = [];
-  try {
-    const { data: p } = await supabase.rpc("page_analytics", {
-      p_widget_id: widgetId,
-      p_days: 7,
-    });
-    pages = (Array.isArray(p) ? p : []).slice(0, 5);
-  } catch (_) {
-    pages = [];
-  }
+  // free messages (resilient to various column names)
+  const quota =
+    Number(business?.free_messages_quota) ||
+    Number((business as AnyRec)?.free_message_quota) ||
+    0;
 
-  // 5) Free messages (robust to various column names)
-  let quota =
-    Number(business?.free_messages_quota ?? business?.free_message_quota);
-  if (!Number.isFinite(quota) || quota < 0) quota = 0;
-  if (!isPro && quota === 0) quota = 100; // default Starter/Free quota
+  const used =
+    Number(business?.free_messages_used) ||
+    Number((business as AnyRec)?.free_message_used) ||
+    0;
 
-  let used =
-    Number(business?.free_messages_used ?? business?.free_message_used);
-  if (!Number.isFinite(used) || used < 0) used = 0;
+  const remainingExplicit =
+    (business?.free_messages_remaining != null
+      ? Number(business.free_messages_remaining)
+      : (business as AnyRec)?.free_message_remaining != null
+        ? Number((business as AnyRec).free_message_remaining)
+        : null);
 
-  let remainingExplicit =
-    business?.free_messages_remaining ?? business?.free_message_remaining;
-  let remaining =
-    remainingExplicit != null && Number.isFinite(Number(remainingExplicit))
-      ? Math.max(0, Number(remainingExplicit))
-      : (isPro ? null : Math.max(0, quota - used));
+  const remaining =
+    remainingExplicit != null && !Number.isNaN(remainingExplicit)
+      ? remainingExplicit
+      : Math.max(quota - used, 0);
 
   return {
-    widgetId,
+    widgetId: widgetId,
     business: business
       ? {
           name: business.name ?? "—",
           email: business.email ?? "—",
           logo: business.logo_url ?? "",
-          plan: planRaw,
+          plan: business.plan ?? "Starter",
         }
-      : { name: "—", email: "—", logo: "", plan: planRaw },
-    freeMessages: {
-      quota,
-      used,
-      remaining, // may be null for pro
-      isPro,
-    },
+      : { name: "—", email: "—", logo: "", plan: "Starter" },
+    freeMessages: { quota, used, remaining },
     totals,
-    pages,
+    pages: await (async () => {
+      try {
+        const { data: p } = await supabase.rpc("page_analytics", {
+          p_widget_id: widgetId,
+          p_days: 7,
+        });
+        return (Array.isArray(p) ? p : []).slice(0, 5);
+      } catch {
+        return [];
+      }
+    })(),
   };
 }
 
@@ -117,12 +141,14 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export default async function OverviewPage() {
-  const data = await fetchOverview();
-
-  const msgValue = data.freeMessages.isPro
-    ? `${data.freeMessages.used} this month`
-    : `${(data.freeMessages.remaining ?? 0)} / ${data.freeMessages.quota}`;
+// Accept ?wid=<uuid> and prefer it when valid/existing
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams?: { wid?: string };
+}) {
+  const widgetId = await resolveWidgetId(searchParams?.wid);
+  const data = await fetchOverview(widgetId);
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
@@ -138,9 +164,7 @@ export default async function OverviewPage() {
           <div className="h-12 w-12 rounded-xl border border-slate-800 bg-slate-900" />
         )}
         <div>
-          <h1 className="text-xl font-semibold">
-            {data.business.name || "Business"}
-          </h1>
+          <h1 className="text-xl font-semibold">{data.business.name || "Business"}</h1>
           <div className="text-sm text-slate-400">
             {data.business.email} • Plan: {data.business.plan}
           </div>
@@ -160,17 +184,9 @@ export default async function OverviewPage() {
         <Stat
           label="Free messages (remaining)"
           value={
-            <>
-              <span>{msgValue}</span>
-              {!data.freeMessages.isPro && (
-                <a
-                  href="/dashboard/billing"
-                  className="block text-xs font-normal text-emerald-400 underline mt-1"
-                >
-                  Upgrade to unlimited at ₹199/mo →
-                </a>
-              )}
-            </>
+            data.freeMessages.remaining || data.freeMessages.quota
+              ? `${data.freeMessages.remaining} / ${data.freeMessages.quota || "—"}`
+              : "N/A"
           }
         />
         <Stat label="Widget ID" value={<span className="text-xs">{data.widgetId}</span>} />
@@ -186,13 +202,22 @@ export default async function OverviewPage() {
             <div className="px-4 py-6 text-sm text-slate-400">No page data yet.</div>
           ) : (
             data.pages.map((row: AnyRec, i: number) => (
-              <div key={i} className="grid grid-cols-12 items-center gap-3 px-4 py-3 text-sm">
+              <div
+                key={i}
+                className="grid grid-cols-12 items-center gap-3 px-4 py-3 text-sm"
+              >
                 <div className="col-span-8 truncate">
                   {row.page || row.path || row.url || "(unknown)"}
                 </div>
-                <div className="col-span-1 text-right">{Number(row.impression ?? row.impressions ?? 0)}</div>
-                <div className="col-span-1 text-right">{Number(row.open ?? row.opens ?? 0)}</div>
-                <div className="col-span-1 text-right">{Number(row.click ?? row.clicks ?? 0)}</div>
+                <div className="col-span-1 text-right">
+                  {Number(row.impression ?? row.impressions ?? 0)}
+                </div>
+                <div className="col-span-1 text-right">
+                  {Number(row.open ?? row.opens ?? 0)}
+                </div>
+                <div className="col-span-1 text-right">
+                  {Number(row.click ?? row.clicks ?? 0)}
+                </div>
                 <div className="col-span-1 text-right">{Number(row.leads ?? 0)}</div>
               </div>
             ))
