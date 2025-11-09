@@ -1,4 +1,5 @@
-﻿export const runtime = "nodejs";
+﻿import UsageCounter from "../../../components/UsageCounter";
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import React from "react";
@@ -220,3 +221,4 @@ export default async function OverviewPage() {
     </section>
   );
 }
+
