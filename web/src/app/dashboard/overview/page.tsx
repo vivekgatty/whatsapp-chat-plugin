@@ -7,10 +7,49 @@ import supabaseAdmin from "../../../lib/supabaseAdmin";
 type AnyRec = Record<string, any>;
 const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const AUTO_CREATE_IF_ABSENT = true;
+
+async function ensureStarterWidget(db: ReturnType<typeof supabaseAdmin>) {
+  // Creates a minimal starter business + widget only if the table has none linked to a business.
+  // If anything fails, return null to gracefully fall back.
+  try {
+    // Double-check: any widget with business_id present?
+    const { data: existing } = await db
+      .from("widgets")
+      .select("id")
+      .not("business_id", "is", null)
+      .limit(1);
+    if (existing && existing.length > 0) {
+      return String(existing[0].id);
+    }
+
+    // Create a starter business
+    const bizName = `Starter Business ${new Date().toISOString().slice(0, 10)}`;
+    const { data: biz, error: bizErr } = await db
+      .from("businesses")
+      .insert([{ name: bizName, plan: "starter" }])
+      .select("id")
+      .single();
+    if (bizErr || !biz?.id) return null;
+
+    // Create a widget linked to that business
+    const { data: widget, error: widErr } = await db
+      .from("widgets")
+      .insert([{ business_id: biz.id }])
+      .select("id,business_id")
+      .single();
+
+    if (widErr || !widget?.id) return null;
+    return String(widget.id);
+  } catch {
+    return null;
+  }
+}
 
 async function resolveWidgetId(widFromUrl?: string) {
   const db = supabaseAdmin();
 
+  // 1) Respect a valid ?wid if provided
   if (widFromUrl && UUID_RE.test(widFromUrl)) {
     const { data: exists } = await db
       .from("widgets")
@@ -20,6 +59,7 @@ async function resolveWidgetId(widFromUrl?: string) {
     if (exists?.id) return widFromUrl;
   }
 
+  // 2) Prefer newest widget that belongs to any business (typical multi-tenant pick)
   const { data: w } = await db
     .from("widgets")
     .select("id,business_id,created_at")
@@ -29,6 +69,14 @@ async function resolveWidgetId(widFromUrl?: string) {
     .maybeSingle();
 
   if (w?.id) return String(w.id);
+
+  // 3) If none exist and auto-create is allowed, create a starter business+widget
+  if (AUTO_CREATE_IF_ABSENT) {
+    const createdId = await ensureStarterWidget(db);
+    if (createdId) return createdId;
+  }
+
+  // 4) Final fallback (stable)
   return FALLBACK_WIDGET;
 }
 
@@ -106,7 +154,7 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-// NOTE: In Next 15, searchParams may be a Promise. Type it that way and await it.
+// Next 15 note: searchParams may be a Promise; await it safely.
 export default async function OverviewPage({
   searchParams,
 }: {
