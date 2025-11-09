@@ -1,81 +1,112 @@
-﻿import { NextResponse } from "next/server";
-import { cookies, headers } from "next/headers";
-import supabaseAdmin from "../../../../lib/supabaseAdmin";
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import supabaseAdmin from "@/lib/supabaseAdmin";
 
-export const runtime = "nodejs"; // Buffer is needed for JWT decode
-
+// Used only if we cannot resolve a user or create a per-user widget
 const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
-// Minimal base64url -> JSON helper for JWT payload
-function decodeJwtSub(token: string): string | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const json = JSON.parse(Buffer.from(payload, "base64").toString("utf8"));
-    return typeof json?.sub === "string" ? json.sub : null;
-  } catch {
-    return null;
-  }
-}
-
-async function findSupabaseAccessToken(): Promise<string | null> {
-  // Next.js 15: cookies() is async
-  const jar = await cookies();
-  const all = jar.getAll();
-  const known = ["sb-access-token", "sb:token", "supabase-auth-token"];
-  for (const name of known) {
-    const c = all.find((x) => x.name === name);
-    if (c?.value) return c.value;
-  }
-  const loose = all.find((x) => /access[-_]token/i.test(x.name));
-  return loose?.value ?? null;
-}
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // 1) Try Supabase auth cookie
-    let userId: string | null = null;
-    const tok = await findSupabaseAccessToken();
-    if (tok) userId = decodeJwtSub(tok);
+    // 1) Resolve the logged-in Supabase user from cookies (SSR client)
+    const jar = await cookies(); // Next 15 types treat this as Promise<ReadonlyRequestCookies>
+    const supa = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return jar.get(name)?.value;
+          },
+          set() {/* not needed in this route */},
+          remove() {/* not needed in this route */},
+        },
+      }
+    );
 
-    // 2) Header override (x-user-id). In Next 15, headers() may be async too.
-    if (!userId) {
-      const h = await headers();
-      const hdr = h.get("x-user-id");
-      if (hdr && /^[0-9a-fA-F-]{36}$/.test(hdr)) userId = hdr;
+    const { data: userData } = await supa.auth.getUser();
+    const user = userData?.user || null;
+
+    // If no authenticated user, keep the global fallback
+    if (!user) {
+      return NextResponse.json({ widgetId: FALLBACK_WIDGET, source: "fallback_no_user" });
     }
 
-    if (!userId) {
-      return NextResponse.json(
-        { widgetId: FALLBACK_WIDGET, source: "fallback" },
-        { status: 200 }
-      );
-    }
-
-    // 3) Map (or fetch) the user's widget
     const db = supabaseAdmin();
-    const { data: wid, error } = await db.rpc("get_or_map_widget_for_user", {
-      p_user_id: userId,
-      p_fallback_widget: FALLBACK_WIDGET,
-    });
 
-    if (error) {
-      return NextResponse.json(
-        { widgetId: FALLBACK_WIDGET, source: "rpc_error", detail: error.message },
-        { status: 200 }
-      );
+    // 2) If this user already has a widget, return it
+    let { data: wExisting, error: wExistErr } = await db
+      .from("widgets")
+      .select("id,business_id")
+      .eq("owner_user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (wExistErr) {
+      return NextResponse.json({ widgetId: FALLBACK_WIDGET, source: "fallback_read_error" });
+    }
+    if (wExisting?.id) {
+      return NextResponse.json({ widgetId: wExisting.id, source: "owner_match" });
     }
 
-    const widgetId =
-      typeof wid === "string" && /^[0-9a-fA-F-]{36}$/.test(wid)
-        ? wid
-        : FALLBACK_WIDGET;
+    // 3) No widget yet for this user → ensure a starter business, then create a widget
+    let businessId: string | null = null;
 
-    return NextResponse.json({ widgetId, source: "user_mapping" }, { status: 200 });
+    // Try find business by owner_user_id, then by email (if present)
+    let tryOwner = await db
+      .from("businesses")
+      .select("id,owner_user_id,email")
+      .eq("owner_user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (tryOwner.data?.id) {
+      businessId = tryOwner.data.id as string;
+    } else if (user.email) {
+      const byEmail = await db
+        .from("businesses")
+        .select("id,email")
+        .eq("email", user.email)
+        .limit(1)
+        .maybeSingle();
+      if (byEmail.data?.id) {
+        businessId = byEmail.data.id as string;
+      }
+    }
+
+    // Create a minimal starter business if still none
+    if (!businessId) {
+      const friendly = (user.email?.split("@")[0] || "My").replace(/[^a-zA-Z0-9 _.-]/g, "");
+      const { data: bNew, error: bErr } = await db
+        .from("businesses")
+        .insert({ name: `${friendly}'s Business`, email: user.email ?? null, plan: "starter", owner_user_id: user.id } as any)
+        .select("id")
+        .single();
+
+      if (bErr || !bNew?.id) {
+        return NextResponse.json({ widgetId: FALLBACK_WIDGET, source: "fallback_business_create" });
+      }
+      businessId = bNew.id as string;
+    }
+
+    // Create this user's widget tied to that business
+    const { data: wNew, error: wNewErr } = await db
+      .from("widgets")
+      .insert({ business_id: businessId, owner_user_id: user.id })
+      .select("id")
+      .single();
+
+    if (wNewErr || !wNew?.id) {
+      return NextResponse.json({ widgetId: FALLBACK_WIDGET, source: "fallback_widget_create" });
+    }
+
+    return NextResponse.json({ widgetId: wNew.id as string, source: "new_for_user" });
   } catch (err: any) {
     return NextResponse.json(
-      { widgetId: FALLBACK_WIDGET, source: "route_error", detail: String(err?.message || err) },
+      { widgetId: FALLBACK_WIDGET, source: "fallback_exception", message: String(err?.message || err) },
       { status: 200 }
     );
   }
