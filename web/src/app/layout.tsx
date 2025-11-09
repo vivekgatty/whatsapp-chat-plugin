@@ -1,42 +1,46 @@
-﻿import NavGate from "@/components/NavGate";
-import ClickRewriteForGatedNav from "@/components/ClickRewriteForGatedNav";
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
+
+import NavGate from "@/components/NavGate";
+import ClickRewriteForGatedNav from "@/components/ClickRewriteForGatedNav";
 import SiteFooter from "../components/SiteFooter";
 import GlobalTopBar from "../components/GlobalTopBar";
+import UsageCounter from "@/components/UsageCounter";
 
 export const metadata: Metadata = {
   title: "Chatmadi",
 };
-import UsageCounter from "@/components/UsageCounter"; RootLayout({ children }: { children: React.ReactNode }) {
+
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="h-full"><body className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-          
-      <NavGate />
+    <html lang="en" className="h-full">
+      <body className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+        <NavGate />
         <GlobalTopBar />
         <main className="flex-1">{children}</main>
         <SiteFooter />
         <ClickRewriteForGatedNav />
-  {/* dup-tabs-hide start */}
-<script
-  suppressHydrationWarning
-  dangerouslySetInnerHTML={{ __html: `
+
+        {/* dup-tabs-hide start */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `
   (function(){
     function hideDupTabs(root){
       if(!root) return;
-      // If a nav inside <main> contains most of these labels, it's the duplicate tabbar
       var labels=["Overview","Widget settings","Templates","Analytics","Billing","Docs"];
       var candidates = root.querySelectorAll('main nav, main .tabs, main .subnav, main .tablist, main .nav');
       candidates.forEach(function(node){
         var txt = (node.textContent||"");
         var hits = 0; for (var i=0;i<labels.length;i++){ if (txt.indexOf(labels[i])>-1) hits++; }
-        if (hits >= 4) {  // require at least 4 label matches to be safe
+        if (hits >= 4) {
           node.style.display = "none";
           node.setAttribute("data-removed","dup-tabs");
         }
       });
     }
-    // Run now and also on future route changes
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", function(){ hideDupTabs(document); });
     } else {
@@ -49,19 +53,13 @@ import UsageCounter from "@/components/UsageCounter"; RootLayout({ children }: {
     });
     mo.observe(document.documentElement, { childList:true, subtree:true });
   })();
-  `}}
-/>
-{/* dup-tabs-hide end */}
-    <UsageCounter />
-  </body>
+            `,
+          }}
+        />
+        {/* dup-tabs-hide end */}
+
+        <UsageCounter />
+      </body>
     </html>
   );
 }
-
-
-
-
-
-
-
-
