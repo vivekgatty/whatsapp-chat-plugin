@@ -200,7 +200,7 @@ export default async function OverviewPage() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
-      {/* Header — Business Summary */}
+      {/* Header â€” Business Summary */}
       <div className="flex items-center gap-4">
         {data.business.logo ? (
           <img
@@ -265,6 +265,7 @@ export default async function OverviewPage() {
         )}
       </div>
 
+      <ResolveWidgetClient />
       <UsageCounter />
     </section>
   );
