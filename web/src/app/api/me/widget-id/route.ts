@@ -1,7 +1,8 @@
 ﻿import { NextResponse } from "next/server";
 import { cookies, headers } from "next/headers";
-// IMPORTANT: relative import (no alias) to avoid earlier breakages
 import supabaseAdmin from "../../../../lib/supabaseAdmin";
+
+export const runtime = "nodejs"; // Buffer is needed for JWT decode
 
 const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
@@ -18,38 +19,33 @@ function decodeJwtSub(token: string): string | null {
   }
 }
 
-function findSupabaseAccessToken(): string | null {
-  // Supabase auth-helpers usually set "sb-access-token".
-  // Some setups used "sb:token" historically — check both.
-  const jar = cookies();
+async function findSupabaseAccessToken(): Promise<string | null> {
+  // Next.js 15: cookies() is async
+  const jar = await cookies();
   const all = jar.getAll();
   const known = ["sb-access-token", "sb:token", "supabase-auth-token"];
   for (const name of known) {
     const c = all.find((x) => x.name === name);
     if (c?.value) return c.value;
   }
-  // As a safety net, pick any cookie that contains "access-token".
   const loose = all.find((x) => /access[-_]token/i.test(x.name));
   return loose?.value ?? null;
 }
 
 export async function GET() {
   try {
-    // 1) Try to get user id from Supabase auth cookie (no extra deps)
+    // 1) Try Supabase auth cookie
     let userId: string | null = null;
-    const tok = findSupabaseAccessToken();
-    if (tok) {
-      userId = decodeJwtSub(tok);
-    }
+    const tok = await findSupabaseAccessToken();
+    if (tok) userId = decodeJwtSub(tok);
 
-    // 2) If not found, accept an override header (lets us add a tiny client helper later)
+    // 2) Header override (x-user-id). In Next 15, headers() may be async too.
     if (!userId) {
-      const h = headers();
+      const h = await headers();
       const hdr = h.get("x-user-id");
       if (hdr && /^[0-9a-fA-F-]{36}$/.test(hdr)) userId = hdr;
     }
 
-    // If no user -> return fallback (don’t write a bogus mapping)
     if (!userId) {
       return NextResponse.json(
         { widgetId: FALLBACK_WIDGET, source: "fallback" },
@@ -57,7 +53,7 @@ export async function GET() {
       );
     }
 
-    // 3) Map (or get) the user's widget via your new RPC
+    // 3) Map (or fetch) the user's widget
     const db = supabaseAdmin();
     const { data: wid, error } = await db.rpc("get_or_map_widget_for_user", {
       p_user_id: userId,
@@ -65,14 +61,12 @@ export async function GET() {
     });
 
     if (error) {
-      // Graceful degrade; do not throw UI errors
       return NextResponse.json(
         { widgetId: FALLBACK_WIDGET, source: "rpc_error", detail: error.message },
         { status: 200 }
       );
     }
 
-    // Safety: ensure uuid-ish string
     const widgetId =
       typeof wid === "string" && /^[0-9a-fA-F-]{36}$/.test(wid)
         ? wid
