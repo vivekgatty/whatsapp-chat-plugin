@@ -7,7 +7,8 @@ const FREE_QUOTA = 100;
 // GET /api/usage/summary
 export async function GET() {
   try {
-    const db = supabaseAdmin;
+    // ✅ supabaseAdmin is a function in your repo; call it to get the client
+    const db = supabaseAdmin();
 
     // 1) Find newest widget that belongs to a business; fallback to the known primary id
     let widgetId: string = FALLBACK_WIDGET;
