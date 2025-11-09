@@ -13,7 +13,7 @@ const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
 /** Resolve logged-in user on the server */
 async function getSSRUser() {
-  const jar = cookies();
+  const jar: any = await Promise.resolve(cookies() as any);
   const supa = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
@@ -194,12 +194,12 @@ async function fetchOverview() {
     widgetId,
     business: business
       ? {
-          name: business.name ?? "—",
-          email: business.email ?? "—",
+          name: business.name ?? "â€”",
+          email: business.email ?? "â€”",
           logo: business.logo_url ?? "",
           plan: business.plan ?? "Starter",
         }
-      : { name: "—", email: "—", logo: "", plan: "Starter" },
+      : { name: "â€”", email: "â€”", logo: "", plan: "Starter" },
     freeMessages: { quota, used, remaining },
     totals,
     pages,
@@ -220,7 +220,7 @@ export default async function OverviewPage() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
-      {/* Header — Business Summary */}
+      {/* Header â€” Business Summary */}
       <div className="flex items-center gap-4">
         {data.business.logo ? (
           <img
@@ -234,7 +234,7 @@ export default async function OverviewPage() {
         <div>
           <h1 className="text-xl font-semibold">{data.business.name || "Business"}</h1>
           <div className="text-sm text-slate-400">
-            {data.business.email} • Plan: {data.business.plan}
+            {data.business.email} â€¢ Plan: {data.business.plan}
           </div>
         </div>
       </div>
@@ -253,7 +253,7 @@ export default async function OverviewPage() {
           label="Free messages (remaining)"
           value={
             data.freeMessages.remaining || data.freeMessages.quota
-              ? `${data.freeMessages.remaining} / ${data.freeMessages.quota || "—"}`
+              ? `${data.freeMessages.remaining} / ${data.freeMessages.quota || "â€”"}`
               : "N/A"
           }
         />
@@ -290,7 +290,7 @@ export default async function OverviewPage() {
         </div>
         {data.pages.length > 0 && (
           <div className="px-4 pb-3 pt-2 text-xs text-slate-500">
-            Columns: page • impressions • opens • clicks • leads
+            Columns: page â€¢ impressions â€¢ opens â€¢ clicks â€¢ leads
           </div>
         )}
       </div>
