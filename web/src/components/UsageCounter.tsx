@@ -1,46 +1,50 @@
 ﻿"use client";
 import { useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 /**
  * UsageCounter
- * - Client-only enhancer; makes NO layout changes.
- * - Finds the card labeled "Free messages (remaining)" and replaces its value.
- * - Shows a tiny upgrade nudge inside the same card for free/starter.
- * - Degrades gracefully (keeps "N/A") if API is unreachable.
+ * - Keeps the free-messages countdown + CTA (unchanged)
+ * - NEW: Maps signed-in user -> unique widget via /api/me/widget-id
+ *         and rewrites the "Widget ID" card on the Overview page.
  */
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+);
+
 export default function UsageCounter() {
   useEffect(() => {
     let cancelled = false;
 
-    // Helper: safe text setter on the "big number" element inside the card
+    // Helper: safe text setter on the "big number" element inside a stat card
     const setCardNumber = (el: Element, text: string) => {
-      // Prioritize a big number looking element in the same card
+      const host = el.closest("div,section,article") || el;
       const candidates = Array.from(
-        el.closest("div,section,article")?.querySelectorAll("*") ?? []
+        host.querySelectorAll<HTMLElement>("*")
       ).filter((n) => {
         const t = (n.textContent || "").trim();
-        // likely big-number or N/A holder
         return (
           n !== el &&
           (t === "N/A" ||
-            /^[0-9]+$/.test(t) ||
+            /^[0-9A-Za-z-]+$/.test(t) ||
             n.className.toString().includes("text-3xl") ||
             n.className.toString().includes("text-4xl") ||
+            n.className.toString().includes("font-semibold") ||
             n.className.toString().includes("font-bold"))
         );
       });
 
-      const target = candidates[0] as HTMLElement | undefined;
+      const target = candidates[0];
       if (target) {
         target.textContent = text;
         return target;
       }
-      // Fallback: append a span near the label
       const span = document.createElement("span");
       span.textContent = text;
       span.style.marginLeft = "0.5rem";
       span.style.fontWeight = "700";
-      el.parentElement?.appendChild(span);
+      (el.parentElement || host).appendChild(span);
       return span;
     };
 
@@ -48,7 +52,6 @@ export default function UsageCounter() {
     const ensureCTA = (host: Element, plan: string) => {
       const card = host.closest("div,section,article") || host;
       if (!card || plan.toLowerCase() === "pro") return;
-
       const markerAttr = "data-usage-cta";
       if ((card as HTMLElement).querySelector(`[${markerAttr}]`)) return;
 
@@ -58,30 +61,28 @@ export default function UsageCounter() {
       cta.textContent = "Upgrade to unlimited at ₹199/mo →";
       cta.className =
         "text-xs underline hover:opacity-80 block mt-1 text-emerald-400";
-      // Avoid layout shifts: place CTA at the end of the card
       (card as HTMLElement).appendChild(cta);
     };
 
-    // Find the label node for "Free messages (remaining)"
-    const findLabel = (): Element | null => {
-      const inMain = document.querySelector("main") || document.body;
-      const all = Array.from(inMain.querySelectorAll("*"));
-      // Look for a node whose text contains the label; prefer short labels (no children)
-      const label = all.find((n) => {
-        const t = (n.textContent || "").trim().toLowerCase();
-        return t.includes("free messages") && t.includes("remaining");
-      });
-      return (label as Element) || null;
+    // Generic label finder
+    const findLabelByText = (needleLower: string): Element | null => {
+      const root = document.querySelector("main") || document.body;
+      const all = Array.from(root.querySelectorAll("*"));
+      const node = all.find((n) =>
+        (n.textContent || "").toLowerCase().includes(needleLower)
+      );
+      return (node as Element) || null;
     };
 
-    // Pull usage summary from API (resilient to different shapes)
-    const load = async () => {
+    // -------------------------
+    //  A) FREE-MESSAGES COUNTER
+    // -------------------------
+    const loadFreeMessages = async () => {
       try {
         const res = await fetch("/api/usage/summary", { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json: any = await res.json();
 
-        // Normalize fields
         const plan =
           json?.plan ||
           json?.tier ||
@@ -89,7 +90,6 @@ export default function UsageCounter() {
           json?.current_plan ||
           "starter";
 
-        // Try to read numbers in a few common shapes
         const limit =
           Number(json?.limit ?? json?.quota ?? json?.free_quota ?? 100) || 100;
 
@@ -109,27 +109,24 @@ export default function UsageCounter() {
 
         if (cancelled) return;
 
-        const label = findLabel();
+        const label = findLabelByText("free messages");
         if (!label) return;
 
-        // If we couldn't resolve numbers, at least show 100 for starter/free
         const planLc = String(plan).toLowerCase();
         const isFree = planLc.includes("free") || planLc.includes("starter");
         const value =
           remaining !== null
-            ? String(remaining)
+            ? `${remaining} / ${limit || "—"}`
             : isFree
-            ? String(limit) // default 100
-            : String(used); // on pro, show monthly used
+            ? `${limit} / ${limit || "—"}`
+            : String(used);
 
         const numEl = setCardNumber(label, value);
         ensureCTA(numEl || label, planLc);
       } catch {
-        // Graceful no-op; keep whatever UI exists
-        const label = findLabel();
+        // Best-effort CTA for starter/free
+        const label = findLabelByText("free messages");
         if (label && !cancelled) {
-          // Still attach CTA for free/starter if we can detect via page text
-          // (best-effort heuristic; doesn’t alter layout)
           const pageTxt = (document.body.textContent || "").toLowerCase();
           const looksFree =
             pageTxt.includes("plan: starter") || pageTxt.includes("plan: free");
@@ -138,7 +135,44 @@ export default function UsageCounter() {
       }
     };
 
-    load();
+    // ---------------------------------------
+    //  B) UNIQUE WIDGET PER USER (NEW LOGIC)
+    // ---------------------------------------
+    const mapAndRewriteWidgetId = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (!user) return; // not signed in
+
+        // Tell the API who we are; it will create/map a per-user widget id.
+        const resp = await fetch("/api/me/widget-id", {
+          headers: { "x-user-id": user.id },
+          cache: "no-store",
+        });
+        if (!resp.ok) return;
+        const payload: any = await resp.json();
+        const widgetId = String(payload?.widgetId || "");
+
+        if (!widgetId) return;
+        if (cancelled) return;
+
+        // Rewrite the "Widget ID" card in place (no layout change)
+        const label = findLabelByText("widget id");
+        if (label) setCardNumber(label, widgetId);
+
+        // Optional convenience for copy/snippet UIs
+        (window as any).chatmadiWidgetId = widgetId;
+        try {
+          localStorage.setItem("chatmadi.widgetId", widgetId);
+        } catch {}
+      } catch {
+        // silent
+      }
+    };
+
+    loadFreeMessages();
+    mapAndRewriteWidgetId();
+
     return () => {
       cancelled = true;
     };
