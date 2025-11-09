@@ -8,8 +8,7 @@ import GlobalTopBar from "../components/GlobalTopBar";
 export const metadata: Metadata = {
   title: "Chatmadi",
 };
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import UsageCounter from "@/components/UsageCounter"; RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full"><body className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
           
@@ -53,10 +52,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   `}}
 />
 {/* dup-tabs-hide end */}
+    <UsageCounter />
   </body>
     </html>
   );
 }
+
 
 
 
