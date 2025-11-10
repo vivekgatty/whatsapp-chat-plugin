@@ -201,7 +201,7 @@ export default async function OverviewPage() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
-      {/* Header Ã¢â‚¬â€ Business Summary */}
+      {/* Header ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Business Summary */}
       <div className="flex items-center gap-4">
         {data.business.logo ? (
           <img
