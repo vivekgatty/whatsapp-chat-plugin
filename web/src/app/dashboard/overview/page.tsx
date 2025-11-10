@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 // IMPORTANT: keep relative import (alias imports broke before)
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import ResolveWidgetClient from "../../../components/ResolveWidgetClient";
 
 type AnyRec = Record<string, any>;
 const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
@@ -200,7 +201,7 @@ export default async function OverviewPage() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
-      {/* Header â€” Business Summary */}
+      {/* Header Ã¢â‚¬â€ Business Summary */}
       <div className="flex items-center gap-4">
         {data.business.logo ? (
           <img
@@ -265,6 +266,7 @@ export default async function OverviewPage() {
         )}
       </div>
 
+      <ResolveWidgetClient />
       <ResolveWidgetClient />
       <UsageCounter />
     </section>
