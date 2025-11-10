@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-// IMPORTANT: use relative import (aliases caused issues before)
+// IMPORTANT: keep relative import (alias imports broke earlier)
 import supabaseAdmin from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
 type Json = Record<string, any>;
 
-function ok(data: Json, widgetId?: string) {
+function respond(data: Json, widgetId?: string) {
   const res = NextResponse.json(data, { status: 200 });
   if (widgetId) {
     res.cookies.set("cm_widget_id", widgetId, {
@@ -30,21 +30,21 @@ function bad(message: string) {
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as Json;
-    const emailRaw = String(body?.email || "").trim().toLowerCase();
+    const email = String(body?.email || "").trim().toLowerCase();
 
-    if (!emailRaw || !emailRaw.includes("@")) {
+    if (!email || !email.includes("@")) {
       return bad("Valid 'email' is required in JSON body.");
     }
 
     const db = supabaseAdmin();
 
-    // 1) Find business by email (prefer existing)
+    // 1) Find or create business by email
     let businessId: string | null = null;
 
     const { data: bizFound } = await db
       .from("businesses")
-      .select("id,email")
-      .eq("email", emailRaw)
+      .select("id")
+      .eq("email", email)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -52,26 +52,27 @@ export async function POST(req: Request) {
     if (bizFound?.id) {
       businessId = bizFound.id as string;
     } else {
-      // 2) Create minimal starter business if none
-      const friendly = emailRaw.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
+      const friendly = email.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
       const { data: bizNew, error: bizErr } = await db
         .from("businesses")
         .insert({
           name: `${friendly || "My"}'s Business`,
-          email: emailRaw,
+          email,
           plan: "starter",
         } as any)
         .select("id")
         .single();
 
       if (bizErr || !bizNew?.id) {
-        // graceful fallback: do not fail hard
-        return ok({ widgetId: FALLBACK_WIDGET, source: "fallback_business_create" }, FALLBACK_WIDGET);
+        return respond(
+          { widgetId: FALLBACK_WIDGET, source: "fallback_business_create" },
+          FALLBACK_WIDGET
+        );
       }
       businessId = bizNew.id as string;
     }
 
-    // 3) Find or create a widget for that business
+    // 2) Find or create a widget for that business
     let widgetId: string | null = null;
 
     const { data: wFound } = await db
@@ -92,15 +93,18 @@ export async function POST(req: Request) {
         .single();
 
       if (wErr || !wNew?.id) {
-        return ok({ widgetId: FALLBACK_WIDGET, source: "fallback_widget_create" }, FALLBACK_WIDGET);
+        return respond(
+          { widgetId: FALLBACK_WIDGET, source: "fallback_widget_create" },
+          FALLBACK_WIDGET
+        );
       }
       widgetId = wNew.id as string;
     }
 
-    // 4) Set cookie and return
-    return ok({ widgetId, source: "resolved" }, widgetId);
+    // 3) Set cookie + return
+    return respond({ widgetId, source: "resolved" }, widgetId);
   } catch (err: any) {
-    return ok(
+    return respond(
       { widgetId: FALLBACK_WIDGET, source: "fallback_exception", message: String(err?.message || err) },
       FALLBACK_WIDGET
     );
