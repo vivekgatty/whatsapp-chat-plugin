@@ -1,74 +1,107 @@
 "use client";
-
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 
 /**
- * On first load after login:
- * - if ?wid is missing, try cookie(cm_widget_id)
- * - if cookie is missing, get email from Supabase, POST to /api/resolve-widget
- *   (server sets cm_widget_id), then push ?wid=<id>
- * Does nothing if wid already present.
+ * ResolveWidgetClient
+ * - Client helper that finds the logged-in email (from Supabase localStorage/cookies/DOM),
+ *   POSTs to /api/resolve-widget, lets the server set `cm_widget_id`, and appends ?wid=...
+ * - Best-effort only. No visual UI and won’t break anything if it can’t find an email.
  */
 export default function ResolveWidgetClient() {
-  const router = useRouter();
-  const params = useSearchParams();
-
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+
+    const emailFromSupabaseLocalStorage = (): string | null => {
       try {
-        // If URL already has wid, nothing to do
-        const widInUrl = params.get("wid");
-        if (widInUrl) return;
-
-        // Try cookie first
-        const cookieWid = readCookie("cm_widget_id");
-        if (cookieWid) {
-          replaceWithWid(cookieWid);
-          return;
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i) || "";
+          if (!/auth-token/i.test(k)) continue;
+          const raw = localStorage.getItem(k);
+          if (!raw) continue;
+          // supabase stores JSON session in localStorage
+          const j = JSON.parse(raw);
+          const e =
+            j?.user?.email ||
+            j?.currentSession?.user?.email ||
+            j?.currentSession?.user?.user_metadata?.email ||
+            j?.user?.user_metadata?.email;
+          if (e) return String(e).toLowerCase();
         }
+      } catch {}
+      return null;
+    };
 
-        // Otherwise, get user email from Supabase browser client
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-        const supabase = createClient(url, anon);
-        const { data: { user } } = await supabase.auth.getUser();
-        const email = user?.email?.toLowerCase().trim();
+    const emailFromCookies = (): string | null => {
+      try {
+        const m = document.cookie.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+        return m ? m[0].toLowerCase() : null;
+      } catch {}
+      return null;
+    };
 
-        if (!email) return; // not signed in yet
+    const emailFromDOM = (): string | null => {
+      try {
+        const main = document.querySelector("main") || document.body;
+        const txt = (main?.textContent || "");
+        const m = txt.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+        return m ? m[0].toLowerCase() : null;
+      } catch {}
+      return null;
+    };
 
-        // Ask server to resolve/create widget + set cookie
-        const resp = await fetch("/api/resolve-widget", {
+    const setWidgetIdText = (wid: string) => {
+      try {
+        const main = document.querySelector("main") || document.body;
+        if (!main) return;
+        const all = Array.from(main.querySelectorAll("*"));
+        // Find an element whose text is exactly "Widget ID"
+        const label = all.find(n => (n.textContent || "").trim().toLowerCase() === "widget id");
+        if (!label) return;
+        const card = label.closest("div,section,article") || label.parentElement || main;
+        const valueEl = Array.from(card.querySelectorAll("span,div,code"))
+          .find(x => x !== label && (x.textContent || "").length >= 8);
+        if (valueEl) (valueEl as HTMLElement).textContent = wid;
+      } catch {}
+    };
+
+    const appendWidParam = (wid: string) => {
+      try {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("wid") !== wid) {
+          url.searchParams.set("wid", wid);
+          window.history.replaceState({}, "", url.toString());
+        }
+      } catch {}
+    };
+
+    const run = async () => {
+      const email =
+        emailFromSupabaseLocalStorage() ||
+        emailFromCookies() ||
+        emailFromDOM();
+
+      if (!email) return; // nothing to do, fail-safe
+
+      try {
+        const res = await fetch("/api/resolve-widget", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
-        }).then(r => r.json()).catch(() => null);
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        const wid = String(json?.widgetId || "");
+        if (!wid || cancelled) return;
+        // Update the UI hint and URL param
+        setWidgetIdText(wid);
+        appendWidParam(wid);
+      } catch {}
+    };
 
-        const serverWid = resp?.widgetId || cookieWid;
-        if (serverWid) {
-          replaceWithWid(serverWid);
-        }
-      } catch {
-        // fail silently; page will fall back to old behavior
-      }
-    })();
-
-    function readCookie(name: string) {
-      if (typeof document === "undefined") return "";
-      const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-      return m ? decodeURIComponent(m[2]) : "";
-    }
-
-    function replaceWithWid(id: string) {
-      // Add wid to the current URL without full page reload
-      const u = new URL(window.location.href);
-      if (u.searchParams.get("wid") !== id) {
-        u.searchParams.set("wid", id);
-        router.replace(u.pathname + "?" + u.searchParams.toString());
-      }
-    }
-  }, [params, router]);
+    run();
+    return () => { cancelled = true; };
+  }, []);
 
   return null;
 }
