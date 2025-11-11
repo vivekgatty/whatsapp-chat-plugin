@@ -2,6 +2,8 @@ import UsageCounter from "../../../components/UsageCounter";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/* build: 2025-11-11T19:03:12 */
+
 import React from "react";
 import { cookies } from "next/headers";
 import supabaseAdmin from "../../../lib/supabaseAdmin";
@@ -16,15 +18,18 @@ function asUuid(s?: string | null): string | null {
 }
 
 async function resolveWidgetId(db: any, searchWid?: string | null): Promise<string> {
+  // 1) URL param wins
   const fromParam = asUuid(searchWid);
   if (fromParam) return fromParam;
 
+  // 2) Cookie
   try {
-    const jar = cookies(); // Next 15: sync
+    const jar = cookies();
     const cookieWid = asUuid(jar.get("cm_widget_id")?.value || null);
     if (cookieWid) return cookieWid;
   } catch {}
 
+  // 3) Newest widget that has a business_id
   const { data: w } = await db
     .from("widgets")
     .select("id,business_id,created_at")
@@ -39,6 +44,7 @@ async function resolveWidgetId(db: any, searchWid?: string | null): Promise<stri
 async function fetchOverview(widgetId: string) {
   const db = supabaseAdmin();
 
+  // Business strictly for this widget
   let business: AnyRec | null = null;
   try {
     const { data: w } = await db
@@ -51,7 +57,9 @@ async function fetchOverview(widgetId: string) {
     if (businessId) {
       const { data: biz } = await db
         .from("businesses")
-        .select("id,name,logo_url,email,plan,free_messages_quota,free_messages_used,free_messages_remaining")
+        .select(
+          "id,name,logo_url,email,plan,free_messages_quota,free_messages_used,free_messages_remaining"
+        )
         .eq("id", businessId)
         .maybeSingle();
       business = biz ?? null;
@@ -60,9 +68,13 @@ async function fetchOverview(widgetId: string) {
     business = null;
   }
 
+  // Analytics (7d) for this widget
   let daily: AnyRec[] = [];
   try {
-    const { data: d } = await db.rpc("daily_analytics", { p_widget_id: widgetId, p_days: 7 });
+    const { data: d } = await db.rpc("daily_analytics", {
+      p_widget_id: widgetId,
+      p_days: 7,
+    });
     daily = Array.isArray(d) ? d : [];
   } catch {
     daily = [];
@@ -77,6 +89,7 @@ async function fetchOverview(widgetId: string) {
     leads: sum("leads"),
   };
 
+  // Top pages (7d)
   let pages: AnyRec[] = [];
   try {
     const { data: p } = await db.rpc("page_analytics", { p_widget_id: widgetId, p_days: 7 });
@@ -85,19 +98,29 @@ async function fetchOverview(widgetId: string) {
     pages = [];
   }
 
-  const quota = Number(business?.free_messages_quota) || Number((business as any)?.free_message_quota) || 100;
-  const used  = Number(business?.free_messages_used)  || Number((business as any)?.free_message_used)  || 6;
-  const remainingExplicit = business?.free_messages_remaining != null ? Number(business.free_messages_remaining) : null;
+  // Quota (resilient)
+  const quota =
+    Number(business?.free_messages_quota) ||
+    Number((business as any)?.free_message_quota) ||
+    100;
+
+  const used =
+    Number(business?.free_messages_used) ||
+    Number((business as any)?.free_message_used) ||
+    6;
+
+  const remainingExplicit =
+    business?.free_messages_remaining != null
+      ? Number(business.free_messages_remaining)
+      : null;
+
   const remaining = remainingExplicit != null ? remainingExplicit : Math.max(quota - used, 0);
 
   return {
     widgetId,
-    business: business ? {
-      name: business.name ?? "-",
-      email: business.email ?? "-",
-      logo: business.logo_url ?? "",
-      plan: business.plan ?? "Starter",
-    } : { name: "-", email: "-", logo: "", plan: "Starter" },
+    business: business
+      ? { name: business.name ?? "-", email: business.email ?? "-", logo: business.logo_url ?? "", plan: business.plan ?? "Starter" }
+      : { name: "-", email: "-", logo: "", plan: "Starter" },
     freeMessages: { quota, used, remaining },
     totals,
     pages,
@@ -113,37 +136,56 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-export default async function OverviewPage({ searchParams }: { searchParams?: { wid?: string } }) {
+type SearchParams = { wid?: string };
+
+export default async function OverviewPage(
+  { searchParams }: { searchParams?: Promise<SearchParams> }
+) {
+  const sp = searchParams ? await searchParams : undefined;
+
   const db = supabaseAdmin();
-  const widgetId = await resolveWidgetId(db, searchParams?.wid || null);
+  const widgetId = await resolveWidgetId(db, sp?.wid || null);
   const data = await fetchOverview(widgetId);
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-8">
+      {/* Header */}
       <div className="flex items-center gap-4">
         {data.business.logo ? (
-          <img src={data.business.logo} alt={data.business.name} className="h-12 w-12 rounded-xl border border-slate-800 object-cover" />
+          <img
+            src={data.business.logo}
+            alt={data.business.name}
+            className="h-12 w-12 rounded-xl border border-slate-800 object-cover"
+          />
         ) : (
           <div className="h-12 w-12 rounded-xl border border-slate-800 bg-slate-900" />
         )}
         <div>
           <h1 className="text-xl font-semibold">{data.business.name || "Business"}</h1>
-          <div className="text-sm text-slate-400">{data.business.email} • Plan: {data.business.plan}</div>
+          <div className="text-sm text-slate-400">
+            {data.business.email} • Plan: {data.business.plan}
+          </div>
         </div>
       </div>
 
+      {/* KPI Row */}
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <Stat label="Impressions (7d)" value={data.totals.impressions} />
         <Stat label="Opens (7d)" value={data.totals.opens} />
         <Stat label="Clicks (7d)" value={data.totals.clicks} />
       </div>
 
+      {/* Messages + Leads */}
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <Stat label="Leads (7d)" value={data.totals.leads} />
-        <Stat label="Free messages (remaining)" value={`${data.freeMessages.remaining} / ${data.freeMessages.quota}`} />
+        <Stat
+          label="Free messages (remaining)"
+          value={${data.freeMessages.remaining} / }
+        />
         <Stat label="Widget ID" value={<span className="text-xs">{data.widgetId}</span>} />
       </div>
 
+      {/* Top Pages */}
       <div className="mt-8 rounded-2xl border border-slate-800">
         <div className="border-b border-slate-800 px-4 py-3 text-sm font-semibold">Top Pages (7 days)</div>
         <div className="divide-y divide-slate-800">
