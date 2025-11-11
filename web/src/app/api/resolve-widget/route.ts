@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-// IMPORTANT: keep relative import (alias imports broke earlier)
+// IMPORTANT: relative import only (aliases broke earlier)
 import supabaseAdmin from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
 type Json = Record<string, any>;
 
-function respond(data: Json, widgetId?: string) {
+function reply(data: Json, widgetId?: string) {
   const res = NextResponse.json(data, { status: 200 });
   if (widgetId) {
     res.cookies.set("cm_widget_id", widgetId, {
@@ -17,96 +17,116 @@ function respond(data: Json, widgetId?: string) {
       sameSite: "lax",
       secure: true,
       path: "/",
-      maxAge: 60 * 60 * 24 * 365, // 1 year
+      maxAge: 60 * 60 * 24 * 365,
     });
   }
   return res;
 }
 
-function bad(message: string) {
-  return NextResponse.json({ error: message }, { status: 400 });
+async function ensureBusinessByEmail(db: any, email: string): Promise<{ id: string | null; trace: any[] }> {
+  const trace: any[] = [];
+
+  const { data: found, error: findErr } = await db
+    .from("businesses")
+    .select("id")
+    .eq("email", email)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (findErr) trace.push({ step: "find_business", error: findErr?.message || String(findErr) });
+  if (found?.id) return { id: found.id as string, trace };
+
+  const friendly = email.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
+  const variants: Json[] = [
+    { name: `${friendly || "My"}'s Business`, email, plan: "starter" },
+    { name: `${friendly || "My"}'s Business`, email },
+    { name: `${friendly || "My"}'s Business` },
+  ];
+
+  for (const v of variants) {
+    const { data, error } = await db.from("businesses").insert(v as any).select("id").single();
+    if (data?.id) {
+      trace.push({ step: "create_business", variant: Object.keys(v), ok: true });
+      return { id: data.id as string, trace };
+    }
+    trace.push({ step: "create_business", variant: Object.keys(v), error: error?.message || String(error) });
+
+    if (error?.code === "23505") {
+      const { data: again } = await db
+        .from("businesses")
+        .select("id")
+        .eq("email", email)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (again?.id) return { id: again.id as string, trace };
+    }
+  }
+
+  return { id: null, trace };
+}
+
+async function ensureWidgetForBusiness(db: any, businessId: string): Promise<{ id: string | null; trace: any[] }> {
+  const trace: any[] = [];
+
+  const { data: existing, error: findErr } = await db
+    .from("widgets")
+    .select("id")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (findErr) trace.push({ step: "find_widget", error: findErr?.message || String(findErr) });
+  if (existing?.id) return { id: existing.id as string, trace };
+
+  const { data, error } = await db.from("widgets").insert({ business_id: businessId } as any).select("id").single();
+  if (data?.id) return { id: data.id as string, trace };
+
+  trace.push({ step: "create_widget", error: error?.message || String(error) });
+  return { id: null, trace };
+}
+
+async function handle(emailRaw: string) {
+  const email = String(emailRaw || "").trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return NextResponse.json({ error: "Valid 'email' is required." }, { status: 400 });
+  }
+
+  const db = supabaseAdmin();
+
+  const biz = await ensureBusinessByEmail(db, email);
+  if (!biz.id) {
+    return reply({ widgetId: FALLBACK_WIDGET, source: "fallback_business_create", debug: biz.trace }, FALLBACK_WIDGET);
+  }
+
+  const wid = await ensureWidgetForBusiness(db, biz.id);
+  if (!wid.id) {
+    return reply(
+      { widgetId: FALLBACK_WIDGET, source: "fallback_widget_create", debug: [...biz.trace, ...wid.trace] },
+      FALLBACK_WIDGET
+    );
+  }
+
+  return reply({ widgetId: wid.id, source: "resolved", debug: [...biz.trace, ...wid.trace] }, wid.id);
 }
 
 export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as Json;
-    const email = String(body?.email || "").trim().toLowerCase();
-
-    if (!email || !email.includes("@")) {
-      return bad("Valid 'email' is required in JSON body.");
-    }
-
-    const db = supabaseAdmin();
-
-    // 1) Find or create business by email
-    let businessId: string | null = null;
-
-    const { data: bizFound } = await db
-      .from("businesses")
-      .select("id")
-      .eq("email", email)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (bizFound?.id) {
-      businessId = bizFound.id as string;
-    } else {
-      const friendly = email.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
-      const { data: bizNew, error: bizErr } = await db
-        .from("businesses")
-        .insert({
-          name: `${friendly || "My"}'s Business`,
-          email,
-          plan: "starter",
-        } as any)
-        .select("id")
-        .single();
-
-      if (bizErr || !bizNew?.id) {
-        return respond(
-          { widgetId: FALLBACK_WIDGET, source: "fallback_business_create" },
-          FALLBACK_WIDGET
-        );
-      }
-      businessId = bizNew.id as string;
-    }
-
-    // 2) Find or create a widget for that business
-    let widgetId: string | null = null;
-
-    const { data: wFound } = await db
-      .from("widgets")
-      .select("id")
-      .eq("business_id", businessId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (wFound?.id) {
-      widgetId = wFound.id as string;
-    } else {
-      const { data: wNew, error: wErr } = await db
-        .from("widgets")
-        .insert({ business_id: businessId } as any)
-        .select("id")
-        .single();
-
-      if (wErr || !wNew?.id) {
-        return respond(
-          { widgetId: FALLBACK_WIDGET, source: "fallback_widget_create" },
-          FALLBACK_WIDGET
-        );
-      }
-      widgetId = wNew.id as string;
-    }
-
-    // 3) Set cookie + return
-    return respond({ widgetId, source: "resolved" }, widgetId);
+    return await handle(body?.email || "");
   } catch (err: any) {
-    return respond(
+    return reply(
       { widgetId: FALLBACK_WIDGET, source: "fallback_exception", message: String(err?.message || err) },
       FALLBACK_WIDGET
     );
   }
+}
+
+// Also allow GET: /api/resolve-widget?email=...
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const email = url.searchParams.get("email") || "";
+  return handle(email);
 }
