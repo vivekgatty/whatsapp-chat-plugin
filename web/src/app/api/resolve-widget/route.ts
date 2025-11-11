@@ -26,7 +26,7 @@ function reply(data: Json, widgetId?: string) {
 }
 
 async function getSSRUser() {
-  const jar = cookies(); // Next 15: sync
+  const jar = await cookies(); // Next 15: sync
   const supa = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
