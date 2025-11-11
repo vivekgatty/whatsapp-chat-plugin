@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-// IMPORTANT: relative import only
+// keep relative import
 import supabaseAdmin from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -25,90 +23,36 @@ function reply(data: Json, widgetId?: string) {
   return res;
 }
 
-async function getSSRUser() {
-  const jar = await cookies(); // Next 15: sync
-  const supa = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
-    {
-      cookies: {
-        get(name: string) {
-          return jar.get(name)?.value;
-        },
-        set() {},
-        remove() {},
-      },
-    }
-  );
-  const { data } = await supa.auth.getUser();
-  return data?.user ?? null;
-}
-
-async function ensureBusinessByEmail(
-  db: any,
-  email: string,
-  ownerId: string | null
-): Promise<{ id: string | null; trace: any[] }> {
-  const trace: any[] = [];
-
-  // Prefer an existing business for this email
-  const { data: found, error: findErr } = await db
-    .from("businesses")
-    .select("id, email, owner_id")
+async function ensureBusiness(db: any, email: string, ownerId?: string) {
+  // Prefer a business with same owner if provided
+  let q = db.from("businesses")
+    .select("id,owner_id,email")
     .eq("email", email)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (findErr) trace.push({ step: "find_business", error: findErr?.message || String(findErr) });
-  if (found?.id) return { id: found.id as string, trace };
+  let { data: found } = await q;
+  if (found?.id) return { id: found.id as string, trace: [{ step: "found_business", id: found.id }] };
 
-  const friendly = email.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
-
-  // Try variants. If owner_id is NOT NULL, we must provide it.
-  const variants: Json[] = ownerId
-    ? [
-        { name: `${friendly || "My"}'s Business`, email, plan: "starter", owner_id: ownerId },
-        { name: `${friendly || "My"}'s Business`, email, owner_id: ownerId },
-        { name: `${friendly || "My"}'s Business`, owner_id: ownerId },
-        // Some schemas used owner_user_id historically:
-        { name: `${friendly || "My"}'s Business`, email, plan: "starter", owner_user_id: ownerId },
-      ]
-    : [
-        // Will likely fail if owner_id is NOT NULL, but keep attempts for completeness.
-        { name: `${friendly || "My"}'s Business`, email, plan: "starter" },
-        { name: `${friendly || "My"}'s Business`, email },
-        { name: `${friendly || "My"}'s Business` },
-      ];
-
-  for (const v of variants) {
-    const { data, error } = await db.from("businesses").insert(v as any).select("id").single();
-    if (data?.id) {
-      trace.push({ step: "create_business", variant: Object.keys(v), ok: true });
-      return { id: data.id as string, trace };
-    }
-    trace.push({ step: "create_business", variant: Object.keys(v), error: error?.message || String(error) });
-
-    // On unique violation, reselect
-    if ((error as any)?.code === "23505") {
-      const { data: again } = await db
-        .from("businesses")
-        .select("id")
-        .eq("email", email)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (again?.id) return { id: again.id as string, trace };
-    }
+  // Need ownerId to create because schema enforces NOT NULL
+  if (!ownerId) {
+    return { id: null, trace: [{ step: "missing_owner_id" }] };
   }
 
-  return { id: null, trace };
+  const friendly = email.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
+  const { data: created, error: cErr } = await db
+    .from("businesses")
+    .insert({ name: `${friendly || "My"}'s Business`, email, plan: "starter", owner_id: ownerId } as any)
+    .select("id")
+    .single();
+
+  if (created?.id) return { id: created.id as string, trace: [{ step: "create_business", ok: true }] };
+  return { id: null, trace: [{ step: "create_business", error: cErr?.message || String(cErr) }] };
 }
 
-async function ensureWidgetForBusiness(db: any, businessId: string): Promise<{ id: string | null; trace: any[] }> {
-  const trace: any[] = [];
-
-  const { data: existing, error: findErr } = await db
+async function ensureWidget(db: any, businessId: string) {
+  const { data: existing } = await db
     .from("widgets")
     .select("id")
     .eq("business_id", businessId)
@@ -116,60 +60,45 @@ async function ensureWidgetForBusiness(db: any, businessId: string): Promise<{ i
     .limit(1)
     .maybeSingle();
 
-  if (findErr) trace.push({ step: "find_widget", error: findErr?.message || String(findErr) });
-  if (existing?.id) return { id: existing.id as string, trace };
+  if (existing?.id) return { id: existing.id as string, trace: [{ step: "found_widget", id: existing.id }] };
 
-  const { data, error } = await db.from("widgets").insert({ business_id: businessId } as any).select("id").single();
-  if (data?.id) return { id: data.id as string, trace };
+  const { data: created, error: wErr } = await db
+    .from("widgets")
+    .insert({ business_id: businessId } as any)
+    .select("id")
+    .single();
 
-  trace.push({ step: "create_widget", error: error?.message || String(error) });
-  return { id: null, trace };
+  if (created?.id) return { id: created.id as string, trace: [{ step: "create_widget", ok: true }] };
+  return { id: null, trace: [{ step: "create_widget", error: wErr?.message || String(wErr) }] };
 }
 
-async function handle(emailRaw: string) {
-  const email = String(emailRaw || "").trim().toLowerCase();
+async function handle(req: Request) {
+  // Accept both POST JSON and GET ?email=&owner_id=
+  const url = new URL(req.url);
+  let body: Json = {};
+  try { body = await req.json(); } catch {}
+
+  const email = String(body?.email || url.searchParams.get("email") || "").trim().toLowerCase();
+  const ownerId = String(body?.owner_id || url.searchParams.get("owner_id") || "").trim() || undefined;
+
   if (!email || !email.includes("@")) {
     return NextResponse.json({ error: "Valid 'email' is required." }, { status: 400 });
   }
 
-  const user = await getSSRUser();
-  const ownerId = user?.id ?? null;
-
   const db = supabaseAdmin();
 
-  const biz = await ensureBusinessByEmail(db, email, ownerId);
+  const biz = await ensureBusiness(db, email, ownerId);
   if (!biz.id) {
-    const source = ownerId ? "fallback_business_create" : "fallback_no_user";
-    const note = ownerId ? undefined : "User not authenticated; owner_id is required by schema";
-    return reply({ widgetId: FALLBACK_WIDGET, source, note, debug: biz.trace }, FALLBACK_WIDGET);
+    return reply({ widgetId: FALLBACK_WIDGET, source: "missing_owner_or_create_failed", debug: biz.trace }, FALLBACK_WIDGET);
   }
 
-  const wid = await ensureWidgetForBusiness(db, biz.id);
+  const wid = await ensureWidget(db, biz.id);
   if (!wid.id) {
-    return reply(
-      { widgetId: FALLBACK_WIDGET, source: "fallback_widget_create", debug: [...biz.trace, ...wid.trace] },
-      FALLBACK_WIDGET
-    );
+    return reply({ widgetId: FALLBACK_WIDGET, source: "fallback_widget_create", debug: [...biz.trace, ...wid.trace] }, FALLBACK_WIDGET);
   }
 
-  return reply({ widgetId: wid.id, source: "resolved" }, wid.id);
+  return reply({ widgetId: wid.id, source: "resolved", debug: [...biz.trace, ...wid.trace] }, wid.id);
 }
 
-export async function POST(req: Request) {
-  try {
-    const body = (await req.json().catch(() => ({}))) as Json;
-    return await handle(body?.email || "");
-  } catch (err: any) {
-    return reply(
-      { widgetId: FALLBACK_WIDGET, source: "fallback_exception", message: String(err?.message || err) },
-      FALLBACK_WIDGET
-    );
-  }
-}
-
-// Also allow GET: /api/resolve-widget?email=...
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const email = url.searchParams.get("email") || "";
-  return handle(email);
-}
+export async function POST(req: Request) { return handle(req); }
+export async function GET(req: Request)  { return handle(req); }
