@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-// IMPORTANT: relative import only (aliases broke earlier)
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+// IMPORTANT: relative import only
 import supabaseAdmin from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -23,12 +25,36 @@ function reply(data: Json, widgetId?: string) {
   return res;
 }
 
-async function ensureBusinessByEmail(db: any, email: string): Promise<{ id: string | null; trace: any[] }> {
+async function getSSRUser() {
+  const jar = cookies(); // Next 15: sync
+  const supa = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+    {
+      cookies: {
+        get(name: string) {
+          return jar.get(name)?.value;
+        },
+        set() {},
+        remove() {},
+      },
+    }
+  );
+  const { data } = await supa.auth.getUser();
+  return data?.user ?? null;
+}
+
+async function ensureBusinessByEmail(
+  db: any,
+  email: string,
+  ownerId: string | null
+): Promise<{ id: string | null; trace: any[] }> {
   const trace: any[] = [];
 
+  // Prefer an existing business for this email
   const { data: found, error: findErr } = await db
     .from("businesses")
-    .select("id")
+    .select("id, email, owner_id")
     .eq("email", email)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -38,11 +64,22 @@ async function ensureBusinessByEmail(db: any, email: string): Promise<{ id: stri
   if (found?.id) return { id: found.id as string, trace };
 
   const friendly = email.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
-  const variants: Json[] = [
-    { name: `${friendly || "My"}'s Business`, email, plan: "starter" },
-    { name: `${friendly || "My"}'s Business`, email },
-    { name: `${friendly || "My"}'s Business` },
-  ];
+
+  // Try variants. If owner_id is NOT NULL, we must provide it.
+  const variants: Json[] = ownerId
+    ? [
+        { name: `${friendly || "My"}'s Business`, email, plan: "starter", owner_id: ownerId },
+        { name: `${friendly || "My"}'s Business`, email, owner_id: ownerId },
+        { name: `${friendly || "My"}'s Business`, owner_id: ownerId },
+        // Some schemas used owner_user_id historically:
+        { name: `${friendly || "My"}'s Business`, email, plan: "starter", owner_user_id: ownerId },
+      ]
+    : [
+        // Will likely fail if owner_id is NOT NULL, but keep attempts for completeness.
+        { name: `${friendly || "My"}'s Business`, email, plan: "starter" },
+        { name: `${friendly || "My"}'s Business`, email },
+        { name: `${friendly || "My"}'s Business` },
+      ];
 
   for (const v of variants) {
     const { data, error } = await db.from("businesses").insert(v as any).select("id").single();
@@ -52,7 +89,8 @@ async function ensureBusinessByEmail(db: any, email: string): Promise<{ id: stri
     }
     trace.push({ step: "create_business", variant: Object.keys(v), error: error?.message || String(error) });
 
-    if (error?.code === "23505") {
+    // On unique violation, reselect
+    if ((error as any)?.code === "23505") {
       const { data: again } = await db
         .from("businesses")
         .select("id")
@@ -94,11 +132,16 @@ async function handle(emailRaw: string) {
     return NextResponse.json({ error: "Valid 'email' is required." }, { status: 400 });
   }
 
+  const user = await getSSRUser();
+  const ownerId = user?.id ?? null;
+
   const db = supabaseAdmin();
 
-  const biz = await ensureBusinessByEmail(db, email);
+  const biz = await ensureBusinessByEmail(db, email, ownerId);
   if (!biz.id) {
-    return reply({ widgetId: FALLBACK_WIDGET, source: "fallback_business_create", debug: biz.trace }, FALLBACK_WIDGET);
+    const source = ownerId ? "fallback_business_create" : "fallback_no_user";
+    const note = ownerId ? undefined : "User not authenticated; owner_id is required by schema";
+    return reply({ widgetId: FALLBACK_WIDGET, source, note, debug: biz.trace }, FALLBACK_WIDGET);
   }
 
   const wid = await ensureWidgetForBusiness(db, biz.id);
@@ -109,7 +152,7 @@ async function handle(emailRaw: string) {
     );
   }
 
-  return reply({ widgetId: wid.id, source: "resolved", debug: [...biz.trace, ...wid.trace] }, wid.id);
+  return reply({ widgetId: wid.id, source: "resolved" }, wid.id);
 }
 
 export async function POST(req: Request) {
