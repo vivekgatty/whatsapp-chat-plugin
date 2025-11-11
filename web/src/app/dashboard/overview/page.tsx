@@ -20,9 +20,9 @@ async function resolveWidgetId(db: any, searchWid?: string | null): Promise<stri
   const fromParam = asUuid(searchWid);
   if (fromParam) return fromParam;
 
-  // 2) cookie
+  // 2) cookie (types in your project require await)
   try {
-    const jar = await cookies(); // Next 15 types
+    const jar = await cookies();
     const cookieWid = asUuid(jar.get("cm_widget_id")?.value || null);
     if (cookieWid) return cookieWid;
   } catch {}
@@ -42,7 +42,7 @@ async function resolveWidgetId(db: any, searchWid?: string | null): Promise<stri
 async function fetchOverview(widgetId: string) {
   const db = supabaseAdmin();
 
-  // Business strictly tied to widget
+  // Business strictly for this widget
   let business: AnyRec | null = null;
   try {
     const { data: w } = await db
@@ -64,7 +64,7 @@ async function fetchOverview(widgetId: string) {
     business = null;
   }
 
-  // Analytics (7d) for this widget
+  // Analytics (7 days) for this widget
   let daily: AnyRec[] = [];
   try {
     const { data: d } = await db.rpc("daily_analytics", { p_widget_id: widgetId, p_days: 7 });
@@ -76,7 +76,7 @@ async function fetchOverview(widgetId: string) {
   const sum = (k: string) => daily.reduce((acc, r) => acc + (Number(r?.[k]) || 0), 0);
   const totals = { impressions: sum("impression"), opens: sum("open"), closes: sum("close"), clicks: sum("click"), leads: sum("leads") };
 
-  // Top pages (7d)
+  // Top pages (7 days)
   let pages: AnyRec[] = [];
   try {
     const { data: p } = await db.rpc("page_analytics", { p_widget_id: widgetId, p_days: 7 });
@@ -149,7 +149,7 @@ export default async function OverviewPage(
       {/* Messages + Leads */}
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <Stat label="Leads (7d)" value={data.totals.leads} />
-        <Stat label="Free messages (remaining)" value={${data.freeMessages.remaining} / } />
+        <Stat label="Free messages (remaining)" value={`${data.freeMessages.remaining} / ${data.freeMessages.quota}`} />
         <Stat label="Widget ID" value={<span className="text-xs">{data.widgetId}</span>} />
       </div>
 
