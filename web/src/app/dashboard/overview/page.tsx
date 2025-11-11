@@ -22,7 +22,7 @@ async function resolveWidgetId(db: any, searchWid?: string | null): Promise<stri
 
   // 2) Cookie
   try {
-    const jar = cookies();
+    const jar = await cookies();
     const cookieWid = asUuid(jar.get("cm_widget_id")?.value || null);
     if (cookieWid) return cookieWid;
   } catch {}
@@ -164,7 +164,7 @@ export default async function OverviewPage(
         <div>
           <h1 className="text-xl font-semibold">{data.business.name || "Business"}</h1>
           <div className="text-sm text-slate-400">
-            {data.business.email} • Plan: {data.business.plan}
+            {data.business.email} â€¢ Plan: {data.business.plan}
           </div>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default async function OverviewPage(
           )}
         </div>
         {data.pages.length > 0 && (
-          <div className="px-4 pb-3 pt-2 text-xs text-slate-500">Columns: page • impressions • opens • clicks • leads</div>
+          <div className="px-4 pb-3 pt-2 text-xs text-slate-500">Columns: page â€¢ impressions â€¢ opens â€¢ clicks â€¢ leads</div>
         )}
       </div>
 
@@ -213,3 +213,4 @@ export default async function OverviewPage(
     </section>
   );
 }// build: 2025-11-11T19:10:53
+// patched await cookies() at 2025-11-11T19:35:30
