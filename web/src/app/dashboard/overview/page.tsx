@@ -2,8 +2,6 @@ import UsageCounter from "../../../components/UsageCounter";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* build: 2025-11-11T19:03:12 */
-
 import React from "react";
 import { cookies } from "next/headers";
 import supabaseAdmin from "../../../lib/supabaseAdmin";
@@ -92,7 +90,10 @@ async function fetchOverview(widgetId: string) {
   // Top pages (7d)
   let pages: AnyRec[] = [];
   try {
-    const { data: p } = await db.rpc("page_analytics", { p_widget_id: widgetId, p_days: 7 });
+    const { data: p } = await db.rpc("page_analytics", {
+      p_widget_id: widgetId,
+      p_days: 7,
+    });
     pages = (Array.isArray(p) ? p : []).slice(0, 5);
   } catch {
     pages = [];
@@ -180,7 +181,7 @@ export default async function OverviewPage(
         <Stat label="Leads (7d)" value={data.totals.leads} />
         <Stat
           label="Free messages (remaining)"
-          value={${data.freeMessages.remaining} / }
+          value={`${data.freeMessages.remaining} / ${data.freeMessages.quota}`}
         />
         <Stat label="Widget ID" value={<span className="text-xs">{data.widgetId}</span>} />
       </div>
@@ -211,4 +212,4 @@ export default async function OverviewPage(
       <UsageCounter />
     </section>
   );
-}
+}// build: 2025-11-11T19:10:53
