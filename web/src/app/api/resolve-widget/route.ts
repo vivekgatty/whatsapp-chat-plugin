@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-// keep relative import
+// IMPORTANT: relative import only (aliases caused issues before)
 import supabaseAdmin from "../../../lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -8,8 +8,7 @@ export const dynamic = "force-dynamic";
 const FALLBACK_WIDGET = "bcd51dd2-e61b-41d1-8848-9788eb8d1881";
 
 type Json = Record<string, any>;
-
-function reply(data: Json, widgetId?: string) {
+function ok(data: Json, widgetId?: string) {
   const res = NextResponse.json(data, { status: 200 });
   if (widgetId) {
     res.cookies.set("cm_widget_id", widgetId, {
@@ -17,42 +16,89 @@ function reply(data: Json, widgetId?: string) {
       sameSite: "lax",
       secure: true,
       path: "/",
-      maxAge: 60 * 60 * 24 * 365,
+      maxAge: 60 * 60 * 24 * 365, // 1 year
     });
   }
   return res;
 }
+function bad(message: string) {
+  return NextResponse.json({ error: message }, { status: 400 });
+}
 
-async function ensureBusiness(db: any, email: string, ownerId?: string) {
-  // Prefer a business with same owner if provided
-  let q = db.from("businesses")
-    .select("id,owner_id,email")
-    .eq("email", email)
+async function ensureOwnerIdByEmail(db: any, email: string) {
+  const trace: any[] = [];
+  let ownerId: string | null = null;
+
+  try {
+    const { data, error } = await db.auth.admin.getUserByEmail(email);
+    if (data?.user?.id) {
+      ownerId = data.user.id as string;
+      trace.push({ step: "found_owner", id: ownerId });
+    } else if (error) {
+      trace.push({ step: "get_owner_error", error: String(error?.message || error) });
+    }
+  } catch (e: any) {
+    trace.push({ step: "get_owner_exception", error: String(e?.message || e) });
+  }
+
+  if (!ownerId) {
+    try {
+      const { data, error } = await db.auth.admin.createUser({
+        email,
+        email_confirm: true,
+      });
+      if (data?.user?.id) {
+        ownerId = data.user.id as string;
+        trace.push({ step: "created_owner", id: ownerId });
+      } else if (error) {
+        trace.push({ step: "create_owner_error", error: String(error?.message || error) });
+      }
+    } catch (e: any) {
+      trace.push({ step: "create_owner_exception", error: String(e?.message || e) });
+    }
+  }
+
+  return { ownerId, trace };
+}
+
+async function ensureBusiness(db: any, ownerId: string, email: string) {
+  const trace: any[] = [];
+
+  // prefer an existing business for this owner
+  const { data: found, error: findErr } = await db
+    .from("businesses")
+    .select("id")
+    .eq("owner_id", ownerId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  let { data: found } = await q;
-  if (found?.id) return { id: found.id as string, trace: [{ step: "found_business", id: found.id }] };
-
-  // Need ownerId to create because schema enforces NOT NULL
-  if (!ownerId) {
-    return { id: null, trace: [{ step: "missing_owner_id" }] };
+  if (findErr) trace.push({ step: "find_business_error", error: String(findErr?.message || findErr) });
+  if (found?.id) {
+    trace.push({ step: "found_business", id: found.id });
+    return { id: found.id as string, trace };
   }
 
-  const friendly = email.split("@")[0].replace(/[^a-zA-Z0-9 _.-]/g, "");
-  const { data: created, error: cErr } = await db
+  const friendly = (email.split("@")[0] || "My").replace(/[^a-zA-Z0-9 _.-]/g, "");
+  const { data: created, error: createErr } = await db
     .from("businesses")
-    .insert({ name: `${friendly || "My"}'s Business`, email, plan: "starter", owner_id: ownerId } as any)
+    .insert({ owner_id: ownerId, name: `${friendly}'s Business`, email, plan: "starter" } as any)
     .select("id")
     .single();
 
-  if (created?.id) return { id: created.id as string, trace: [{ step: "create_business", ok: true }] };
-  return { id: null, trace: [{ step: "create_business", error: cErr?.message || String(cErr) }] };
+  if (created?.id) {
+    trace.push({ step: "created_business", id: created.id });
+    return { id: created.id as string, trace };
+  }
+
+  trace.push({ step: "create_business_error", error: String(createErr?.message || createErr) });
+  return { id: null, trace };
 }
 
 async function ensureWidget(db: any, businessId: string) {
-  const { data: existing } = await db
+  const trace: any[] = [];
+
+  const { data: wFound, error: wFindErr } = await db
     .from("widgets")
     .select("id")
     .eq("business_id", businessId)
@@ -60,45 +106,72 @@ async function ensureWidget(db: any, businessId: string) {
     .limit(1)
     .maybeSingle();
 
-  if (existing?.id) return { id: existing.id as string, trace: [{ step: "found_widget", id: existing.id }] };
+  if (wFindErr) trace.push({ step: "find_widget_error", error: String(wFindErr?.message || wFindErr) });
+  if (wFound?.id) {
+    trace.push({ step: "found_widget", id: wFound.id });
+    return { id: wFound.id as string, trace };
+  }
 
-  const { data: created, error: wErr } = await db
+  const { data: wNew, error: wErr } = await db
     .from("widgets")
     .insert({ business_id: businessId } as any)
     .select("id")
     .single();
 
-  if (created?.id) return { id: created.id as string, trace: [{ step: "create_widget", ok: true }] };
-  return { id: null, trace: [{ step: "create_widget", error: wErr?.message || String(wErr) }] };
+  if (wNew?.id) {
+    trace.push({ step: "created_widget", id: wNew.id });
+    return { id: wNew.id as string, trace };
+  }
+
+  trace.push({ step: "create_widget_error", error: String(wErr?.message || wErr) });
+  return { id: null, trace };
 }
 
-async function handle(req: Request) {
-  // Accept both POST JSON and GET ?email=&owner_id=
-  const url = new URL(req.url);
-  let body: Json = {};
-  try { body = await req.json(); } catch {}
-
-  const email = String(body?.email || url.searchParams.get("email") || "").trim().toLowerCase();
-  const ownerId = String(body?.owner_id || url.searchParams.get("owner_id") || "").trim() || undefined;
-
+async function handle(emailRaw: string) {
+  const email = String(emailRaw || "").trim().toLowerCase();
   if (!email || !email.includes("@")) {
-    return NextResponse.json({ error: "Valid 'email' is required." }, { status: 400 });
+    return bad("Valid 'email' is required.");
   }
 
   const db = supabaseAdmin();
+  const debug: any[] = [];
 
-  const biz = await ensureBusiness(db, email, ownerId);
+  const owner = await ensureOwnerIdByEmail(db, email);
+  debug.push(...owner.trace);
+  if (!owner.ownerId) {
+    return ok({ widgetId: FALLBACK_WIDGET, source: "owner_lookup_failed", debug }, FALLBACK_WIDGET);
+  }
+
+  const biz = await ensureBusiness(db, owner.ownerId, email);
+  debug.push(...biz.trace);
   if (!biz.id) {
-    return reply({ widgetId: FALLBACK_WIDGET, source: "missing_owner_or_create_failed", debug: biz.trace }, FALLBACK_WIDGET);
+    return ok({ widgetId: FALLBACK_WIDGET, source: "business_create_failed", debug }, FALLBACK_WIDGET);
   }
 
   const wid = await ensureWidget(db, biz.id);
+  debug.push(...wid.trace);
   if (!wid.id) {
-    return reply({ widgetId: FALLBACK_WIDGET, source: "fallback_widget_create", debug: [...biz.trace, ...wid.trace] }, FALLBACK_WIDGET);
+    return ok({ widgetId: FALLBACK_WIDGET, source: "widget_create_failed", debug }, FALLBACK_WIDGET);
   }
 
-  return reply({ widgetId: wid.id, source: "resolved", debug: [...biz.trace, ...wid.trace] }, wid.id);
+  return ok({ widgetId: wid.id, source: "resolved", debug }, wid.id);
 }
 
-export async function POST(req: Request) { return handle(req); }
-export async function GET(req: Request)  { return handle(req); }
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json().catch(() => ({}))) as Json;
+    return await handle(body?.email || "");
+  } catch (err: any) {
+    return ok(
+      { widgetId: FALLBACK_WIDGET, source: "fallback_exception", message: String(err?.message || err) },
+      FALLBACK_WIDGET
+    );
+  }
+}
+
+// Convenience for manual test: /api/resolve-widget?email=...
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const email = url.searchParams.get("email") || "";
+  return handle(email);
+}
