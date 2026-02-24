@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { sendTemplateMessage } from "@/lib/meta/api";
+import { MetaAPIClient } from "@/lib/meta/api";
+import { decryptToken } from "@/lib/utils/encryption";
 import { resolveVariables } from "@/lib/automations/variables";
 
 export async function POST(request: Request) {
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "WhatsApp not connected" }, { status: 400 });
     }
 
+    const client = new MetaAPIClient(
+      decryptToken(connection.access_token),
+      connection.phone_number_id
+    );
+
     await supabase
       .from("broadcasts")
       .update({ status: "sending", started_at: new Date().toISOString() })
@@ -53,13 +59,24 @@ export async function POST(request: Request) {
       try {
         const variables = resolveVariables(broadcast.variable_mapping, msg.contacts);
 
-        await sendTemplateMessage(
-          connection.phone_number_id,
-          connection.access_token,
+        const components =
+          variables.length > 0
+            ? [
+                {
+                  type: "body",
+                  parameters: variables.map((v: string) => ({
+                    type: "text",
+                    text: v,
+                  })),
+                },
+              ]
+            : [];
+
+        await client.sendTemplate(
           msg.contacts.wa_id,
           broadcast.templates.meta_template_name,
           broadcast.templates.language,
-          variables
+          components
         );
 
         await supabase

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { sendTextMessage } from "@/lib/meta/api";
+import { MetaAPIClient } from "@/lib/meta/api";
+import { decryptToken } from "@/lib/utils/encryption";
 
 export async function POST(request: Request) {
   try {
@@ -46,21 +47,21 @@ export async function POST(request: Request) {
         .select("contacts(wa_id)")
         .eq("id", conversationId)
         .single();
-      recipientPhone = convo?.contacts?.wa_id;
+      recipientPhone = (convo?.contacts as unknown as { wa_id: string } | null)?.wa_id;
     }
 
     if (!recipientPhone) {
       return NextResponse.json({ error: "No recipient phone number" }, { status: 400 });
     }
 
-    const result = await sendTextMessage(
-      connection.phone_number_id,
-      connection.access_token,
-      recipientPhone,
-      message
+    const client = new MetaAPIClient(
+      decryptToken(connection.access_token),
+      connection.phone_number_id
     );
+    const result = await client.sendText(recipientPhone, message);
+    const messageId = (result.messages as { id: string }[] | undefined)?.[0]?.id ?? null;
 
-    return NextResponse.json({ success: true, messageId: result.messageId });
+    return NextResponse.json({ success: true, messageId });
   } catch (error) {
     console.error("Send message error:", error);
     return NextResponse.json({ error: "Failed to send message" }, { status: 500 });

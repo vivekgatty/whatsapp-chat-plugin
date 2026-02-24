@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { uploadMedia } from "@/lib/meta/media";
+import { MetaAPIClient } from "@/lib/meta/api";
+import { decryptToken } from "@/lib/utils/encryption";
 
 export async function POST(request: Request) {
   try {
@@ -38,7 +39,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "WhatsApp not connected" }, { status: 400 });
     }
 
-    const result = await uploadMedia(connection.phone_number_id, connection.access_token, file);
+    const client = new MetaAPIClient(
+      decryptToken(connection.access_token),
+      connection.phone_number_id
+    );
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const result = await client.uploadMedia(buffer, file.type);
 
     return NextResponse.json({ mediaId: result.id });
   } catch (error) {

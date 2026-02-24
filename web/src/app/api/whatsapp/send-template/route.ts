@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { sendTemplateMessage } from "@/lib/meta/api";
+import { MetaAPIClient } from "@/lib/meta/api";
+import { decryptToken } from "@/lib/utils/encryption";
 
 export async function POST(request: Request) {
   try {
@@ -47,16 +48,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required data" }, { status: 400 });
     }
 
-    const result = await sendTemplateMessage(
-      connection.phone_number_id,
-      connection.access_token,
+    const components =
+      variables && variables.length > 0
+        ? [
+            {
+              type: "body",
+              parameters: (variables as string[]).map((v: string) => ({
+                type: "text",
+                text: v,
+              })),
+            },
+          ]
+        : [];
+
+    const client = new MetaAPIClient(
+      decryptToken(connection.access_token),
+      connection.phone_number_id
+    );
+    const result = await client.sendTemplate(
       contact.wa_id,
       template.meta_template_name,
       template.language,
-      variables ?? []
+      components
     );
+    const messageId = (result.messages as { id: string }[] | undefined)?.[0]?.id ?? null;
 
-    return NextResponse.json({ success: true, messageId: result.messageId });
+    return NextResponse.json({ success: true, messageId });
   } catch (error) {
     console.error("Send template error:", error);
     return NextResponse.json({ error: "Failed to send template" }, { status: 500 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createMetaTemplate, listMetaTemplates } from "@/lib/meta/templates";
+import { decryptToken } from "@/lib/utils/encryption";
 
 export async function GET(request: Request) {
   try {
@@ -28,7 +29,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "WhatsApp not connected" }, { status: 400 });
     }
 
-    const templates = await listMetaTemplates(connection.waba_id, connection.access_token);
+    const templates = await listMetaTemplates(
+      connection.waba_id,
+      decryptToken(connection.access_token)
+    );
 
     return NextResponse.json({ templates });
   } catch (error) {
@@ -60,12 +64,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "WhatsApp not connected" }, { status: 400 });
     }
 
-    const result = await createMetaTemplate(connection.waba_id, connection.access_token, {
-      name,
-      category,
-      language,
-      components,
-    });
+    const result = await createMetaTemplate(
+      connection.waba_id,
+      decryptToken(connection.access_token),
+      {
+        name,
+        category,
+        language,
+        components,
+      }
+    );
 
     return NextResponse.json({ success: true, template: result });
   } catch (error) {
