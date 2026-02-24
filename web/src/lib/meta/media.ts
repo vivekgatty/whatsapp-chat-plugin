@@ -1,31 +1,16 @@
-const META_API_BASE = "https://graph.facebook.com/v21.0";
+import { MetaAPIClient } from "./api";
 
-interface UploadResult {
-  id: string;
-}
+const META_API_BASE = "https://graph.facebook.com/v19.0";
 
 export async function uploadMedia(
   phoneNumberId: string,
   accessToken: string,
   file: File
-): Promise<UploadResult> {
-  const formData = new FormData();
-  formData.append("messaging_product", "whatsapp");
-  formData.append("file", file);
-  formData.append("type", file.type);
-
-  const res = await fetch(`${META_API_BASE}/${phoneNumberId}/media`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}` },
-    body: formData,
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(`Meta API error: ${data.error?.message ?? res.statusText}`);
-  }
-
-  return { id: data.id };
+): Promise<{ id: string }> {
+  const client = new MetaAPIClient(accessToken, phoneNumberId);
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const data = await client.uploadMedia(buffer, file.type);
+  return { id: data.id as string };
 }
 
 export async function getMediaUrl(mediaId: string, accessToken: string): Promise<string> {

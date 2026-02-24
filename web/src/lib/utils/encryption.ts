@@ -28,6 +28,9 @@ export function encrypt(plaintext: string): string {
   return combined.toString("base64");
 }
 
+/** Alias for encrypting WhatsApp access tokens before DB storage. */
+export const encryptToken = encrypt;
+
 /**
  * Decrypt a base64-encoded ciphertext produced by encrypt().
  */
@@ -47,3 +50,6 @@ export function decrypt(ciphertext: string): string {
 
   return decrypted;
 }
+
+/** Alias for decrypting stored WhatsApp access tokens. */
+export const decryptToken = decrypt;
