@@ -3,15 +3,15 @@ import crypto from "crypto";
 const ALGO = "aes-256-gcm";
 
 function getKey(): Buffer {
-  const raw = process.env.ENCRYPTION_KEY || process.env.TOKEN_ENCRYPTION_KEY || "";
-  if (!raw) throw new Error("ENCRYPTION_KEY (or TOKEN_ENCRYPTION_KEY) is missing");
+  const raw = process.env.TOKEN_ENCRYPTION_KEY || "";
+  if (!raw) throw new Error("TOKEN_ENCRYPTION_KEY is missing");
 
   let key: Buffer;
   if (/^[a-fA-F0-9]{64}$/.test(raw)) key = Buffer.from(raw, "hex");
   else key = Buffer.from(raw, "base64");
 
   if (key.length !== 32) {
-    throw new Error("ENCRYPTION_KEY (or TOKEN_ENCRYPTION_KEY) must decode to 32 bytes for AES-256-GCM");
+    throw new Error("TOKEN_ENCRYPTION_KEY must decode to 32 bytes for AES-256-GCM");
   }
   return key;
 }
