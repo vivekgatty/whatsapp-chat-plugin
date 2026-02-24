@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ContactAvatar } from "@/components/shared/ContactAvatar";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import type { Contact } from "@/types";
@@ -11,7 +12,7 @@ interface Props {
 
 export function ContactPanel({ contactId: _contactId }: Props) {
   // TODO: Fetch contact details from conversation or contactId
-  const contact: Contact | null = null;
+  const [contact] = useState<Contact | null>(null);
 
   if (!contact) {
     return (

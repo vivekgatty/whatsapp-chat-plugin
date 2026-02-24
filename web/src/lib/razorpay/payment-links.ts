@@ -19,20 +19,30 @@ interface PaymentLinkResult {
 export async function createPaymentLink(input: CreatePaymentLinkInput): Promise<PaymentLinkResult> {
   const razorpay = getRazorpayClient();
 
-  const customer: Record<string, string> = {};
-  if (input.customerName) customer.name = input.customerName;
-  if (input.customerEmail) customer.email = input.customerEmail;
-  if (input.customerPhone) customer.contact = input.customerPhone;
-
-  const link = await razorpay.paymentLink.create({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const params: Record<string, any> = {
     amount: input.amount,
     currency: input.currency,
     description: input.description,
-    customer: Object.keys(customer).length > 0 ? customer : undefined,
-    reference_id: input.orderId ?? undefined,
     callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/orders`,
     callback_method: "get",
-  });
+  };
+
+  if (input.orderId) {
+    params.reference_id = input.orderId;
+  }
+
+  if (input.customerName || input.customerEmail || input.customerPhone) {
+    params.customer = {
+      name: input.customerName ?? "",
+      email: input.customerEmail ?? "",
+      contact: input.customerPhone ?? "",
+    };
+  }
+
+  const link = await razorpay.paymentLink.create(
+    params as Parameters<typeof razorpay.paymentLink.create>[0]
+  );
 
   return {
     id: link.id,

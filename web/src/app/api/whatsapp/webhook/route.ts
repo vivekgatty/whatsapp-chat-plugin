@@ -96,7 +96,9 @@ async function processIncomingMessage(
       },
       { onConflict: "workspace_id,wa_id", ignoreDuplicates: false }
     )
-    .select("id, status, first_message_at, assigned_agent_id")
+    .select(
+      "id, status, first_message_at, assigned_agent_id, total_conversations, total_messages_received"
+    )
     .single();
 
   if (!contact) return;
@@ -349,7 +351,7 @@ async function triggerAutomations(
   await engine.trigger("new_message", {
     contactId,
     conversationId,
-    message,
+    message: message as unknown as Record<string, unknown>,
     isFirstMessage: contactStatus === "new",
   });
 }

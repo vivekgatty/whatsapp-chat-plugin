@@ -171,9 +171,9 @@ export class MetaAPIClient {
     });
   }
 
-  async uploadMedia(file: Buffer, mimeType: string) {
+  async uploadMedia(file: Buffer | Uint8Array, mimeType: string) {
     const formData = new FormData();
-    formData.append("file", new Blob([file], { type: mimeType }));
+    formData.append("file", new Blob([new Uint8Array(file)], { type: mimeType }));
     formData.append("type", mimeType);
     formData.append("messaging_product", "whatsapp");
 

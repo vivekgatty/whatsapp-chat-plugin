@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import type { Workspace } from "@/types";
 
 export default function BillingSettingsPage() {
   // TODO: Fetch workspace billing info
-  const workspace: Workspace | null = null;
+  const [workspace] = useState<Workspace | null>(null);
 
   return (
     <div className="mx-auto max-w-2xl p-6">

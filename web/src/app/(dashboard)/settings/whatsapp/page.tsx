@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import type { WhatsAppConnection } from "@/types";
 
 export default function WhatsAppSettingsPage() {
   // TODO: Fetch whatsapp_connections for current workspace
-  const connection: WhatsAppConnection | null = null;
+  const [connection] = useState<WhatsAppConnection | null>(null);
 
   return (
     <div className="mx-auto max-w-2xl p-6">

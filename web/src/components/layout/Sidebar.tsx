@@ -16,7 +16,7 @@ const NAV_ITEMS = [
 
 const BOTTOM_ITEMS = [
   { href: "/settings", label: "Settings", icon: "⚙️" },
-  { href: "/docs", label: "Help", icon: "❓" },
+  { href: "/help", label: "Help", icon: "❓" },
 ];
 
 export function Sidebar() {
