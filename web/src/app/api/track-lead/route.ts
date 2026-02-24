@@ -18,11 +18,18 @@ export async function POST(req: Request) {
       body.id ||
       u.searchParams.get("id");
 
-    const name = sanitizeText(body.name ?? body.wcp_name ?? "", 100);
-    const message = sanitizeText(body.message ?? body.wcp_message ?? "", 1000);
-    const phone = sanitizeText(body.phone ?? body.wcp_phone ?? "", 30);
-    const source = sanitizeText(body.source ?? "widget", 40) || "widget";
-    const opt_in_source = sanitizeText(body.opt_in_source ?? "website_widget", 50) || "website_widget";
+    // Keep both raw extraction (main branch style) + sanitized normalization (security hardening branch)
+    const rawName = String(body.name ?? body.wcp_name ?? "").slice(0, 100);
+    const rawMessage = String(body.message ?? body.wcp_message ?? "").slice(0, 1000);
+    const rawPhone = String(body.phone ?? body.wcp_phone ?? "").slice(0, 30);
+    const rawSource = String(body.source ?? "widget");
+    const rawOptInSource = String(body.opt_in_source ?? "website_widget");
+
+    const name = sanitizeText(rawName, 100);
+    const message = sanitizeText(rawMessage, 1000);
+    const phone = sanitizeText(rawPhone, 30);
+    const source = sanitizeText(rawSource, 40) || "widget";
+    const opt_in_source = sanitizeText(rawOptInSource, 50) || "website_widget";
     const conversation_started = Boolean(body.conversation_started ?? false);
 
     if (!wid) {
