@@ -7,6 +7,7 @@ import ClickRewriteForGatedNav from "@/components/ClickRewriteForGatedNav";
 import SiteFooter from "../components/SiteFooter";
 import GlobalTopBar from "../components/GlobalTopBar";
 import UsageCounter from "@/components/UsageCounter";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export const metadata: Metadata = {
   title: "Chatmadi",
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {/* dup-tabs-hide end */}
 
         <UsageCounter />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
