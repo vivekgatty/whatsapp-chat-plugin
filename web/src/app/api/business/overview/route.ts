@@ -37,7 +37,7 @@ const admin = createClient(URL, SKEY, { auth: { persistSession: false } });
 
 const TABLE = "businesses";
 
-function sanitize(input: any) {
+function sanitize(input: Record<string, unknown>) {
   const hours = input?.hours && Object.keys(input.hours).length ? input.hours : defaultHours();
   const dial = String(input?.dialCode ?? "").trim();
   const local = String(input?.phone ?? "").replace(/\D/g, "");
@@ -86,18 +86,19 @@ export async function GET() {
     );
   }
 
-  const b: any = data ?? {};
+  const b = (data ?? {}) as Record<string, unknown>;
   return NextResponse.json({
     ok: true,
     business: {
-      name: (b.company_name ?? b.name ?? "") as string,
-      website: b.website ?? defaults.website,
-      email: b.email ?? defaults.email,
-      country: b.country ?? defaults.country,
-      dialCode: b.dial_code ?? defaults.dialCode,
-      phone: b.phone ?? defaults.phone,
-      hours: b.hours ?? defaults.hours,
-      logoUrl: b.logo_url ?? undefined,
+      id: b["id"] ?? null,
+      name: String(b["company_name"] ?? b["name"] ?? ""),
+      website: String(b["website"] ?? defaults.website),
+      email: String(b["email"] ?? defaults.email),
+      country: String(b["country"] ?? defaults.country),
+      dialCode: String(b["dial_code"] ?? defaults.dialCode),
+      phone: String(b["phone"] ?? defaults.phone),
+      hours: (b["hours"] as HoursMap) ?? defaults.hours,
+      logoUrl: (b["logo_url"] as string | undefined) ?? undefined,
     },
   });
 }
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const row = sanitize(body);
   const payload = { owner_id: user.id, ...row };
 
