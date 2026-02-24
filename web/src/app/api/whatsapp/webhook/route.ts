@@ -346,7 +346,8 @@ async function triggerAutomations(
   contactStatus: string
 ) {
   const { AutomationEngine } = await import("@/lib/automations/engine");
-  const engine = new AutomationEngine(workspaceId);
+  const { supabaseAdmin: getAdmin } = await import("@/lib/supabaseAdmin");
+  const engine = new AutomationEngine(getAdmin(), workspaceId);
 
   await engine.trigger("new_message", {
     contactId,
