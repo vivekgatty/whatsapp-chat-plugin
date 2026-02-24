@@ -37,9 +37,7 @@ export default function NewBroadcastPage() {
           <div key={label} className="flex flex-1 flex-col items-center gap-1">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                i + 1 <= step
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-100 text-gray-400"
+                i + 1 <= step ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"
               }`}
             >
               {i + 1}
@@ -49,23 +47,19 @@ export default function NewBroadcastPage() {
         ))}
       </div>
 
-      <h1 className="mb-6 text-xl font-bold text-gray-900">
-        Create Broadcast
-      </h1>
+      <h1 className="mb-6 text-xl font-bold text-gray-900">Create Broadcast</h1>
 
       {/* Step 1: Audience */}
       {step === 1 && (
         <div className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Broadcast Name
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Broadcast Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. January Promo, Appointment Reminders"
-              className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
             />
           </div>
           <div>
@@ -84,9 +78,7 @@ export default function NewBroadcastPage() {
                 <label
                   key={opt.value}
                   className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 ${
-                    audienceType === opt.value
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-200"
+                    audienceType === opt.value ? "border-green-500 bg-green-50" : "border-gray-200"
                   }`}
                 >
                   <input
@@ -111,8 +103,7 @@ export default function NewBroadcastPage() {
             )}
           </div>
           <div className="rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
-            Estimated recipients:{" "}
-            <strong>{estimatedRecipients.toLocaleString()}</strong>
+            Estimated recipients: <strong>{estimatedRecipients.toLocaleString()}</strong>
           </div>
           <div className="flex justify-end">
             <button
@@ -151,23 +142,17 @@ export default function NewBroadcastPage() {
           {templateBody && (
             <div className="grid gap-6 lg:grid-cols-2">
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-700">
-                  Variable Mapping
-                </p>
+                <p className="mb-2 text-sm font-medium text-gray-700">Variable Mapping</p>
                 <div className="space-y-2">
                   <div>
-                    <label className="text-xs text-gray-500">
-                      {"{{1}}"} — Source
-                    </label>
+                    <label className="text-xs text-gray-500">{"{{1}}"} — Source</label>
                     <select className="mt-1 w-full rounded border px-3 py-2 text-sm">
                       <option>contact.name</option>
                       <option>Static text</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500">
-                      {"{{2}}"} — Source
-                    </label>
+                    <label className="text-xs text-gray-500">{"{{2}}"} — Source</label>
                     <select className="mt-1 w-full rounded border px-3 py-2 text-sm">
                       <option>Static text</option>
                       <option>contact.name</option>
@@ -176,9 +161,7 @@ export default function NewBroadcastPage() {
                 </div>
               </div>
               <div>
-                <p className="mb-2 text-sm font-medium text-gray-700">
-                  Preview
-                </p>
+                <p className="mb-2 text-sm font-medium text-gray-700">Preview</p>
                 <WhatsAppPreview body={templateBody} />
               </div>
             </div>
@@ -228,12 +211,8 @@ export default function NewBroadcastPage() {
                 onChange={() => setScheduleType("later")}
               />
               <div>
-                <p className="text-sm font-medium text-gray-900">
-                  Schedule for later
-                </p>
-                <p className="text-xs text-gray-500">
-                  Pick a date and time
-                </p>
+                <p className="text-sm font-medium text-gray-900">Schedule for later</p>
+                <p className="text-xs text-gray-500">Pick a date and time</p>
               </div>
             </label>
           </div>
@@ -274,9 +253,7 @@ export default function NewBroadcastPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Template</span>
-                <span className="font-medium text-gray-900">
-                  {selectedTemplate}
-                </span>
+                <span className="font-medium text-gray-900">{selectedTemplate}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Recipients</span>
@@ -295,9 +272,8 @@ export default function NewBroadcastPage() {
 
           {estimatedRecipients > 1000 && (
             <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
-              This broadcast will use approximately{" "}
-              {estimatedRecipients.toLocaleString()} conversations from your
-              monthly limit.
+              This broadcast will use approximately {estimatedRecipients.toLocaleString()}{" "}
+              conversations from your monthly limit.
             </div>
           )}
 

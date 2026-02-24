@@ -41,11 +41,7 @@ export function ContactPanel({ contactId, conversationId, onBack }: Props) {
       return;
     }
 
-    const { data } = await supabase
-      .from("contacts")
-      .select("*")
-      .eq("id", resolvedId)
-      .single();
+    const { data } = await supabase.from("contacts").select("*").eq("id", resolvedId).single();
 
     setContact(data as unknown as Contact);
     setLoading(false);
@@ -111,9 +107,7 @@ export function ContactPanel({ contactId, conversationId, onBack }: Props) {
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={`flex-1 py-2 text-xs font-medium ${
-              activeTab === tab.key
-                ? "border-b-2 border-green-500 text-green-600"
-                : "text-gray-500"
+              activeTab === tab.key ? "border-b-2 border-green-500 text-green-600" : "text-gray-500"
             }`}
           >
             {tab.label}
@@ -145,9 +139,7 @@ export function ContactPanel({ contactId, conversationId, onBack }: Props) {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Orders</span>
-              <span className="font-medium text-gray-900">
-                {contact.total_orders}
-              </span>
+              <span className="font-medium text-gray-900">{contact.total_orders}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Total Spend</span>
@@ -159,10 +151,11 @@ export function ContactPanel({ contactId, conversationId, onBack }: Props) {
               <span className="text-gray-500">Customer Since</span>
               <span className="text-gray-900">
                 {contact.first_message_at
-                  ? new Date(contact.first_message_at).toLocaleDateString(
-                      "en-IN",
-                      { day: "numeric", month: "short", year: "numeric" },
-                    )
+                  ? new Date(contact.first_message_at).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
                   : "—"}
               </span>
             </div>
@@ -170,9 +163,7 @@ export function ContactPanel({ contactId, conversationId, onBack }: Props) {
             {/* Tags */}
             {contact.tags.length > 0 && (
               <div>
-                <p className="mb-1.5 text-xs font-medium text-gray-500">
-                  Tags
-                </p>
+                <p className="mb-1.5 text-xs font-medium text-gray-500">Tags</p>
                 <div className="flex flex-wrap gap-1">
                   {contact.tags.map((tag) => (
                     <span
@@ -188,14 +179,12 @@ export function ContactPanel({ contactId, conversationId, onBack }: Props) {
 
             {/* Notes */}
             <div>
-              <p className="mb-1.5 text-xs font-medium text-gray-500">
-                Notes
-              </p>
+              <p className="mb-1.5 text-xs font-medium text-gray-500">Notes</p>
               <textarea
                 defaultValue={contact.notes ?? ""}
                 placeholder="Add notes about this contact…"
                 rows={3}
-                className="w-full rounded-lg border px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                className="w-full rounded-lg border px-3 py-2 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
               />
             </div>
 
@@ -224,9 +213,7 @@ export function ContactPanel({ contactId, conversationId, onBack }: Props) {
         )}
 
         {activeTab === "automations" && (
-          <div className="text-center text-sm text-gray-400">
-            Automation logs will appear here
-          </div>
+          <div className="text-center text-sm text-gray-400">Automation logs will appear here</div>
         )}
       </div>
     </aside>

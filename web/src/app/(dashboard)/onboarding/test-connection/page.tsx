@@ -8,9 +8,9 @@ import { getBrowserSupabase } from "@/lib/supabase/browser";
 export default function TestConnectionPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "sending" | "waiting" | "success" | "error"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "waiting" | "success" | "error">(
+    "idle"
+  );
   const [showConfetti, setShowConfetti] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -30,8 +30,7 @@ export default function TestConnectionPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: phone.replace(/\D/g, ""),
-          message:
-            "Hello from ChatMadi! Your WhatsApp is now connected and working. 🎉",
+          message: "Hello from ChatMadi! Your WhatsApp is now connected and working. 🎉",
         }),
       });
 
@@ -72,30 +71,23 @@ export default function TestConnectionPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <OnboardingProgress currentStep={5} totalSteps={5} />
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">
-        Test your connection
-      </h1>
-      <p className="mb-8 text-gray-600">
-        Send a test message to confirm everything works.
-      </p>
+      <h1 className="mb-2 text-2xl font-bold text-gray-900">Test your connection</h1>
+      <p className="mb-8 text-gray-600">Send a test message to confirm everything works.</p>
 
       {status === "success" ? (
         <div className="space-y-6 text-center">
           {/* Confetti */}
           {showConfetti && (
             <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center">
-              <div className="text-6xl animate-bounce">🎉</div>
+              <div className="animate-bounce text-6xl">🎉</div>
             </div>
           )}
 
           <div className="rounded-xl border border-green-200 bg-green-50 p-8">
             <div className="mb-3 text-4xl">✅</div>
-            <h2 className="text-xl font-bold text-green-800">
-              Your inbox is ready!
-            </h2>
+            <h2 className="text-xl font-bold text-green-800">Your inbox is ready!</h2>
             <p className="mt-2 text-sm text-green-600">
-              Messages from your customers will appear in your inbox
-              automatically.
+              Messages from your customers will appear in your inbox automatically.
             </p>
           </div>
 
@@ -125,7 +117,7 @@ export default function TestConnectionPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+91 98765 43210"
-              className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
             />
             <p className="mt-1 text-xs text-gray-400">
               We&apos;ll send a test message to this number
@@ -134,8 +126,7 @@ export default function TestConnectionPage() {
 
           {status === "error" && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-              Failed to send. Check your WhatsApp connection settings and try
-              again.
+              Failed to send. Check your WhatsApp connection settings and try again.
             </div>
           )}
 

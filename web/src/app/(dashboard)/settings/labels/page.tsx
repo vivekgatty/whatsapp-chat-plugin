@@ -5,8 +5,16 @@ import { getBrowserSupabase } from "@/lib/supabase/browser";
 import type { Label } from "@/types";
 
 const DEFAULT_COLORS = [
-  "#25D366", "#34B7F1", "#FFC107", "#FF5722", "#9C27B0",
-  "#E91E63", "#00BCD4", "#4CAF50", "#FF9800", "#607D8B",
+  "#25D366",
+  "#34B7F1",
+  "#FFC107",
+  "#FF5722",
+  "#9C27B0",
+  "#E91E63",
+  "#00BCD4",
+  "#4CAF50",
+  "#FF9800",
+  "#607D8B",
 ];
 
 export default function LabelsSettingsPage() {
@@ -57,9 +65,7 @@ export default function LabelsSettingsPage() {
       {showForm && (
         <div className="mb-6 space-y-3 rounded-xl border bg-white p-5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">
-              Label Name
-            </label>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Label Name</label>
             <input
               type="text"
               value={name}
@@ -69,9 +75,7 @@ export default function LabelsSettingsPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">
-              Color
-            </label>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Color</label>
             <div className="flex gap-2">
               {DEFAULT_COLORS.map((c) => (
                 <button
@@ -108,26 +112,14 @@ export default function LabelsSettingsPage() {
       ) : (
         <div className="space-y-2">
           {labels.map((l) => (
-            <div
-              key={l.id}
-              className="flex items-center gap-3 rounded-lg border bg-white p-3"
-            >
-              <div
-                className="h-5 w-5 rounded-full"
-                style={{ backgroundColor: l.color }}
-              />
+            <div key={l.id} className="flex items-center gap-3 rounded-lg border bg-white p-3">
+              <div className="h-5 w-5 rounded-full" style={{ backgroundColor: l.color }} />
               <div className="flex-1">
                 <span className="font-medium text-gray-900">{l.name}</span>
-                {l.description && (
-                  <p className="text-xs text-gray-500">{l.description}</p>
-                )}
+                {l.description && <p className="text-xs text-gray-500">{l.description}</p>}
               </div>
-              <span className="text-xs text-gray-400">
-                {l.times_used} conversations
-              </span>
-              <button className="text-xs text-gray-400 hover:text-red-500">
-                Delete
-              </button>
+              <span className="text-xs text-gray-400">{l.times_used} conversations</span>
+              <button className="text-xs text-gray-400 hover:text-red-500">Delete</button>
             </div>
           ))}
         </div>

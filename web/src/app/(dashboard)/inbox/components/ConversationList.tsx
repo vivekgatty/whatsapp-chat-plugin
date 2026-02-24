@@ -55,7 +55,7 @@ export function ConversationList({ activeId, onSelect }: Props) {
     let query = supabase
       .from("conversations")
       .select(
-        "id, status, last_message_at, last_message_preview, unread_count, assigned_agent_id, labels, contact_id, contacts(name, profile_name, wa_id, avatar_url)",
+        "id, status, last_message_at, last_message_preview, unread_count, assigned_agent_id, labels, contact_id, contacts(name, profile_name, wa_id, avatar_url)"
       )
       .order("last_message_at", { ascending: false })
       .limit(50);
@@ -81,13 +81,13 @@ export function ConversationList({ activeId, onSelect }: Props) {
         "postgres_changes" as "system",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { event: "UPDATE", schema: "public", table: "conversations" } as any,
-        () => load(),
+        () => load()
       )
       .on(
         "postgres_changes" as "system",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { event: "INSERT", schema: "public", table: "conversations" } as any,
-        () => load(),
+        () => load()
       )
       .subscribe();
 
@@ -98,13 +98,10 @@ export function ConversationList({ activeId, onSelect }: Props) {
 
   const filtered = search
     ? conversations.filter((c) => {
-        const name =
-          c.contacts?.name ?? c.contacts?.profile_name ?? c.contacts?.wa_id ?? "";
+        const name = c.contacts?.name ?? c.contacts?.profile_name ?? c.contacts?.wa_id ?? "";
         return (
           name.toLowerCase().includes(search.toLowerCase()) ||
-          (c.last_message_preview ?? "")
-            .toLowerCase()
-            .includes(search.toLowerCase())
+          (c.last_message_preview ?? "").toLowerCase().includes(search.toLowerCase())
         );
       })
     : conversations;
@@ -118,16 +115,14 @@ export function ConversationList({ activeId, onSelect }: Props) {
           placeholder="Search conversations…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="mt-2 w-full rounded-lg border px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+          className="mt-2 w-full rounded-lg border px-3 py-2 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
         />
         <InboxFilters value={filter} onChange={setFilter} />
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <div className="p-4 text-center text-sm text-gray-400">
-            Loading…
-          </div>
+          <div className="p-4 text-center text-sm text-gray-400">Loading…</div>
         ) : filtered.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-sm text-gray-500">No conversations</p>
@@ -140,10 +135,7 @@ export function ConversationList({ activeId, onSelect }: Props) {
         ) : (
           filtered.map((c) => {
             const name =
-              c.contacts?.name ??
-              c.contacts?.profile_name ??
-              c.contacts?.wa_id ??
-              "Unknown";
+              c.contacts?.name ?? c.contacts?.profile_name ?? c.contacts?.wa_id ?? "Unknown";
             const isActive = activeId === c.id;
 
             return (
@@ -154,11 +146,7 @@ export function ConversationList({ activeId, onSelect }: Props) {
                   isActive ? "border-l-2 border-l-green-500 bg-green-50" : ""
                 }`}
               >
-                <ContactAvatar
-                  name={name}
-                  imageUrl={c.contacts?.avatar_url}
-                  size="sm"
-                />
+                <ContactAvatar name={name} imageUrl={c.contacts?.avatar_url} size="sm" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <span
@@ -176,10 +164,7 @@ export function ConversationList({ activeId, onSelect }: Props) {
                     </p>
                     <div className="ml-2 flex flex-shrink-0 items-center gap-1">
                       {c.labels?.slice(0, 2).map((l) => (
-                        <span
-                          key={l}
-                          className="h-2 w-2 rounded-full bg-green-400"
-                        />
+                        <span key={l} className="h-2 w-2 rounded-full bg-green-400" />
                       ))}
                       {c.unread_count > 0 && (
                         <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-green-500 px-1 text-xs font-medium text-white">

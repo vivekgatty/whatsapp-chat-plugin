@@ -34,7 +34,7 @@ export default function ContactsPage() {
 
     if (search) {
       query = query.or(
-        `name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%,wa_id.ilike.%${search}%`,
+        `name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%,wa_id.ilike.%${search}%`
       );
     }
     if (statusFilter !== "all") {
@@ -96,7 +96,7 @@ export default function ContactsPage() {
           placeholder="Search name, phone, email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-64 rounded-lg border px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+          className="w-64 rounded-lg border px-3 py-2 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
         />
         <select
           value={statusFilter}
@@ -127,9 +127,7 @@ export default function ContactsPage() {
       {/* Bulk actions */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-green-50 px-6 py-2 text-sm">
-          <span className="font-medium text-green-700">
-            {selected.size} selected
-          </span>
+          <span className="font-medium text-green-700">{selected.size} selected</span>
           <button className="rounded bg-white px-3 py-1 text-xs text-gray-600 shadow-sm hover:bg-gray-50">
             Add Tag
           </button>
@@ -185,10 +183,7 @@ export default function ContactsPage() {
               </thead>
               <tbody>
                 {contacts.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="border-b last:border-0 hover:bg-gray-50"
-                  >
+                  <tr key={c.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
@@ -201,11 +196,7 @@ export default function ContactsPage() {
                         href={`/contacts/${c.id}`}
                         className="flex items-center gap-2 hover:underline"
                       >
-                        <ContactAvatar
-                          name={c.name ?? c.wa_id}
-                          imageUrl={c.avatar_url}
-                          size="sm"
-                        />
+                        <ContactAvatar name={c.name ?? c.wa_id} imageUrl={c.avatar_url} size="sm" />
                         <span className="font-medium text-gray-900">
                           {c.name ?? c.profile_name ?? c.wa_id}
                         </span>
@@ -229,18 +220,16 @@ export default function ContactsPage() {
                           </span>
                         ))}
                         {c.tags.length > 2 && (
-                          <span className="text-xs text-gray-400">
-                            +{c.tags.length - 2}
-                          </span>
+                          <span className="text-xs text-gray-400">+{c.tags.length - 2}</span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">
                       {c.last_message_at
-                        ? new Date(c.last_message_at).toLocaleDateString(
-                            "en-IN",
-                            { day: "numeric", month: "short" },
-                          )
+                        ? new Date(c.last_message_at).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                          })
                         : "—"}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-gray-900">
@@ -264,7 +253,7 @@ export default function ContactsPage() {
           <div className="flex gap-4 overflow-x-auto pb-4">
             {LIFECYCLE_STAGES.map((stage) => (
               <div key={stage} className="w-72 flex-shrink-0">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold capitalize text-gray-700">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700 capitalize">
                   {stage}
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-500">
                     {contacts.filter((c) => c.lifecycle_stage === stage).length}

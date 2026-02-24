@@ -20,10 +20,8 @@ export function InboxFilters({ value, onChange }: Props) {
         <button
           key={f.value}
           onClick={() => onChange(f.value)}
-          className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            value === f.value
-              ? "bg-green-100 text-green-700"
-              : "text-gray-500 hover:bg-gray-100"
+          className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors ${
+            value === f.value ? "bg-green-100 text-green-700" : "text-gray-500 hover:bg-gray-100"
           }`}
         >
           {f.label}

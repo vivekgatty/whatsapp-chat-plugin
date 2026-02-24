@@ -14,24 +14,72 @@ interface SystemTemplate {
 
 const INDUSTRY_TEMPLATES: Record<string, SystemTemplate[]> = {
   food: [
-    { name: "order_confirmation", body: "Hi {{1}}! Your order #{{2}} has been received and is being prepared. Estimated time: {{3}} minutes. 🍕", category: "UTILITY" },
-    { name: "delivery_update", body: "Great news {{1}}! Your order is out for delivery. Track here: {{2}}", category: "UTILITY" },
-    { name: "welcome_food", body: "Welcome to {{1}}! 🎉 Order your favourite meals directly on WhatsApp. Reply MENU to see today's specials.", category: "MARKETING" },
+    {
+      name: "order_confirmation",
+      body: "Hi {{1}}! Your order #{{2}} has been received and is being prepared. Estimated time: {{3}} minutes. 🍕",
+      category: "UTILITY",
+    },
+    {
+      name: "delivery_update",
+      body: "Great news {{1}}! Your order is out for delivery. Track here: {{2}}",
+      category: "UTILITY",
+    },
+    {
+      name: "welcome_food",
+      body: "Welcome to {{1}}! 🎉 Order your favourite meals directly on WhatsApp. Reply MENU to see today's specials.",
+      category: "MARKETING",
+    },
   ],
   healthcare: [
-    { name: "appointment_reminder", body: "Hi {{1}}, this is a reminder for your appointment with {{2}} on {{3}}. Reply CONFIRM to confirm or RESCHEDULE to change.", category: "UTILITY" },
-    { name: "prescription_ready", body: "Hi {{1}}, your prescription from Dr. {{2}} is ready. You can collect it from the reception.", category: "UTILITY" },
-    { name: "health_checkup", body: "Hi {{1}}, it's time for your annual health checkup! Book your slot: {{2}}", category: "MARKETING" },
+    {
+      name: "appointment_reminder",
+      body: "Hi {{1}}, this is a reminder for your appointment with {{2}} on {{3}}. Reply CONFIRM to confirm or RESCHEDULE to change.",
+      category: "UTILITY",
+    },
+    {
+      name: "prescription_ready",
+      body: "Hi {{1}}, your prescription from Dr. {{2}} is ready. You can collect it from the reception.",
+      category: "UTILITY",
+    },
+    {
+      name: "health_checkup",
+      body: "Hi {{1}}, it's time for your annual health checkup! Book your slot: {{2}}",
+      category: "MARKETING",
+    },
   ],
   retail: [
-    { name: "order_shipped", body: "Hi {{1}}! Your order #{{2}} has been shipped. Track it here: {{3}} 📦", category: "UTILITY" },
-    { name: "back_in_stock", body: "Great news {{1}}! {{2}} is back in stock. Get yours before it sells out: {{3}}", category: "MARKETING" },
-    { name: "order_thank_you", body: "Thank you for your order {{1}}! 🙏 We're packing it with care. You'll receive tracking details shortly.", category: "UTILITY" },
+    {
+      name: "order_shipped",
+      body: "Hi {{1}}! Your order #{{2}} has been shipped. Track it here: {{3}} 📦",
+      category: "UTILITY",
+    },
+    {
+      name: "back_in_stock",
+      body: "Great news {{1}}! {{2}} is back in stock. Get yours before it sells out: {{3}}",
+      category: "MARKETING",
+    },
+    {
+      name: "order_thank_you",
+      body: "Thank you for your order {{1}}! 🙏 We're packing it with care. You'll receive tracking details shortly.",
+      category: "UTILITY",
+    },
   ],
   default: [
-    { name: "welcome_message", body: "Hi {{1}}, thank you for reaching out to {{2}}! We'll get back to you shortly. 🙏", category: "UTILITY" },
-    { name: "follow_up", body: "Hi {{1}}, just checking in! Is there anything else we can help you with?", category: "UTILITY" },
-    { name: "promotion", body: "Hi {{1}}! We have an exciting offer for you: {{2}}. Valid till {{3}}. Reply to know more!", category: "MARKETING" },
+    {
+      name: "welcome_message",
+      body: "Hi {{1}}, thank you for reaching out to {{2}}! We'll get back to you shortly. 🙏",
+      category: "UTILITY",
+    },
+    {
+      name: "follow_up",
+      body: "Hi {{1}}, just checking in! Is there anything else we can help you with?",
+      category: "UTILITY",
+    },
+    {
+      name: "promotion",
+      body: "Hi {{1}}! We have an exciting offer for you: {{2}}. Valid till {{3}}. Reply to know more!",
+      category: "MARKETING",
+    },
   ],
 };
 
@@ -55,9 +103,7 @@ export default function FirstTemplatePage() {
         .eq("owner_id", user.id)
         .single();
       const industry = ws?.industry ?? "default";
-      setTemplates(
-        INDUSTRY_TEMPLATES[industry] ?? INDUSTRY_TEMPLATES.default,
-      );
+      setTemplates(INDUSTRY_TEMPLATES[industry] ?? INDUSTRY_TEMPLATES.default);
     }
     loadIndustry();
   }, []);
@@ -102,19 +148,15 @@ export default function FirstTemplatePage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <OnboardingProgress currentStep={4} totalSteps={5} />
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">
-        Create your first template
-      </h1>
+      <h1 className="mb-2 text-2xl font-bold text-gray-900">Create your first template</h1>
       <p className="mb-8 text-gray-600">
-        WhatsApp requires pre-approved templates for starting conversations.
-        Pick one below or write your own.
+        WhatsApp requires pre-approved templates for starting conversations. Pick one below or write
+        your own.
       </p>
 
       {/* Pre-built templates */}
       <div className="mb-8">
-        <p className="mb-3 text-sm font-medium text-gray-700">
-          Recommended for your industry
-        </p>
+        <p className="mb-3 text-sm font-medium text-gray-700">Recommended for your industry</p>
         <div className="grid gap-3 sm:grid-cols-3">
           {templates.map((t) => (
             <button
@@ -133,9 +175,7 @@ export default function FirstTemplatePage() {
                 </span>
               </div>
               <p className="line-clamp-3 text-sm text-gray-700">{t.body}</p>
-              <p className="mt-2 text-xs font-medium text-green-600">
-                Use this template →
-              </p>
+              <p className="mt-2 text-xs font-medium text-green-600">Use this template →</p>
             </button>
           ))}
         </div>
@@ -145,36 +185,28 @@ export default function FirstTemplatePage() {
         {/* Template form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Template name
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Template name</label>
             <input
               type="text"
               value={templateName}
               onChange={(e) =>
-                setTemplateName(
-                  e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"),
-                )
+                setTemplateName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_"))
               }
               placeholder="welcome_message"
-              className="w-full rounded-lg border px-4 py-2.5 font-mono text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border px-4 py-2.5 font-mono text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
             />
-            <p className="mt-1 text-xs text-gray-400">
-              Lowercase and underscores only
-            </p>
+            <p className="mt-1 text-xs text-gray-400">Lowercase and underscores only</p>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Message body
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Message body</label>
             <textarea
               value={templateBody}
               onChange={(e) => setTemplateBody(e.target.value)}
               rows={5}
               maxLength={1024}
               placeholder="Hi {{1}}, thank you for contacting us!"
-              className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
             />
             <div className="mt-1 flex justify-between text-xs text-gray-400">
               <span>
@@ -185,8 +217,8 @@ export default function FirstTemplatePage() {
           </div>
 
           <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-700">
-            Templates require Meta review (24–72 hours). You can continue
-            setup while it&apos;s being reviewed.
+            Templates require Meta review (24–72 hours). You can continue setup while it&apos;s
+            being reviewed.
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -209,12 +241,8 @@ export default function FirstTemplatePage() {
 
         {/* Live preview */}
         <div>
-          <p className="mb-3 text-sm font-medium text-gray-700">
-            Live Preview
-          </p>
-          <WhatsAppPreview
-            body={templateBody || "Your message preview will appear here…"}
-          />
+          <p className="mb-3 text-sm font-medium text-gray-700">Live Preview</p>
+          <WhatsAppPreview body={templateBody || "Your message preview will appear here…"} />
         </div>
       </div>
     </div>

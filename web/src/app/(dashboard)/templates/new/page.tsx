@@ -32,7 +32,12 @@ export default function NewTemplatePage() {
 
   function autoMetaName(display: string) {
     setDisplayName(display);
-    setMetaName(display.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""));
+    setMetaName(
+      display
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "")
+    );
   }
 
   function insertVariable() {
@@ -92,7 +97,7 @@ export default function NewTemplatePage() {
                   value={displayName}
                   onChange={(e) => autoMetaName(e.target.value)}
                   placeholder="Welcome Message"
-                  className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                  className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
                 />
               </div>
               <div>
@@ -102,18 +107,18 @@ export default function NewTemplatePage() {
                 <input
                   type="text"
                   value={metaName}
-                  onChange={(e) => setMetaName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                  onChange={(e) =>
+                    setMetaName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                  }
                   placeholder="welcome_message"
-                  className="w-full rounded-lg border px-4 py-2.5 font-mono text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                  className="w-full rounded-lg border px-4 py-2.5 font-mono text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Category
-                </label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as TemplateCategory)}
@@ -125,16 +130,16 @@ export default function NewTemplatePage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                  Language
-                </label>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">Language</label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                   className="w-full rounded-lg border px-4 py-2.5 text-sm"
                 >
                   {LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>{l.label}</option>
+                    <option key={l.code} value={l.code}>
+                      {l.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -142,9 +147,7 @@ export default function NewTemplatePage() {
 
             {/* Header */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Header
-              </label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Header</label>
               <div className="flex gap-2">
                 {(["none", "text", "image"] as const).map((t) => (
                   <button
@@ -152,7 +155,9 @@ export default function NewTemplatePage() {
                     type="button"
                     onClick={() => setHeaderType(t)}
                     className={`rounded-lg border px-3 py-1.5 text-xs capitalize ${
-                      headerType === t ? "border-green-500 bg-green-50 text-green-700" : "text-gray-500"
+                      headerType === t
+                        ? "border-green-500 bg-green-50 text-green-700"
+                        : "text-gray-500"
                     }`}
                   >
                     {t}
@@ -185,9 +190,7 @@ export default function NewTemplatePage() {
                   >
                     + Variable
                   </button>
-                  <span className="text-xs text-gray-400">
-                    {bodyText.length}/1024
-                  </span>
+                  <span className="text-xs text-gray-400">{bodyText.length}/1024</span>
                 </div>
               </div>
               <textarea
@@ -196,7 +199,7 @@ export default function NewTemplatePage() {
                 rows={5}
                 maxLength={1024}
                 placeholder="Hi {{1}}, thank you for contacting {{2}}!"
-                className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
               />
             </div>
 
@@ -215,7 +218,9 @@ export default function NewTemplatePage() {
                       <input
                         type="text"
                         value={variableExamples[v] ?? ""}
-                        onChange={(e) => setVariableExamples({ ...variableExamples, [v]: e.target.value })}
+                        onChange={(e) =>
+                          setVariableExamples({ ...variableExamples, [v]: e.target.value })
+                        }
                         placeholder={`Example for ${v}`}
                         className="flex-1 rounded border px-3 py-1.5 text-sm"
                       />
@@ -300,9 +305,7 @@ export default function NewTemplatePage() {
 
           {/* Preview */}
           <div className="lg:sticky lg:top-6">
-            <p className="mb-3 text-sm font-medium text-gray-700">
-              WhatsApp Preview
-            </p>
+            <p className="mb-3 text-sm font-medium text-gray-700">WhatsApp Preview</p>
             <WhatsAppPreview
               header={headerType === "text" ? headerText : undefined}
               body={bodyText || "Your message preview…"}

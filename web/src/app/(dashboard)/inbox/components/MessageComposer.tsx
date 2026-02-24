@@ -130,13 +130,9 @@ export function MessageComposer({ conversationId }: Props) {
           value={text}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          placeholder={
-            isNote
-              ? "Write an internal note…"
-              : "Type a message… (/ for quick replies)"
-          }
+          placeholder={isNote ? "Write an internal note…" : "Type a message… (/ for quick replies)"}
           rows={1}
-          className={`flex-1 resize-none rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
+          className={`flex-1 resize-none rounded-lg border px-3 py-2 text-sm focus:ring-1 focus:outline-none ${
             isNote
               ? "border-yellow-300 bg-yellow-50 focus:border-yellow-400 focus:ring-yellow-400"
               : "focus:border-green-500 focus:ring-green-500"
@@ -154,18 +150,14 @@ export function MessageComposer({ conversationId }: Props) {
           onClick={handleSend}
           disabled={!text.trim() || sending}
           className={`rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50 ${
-            isNote
-              ? "bg-yellow-500 hover:bg-yellow-600"
-              : "bg-green-600 hover:bg-green-700"
+            isNote ? "bg-yellow-500 hover:bg-yellow-600" : "bg-green-600 hover:bg-green-700"
           }`}
         >
           {sending ? "…" : isNote ? "Note" : "Send"}
         </button>
       </div>
 
-      <div className="px-4 pb-2 text-xs text-gray-400">
-        Enter to send · Shift+Enter for newline
-      </div>
+      <div className="px-4 pb-2 text-xs text-gray-400">Enter to send · Shift+Enter for newline</div>
     </div>
   );
 }

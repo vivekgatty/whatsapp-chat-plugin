@@ -63,9 +63,7 @@ export default function BusinessProfilePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <OnboardingProgress currentStep={2} totalSteps={5} />
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">
-        Tell us about your business
-      </h1>
+      <h1 className="mb-2 text-2xl font-bold text-gray-900">Tell us about your business</h1>
       <p className="mb-8 text-gray-600">
         We&apos;ll customize your CRM experience based on your industry.
       </p>
@@ -82,7 +80,7 @@ export default function BusinessProfilePage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Priya's Kitchen, Sunrise Dental"
-            className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
           />
         </div>
 
@@ -112,9 +110,7 @@ export default function BusinessProfilePage() {
 
         {/* Team Size */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
-            Team Size
-          </label>
+          <label className="mb-2 block text-sm font-medium text-gray-700">Team Size</label>
           <div className="flex gap-3">
             {SIZES.map((s) => (
               <button
@@ -140,23 +136,20 @@ export default function BusinessProfilePage() {
 
         {/* City */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            City
-          </label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">City</label>
           <input
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="e.g. Mumbai, Bengaluru, Chennai"
-            className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
           />
         </div>
 
         {/* Logo upload placeholder */}
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Logo{" "}
-            <span className="font-normal text-gray-400">(optional)</span>
+            Logo <span className="font-normal text-gray-400">(optional)</span>
           </label>
           <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 text-sm text-gray-400">
             Upload logo (coming soon)

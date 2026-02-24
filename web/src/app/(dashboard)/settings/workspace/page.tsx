@@ -45,11 +45,7 @@ export default function WorkspaceSettingsPage() {
   const supabase = getBrowserSupabase();
 
   const load = useCallback(async () => {
-    const { data } = await supabase
-      .from("workspaces")
-      .select("*")
-      .limit(1)
-      .single();
+    const { data } = await supabase.from("workspaces").select("*").limit(1).single();
     if (data) {
       setName(data.name ?? "");
       setIndustry(data.industry ?? "");
@@ -83,25 +79,19 @@ export default function WorkspaceSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-6 text-xl font-bold text-gray-900">
-        Workspace Settings
-      </h1>
+      <h1 className="mb-6 text-xl font-bold text-gray-900">Workspace Settings</h1>
       <div className="space-y-5 rounded-xl border bg-white p-6">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Business Name
-          </label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Business Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="w-full rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Industry
-          </label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Industry</label>
           <select
             value={industry}
             onChange={(e) => setIndustry(e.target.value as Industry)}
@@ -116,9 +106,7 @@ export default function WorkspaceSettingsPage() {
           </select>
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Website
-          </label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Website</label>
           <input
             type="url"
             value={website}
@@ -129,9 +117,7 @@ export default function WorkspaceSettingsPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              City
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">City</label>
             <input
               type="text"
               value={city}
@@ -140,9 +126,7 @@ export default function WorkspaceSettingsPage() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Address
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Address</label>
             <input
               type="text"
               value={address}
@@ -153,9 +137,7 @@ export default function WorkspaceSettingsPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
-              Timezone
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Timezone</label>
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
@@ -189,9 +171,7 @@ export default function WorkspaceSettingsPage() {
 
         {/* Logo upload placeholder */}
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">
-            Logo
-          </label>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">Logo</label>
           <div className="flex h-20 items-center justify-center rounded-lg border-2 border-dashed border-gray-200 text-sm text-gray-400">
             Upload logo (coming soon)
           </div>
@@ -205,9 +185,7 @@ export default function WorkspaceSettingsPage() {
           >
             {saving ? "Saving…" : "Save Changes"}
           </button>
-          {saved && (
-            <span className="text-sm text-green-600">Saved!</span>
-          )}
+          {saved && <span className="text-sm text-green-600">Saved!</span>}
         </div>
       </div>
     </div>

@@ -56,9 +56,7 @@ export default function QuickRepliesSettingsPage() {
         <div className="mb-6 space-y-3 rounded-xl border bg-white p-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">
-                Shortcut
-              </label>
+              <label className="mb-1 block text-xs font-medium text-gray-700">Shortcut</label>
               <div className="flex items-center rounded-lg border px-3 py-2">
                 <span className="text-sm text-gray-400">/</span>
                 <input
@@ -73,9 +71,7 @@ export default function QuickRepliesSettingsPage() {
               </div>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">
-                Title
-              </label>
+              <label className="mb-1 block text-xs font-medium text-gray-700">Title</label>
               <input
                 type="text"
                 value={title}
@@ -86,9 +82,7 @@ export default function QuickRepliesSettingsPage() {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-700">
-              Message Content
-            </label>
+            <label className="mb-1 block text-xs font-medium text-gray-700">Message Content</label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -138,22 +132,12 @@ export default function QuickRepliesSettingsPage() {
             <tbody>
               {replies.map((r) => (
                 <tr key={r.id} className="border-b last:border-0">
-                  <td className="px-4 py-3 font-mono text-green-600">
-                    /{r.shortcut}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {r.title}
-                  </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-gray-500">
-                    {r.content}
-                  </td>
-                  <td className="px-4 py-3 text-right text-gray-500">
-                    {r.times_used}×
-                  </td>
+                  <td className="px-4 py-3 font-mono text-green-600">/{r.shortcut}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{r.title}</td>
+                  <td className="max-w-xs truncate px-4 py-3 text-gray-500">{r.content}</td>
+                  <td className="px-4 py-3 text-right text-gray-500">{r.times_used}×</td>
                   <td className="px-4 py-3 text-right">
-                    <button className="text-xs text-gray-400 hover:text-red-500">
-                      Delete
-                    </button>
+                    <button className="text-xs text-gray-400 hover:text-red-500">Delete</button>
                   </td>
                 </tr>
               ))}

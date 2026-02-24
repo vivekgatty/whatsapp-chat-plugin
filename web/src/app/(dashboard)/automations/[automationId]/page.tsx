@@ -47,16 +47,51 @@ const ACTION_OPTIONS: {
   icon: string;
   color: string;
 }[] = [
-  { value: "send_message", label: "Send message", icon: "💬", color: "bg-green-100 text-green-700" },
-  { value: "send_template", label: "Send template", icon: "📋", color: "bg-green-100 text-green-700" },
+  {
+    value: "send_message",
+    label: "Send message",
+    icon: "💬",
+    color: "bg-green-100 text-green-700",
+  },
+  {
+    value: "send_template",
+    label: "Send template",
+    icon: "📋",
+    color: "bg-green-100 text-green-700",
+  },
   { value: "assign_agent", label: "Assign agent", icon: "👤", color: "bg-blue-100 text-blue-700" },
   { value: "add_tag", label: "Add tag", icon: "🏷️", color: "bg-purple-100 text-purple-700" },
   { value: "remove_tag", label: "Remove tag", icon: "🏷️", color: "bg-purple-100 text-purple-700" },
-  { value: "update_status", label: "Update status", icon: "🔄", color: "bg-amber-100 text-amber-700" },
-  { value: "update_lifecycle", label: "Update lifecycle", icon: "📊", color: "bg-amber-100 text-amber-700" },
-  { value: "resolve_conversation", label: "Resolve conversation", icon: "✅", color: "bg-green-100 text-green-700" },
-  { value: "snooze_conversation", label: "Snooze conversation", icon: "⏸️", color: "bg-gray-100 text-gray-700" },
-  { value: "send_webhook", label: "Send webhook", icon: "🔗", color: "bg-indigo-100 text-indigo-700" },
+  {
+    value: "update_status",
+    label: "Update status",
+    icon: "🔄",
+    color: "bg-amber-100 text-amber-700",
+  },
+  {
+    value: "update_lifecycle",
+    label: "Update lifecycle",
+    icon: "📊",
+    color: "bg-amber-100 text-amber-700",
+  },
+  {
+    value: "resolve_conversation",
+    label: "Resolve conversation",
+    icon: "✅",
+    color: "bg-green-100 text-green-700",
+  },
+  {
+    value: "snooze_conversation",
+    label: "Snooze conversation",
+    icon: "⏸️",
+    color: "bg-gray-100 text-gray-700",
+  },
+  {
+    value: "send_webhook",
+    label: "Send webhook",
+    icon: "🔗",
+    color: "bg-indigo-100 text-indigo-700",
+  },
   { value: "wait", label: "Wait", icon: "⏳", color: "bg-gray-100 text-gray-700" },
   { value: "notify_agent", label: "Notify agent", icon: "🔔", color: "bg-blue-100 text-blue-700" },
 ];
@@ -96,14 +131,12 @@ export default function AutomationBuilderPage() {
     <div className="flex h-full">
       {/* Left sidebar: triggers */}
       <div className="hidden w-64 flex-shrink-0 overflow-y-auto border-r bg-gray-50 p-4 lg:block">
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <h3 className="mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
           Triggers
         </h3>
         {TRIGGER_GROUPS.map((group) => (
           <div key={group.label} className="mb-4">
-            <p className="mb-1.5 text-xs font-medium text-gray-400">
-              {group.label}
-            </p>
+            <p className="mb-1.5 text-xs font-medium text-gray-400">{group.label}</p>
             <div className="space-y-1">
               {group.items.map((item) => (
                 <button
@@ -123,7 +156,7 @@ export default function AutomationBuilderPage() {
           </div>
         ))}
 
-        <h3 className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wider text-gray-500">
+        <h3 className="mt-6 mb-3 text-xs font-semibold tracking-wider text-gray-500 uppercase">
           Actions
         </h3>
         <div className="space-y-1">
@@ -174,19 +207,14 @@ export default function AutomationBuilderPage() {
               <span className="rounded bg-blue-200 px-2 py-0.5 text-xs font-medium text-blue-700">
                 TRIGGER
               </span>
-              <span className="text-sm font-medium text-gray-900">
-                When this happens…
-              </span>
+              <span className="text-sm font-medium text-gray-900">When this happens…</span>
             </div>
             {!trigger ? (
-              <p className="text-sm text-gray-500">
-                Select a trigger from the sidebar
-              </p>
+              <p className="text-sm text-gray-500">Select a trigger from the sidebar</p>
             ) : (
               <div className="space-y-3">
                 <StatusBadge status={trigger} />
-                {(trigger === "no_reply_by_agent" ||
-                  trigger === "no_reply_by_customer") && (
+                {(trigger === "no_reply_by_agent" || trigger === "no_reply_by_customer") && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">After</span>
                     <input
@@ -220,9 +248,7 @@ export default function AutomationBuilderPage() {
                             type="radio"
                             name="matchType"
                             checked={(triggerConfig.matchType ?? "any") === m}
-                            onChange={() =>
-                              setTriggerConfig({ ...triggerConfig, matchType: m })
-                            }
+                            onChange={() => setTriggerConfig({ ...triggerConfig, matchType: m })}
                           />
                           Match {m}
                         </label>
@@ -232,16 +258,12 @@ export default function AutomationBuilderPage() {
                 )}
                 {trigger === "inactivity" && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">
-                      Inactive for
-                    </span>
+                    <span className="text-sm text-gray-600">Inactive for</span>
                     <input
                       type="number"
                       min={1}
                       value={triggerConfig.days ?? "30"}
-                      onChange={(e) =>
-                        setTriggerConfig({ ...triggerConfig, days: e.target.value })
-                      }
+                      onChange={(e) => setTriggerConfig({ ...triggerConfig, days: e.target.value })}
                       className="w-20 rounded border px-2 py-1 text-sm"
                     />
                     <span className="text-sm text-gray-600">days</span>

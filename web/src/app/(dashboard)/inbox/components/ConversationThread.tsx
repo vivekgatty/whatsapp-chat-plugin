@@ -42,11 +42,7 @@ function windowTimeLeft(expiresAt: string | null): {
   return { label: `${hours}h remaining`, color: "text-green-600" };
 }
 
-export function ConversationThread({
-  conversationId,
-  onBack,
-  onShowContact,
-}: Props) {
+export function ConversationThread({ conversationId, onBack, onShowContact }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [convo, setConvo] = useState<ConvoInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,7 +56,7 @@ export function ConversationThread({
     const { data } = await supabase
       .from("conversations")
       .select(
-        "id, status, customer_window_expires_at, assigned_agent_id, labels, contacts(name, profile_name, wa_id, phone)",
+        "id, status, customer_window_expires_at, assigned_agent_id, labels, contacts(name, profile_name, wa_id, phone)"
       )
       .eq("id", conversationId)
       .single();
@@ -105,15 +101,25 @@ export function ConversationThread({
       .channel(`thread-${conversationId}`)
       .on(
         "postgres_changes" as "system",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` } as any,
-        () => loadMessages(),
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        () => loadMessages()
       )
       .on(
         "postgres_changes" as "system",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` } as any,
-        () => loadMessages(),
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        () => loadMessages()
       )
       .subscribe();
 
@@ -134,10 +140,7 @@ export function ConversationThread({
   }
 
   const contactName =
-    convo?.contacts?.name ??
-    convo?.contacts?.profile_name ??
-    convo?.contacts?.wa_id ??
-    "…";
+    convo?.contacts?.name ?? convo?.contacts?.profile_name ?? convo?.contacts?.wa_id ?? "…";
   const window = windowTimeLeft(convo?.customer_window_expires_at ?? null);
   const windowOpen = convo?.customer_window_expires_at
     ? new Date(convo.customer_window_expires_at).getTime() > Date.now()
@@ -145,8 +148,7 @@ export function ConversationThread({
 
   // Group messages by date
   let lastDate = "";
-  const messagesWithSeparators: (Message | { type: "date"; date: string })[] =
-    [];
+  const messagesWithSeparators: (Message | { type: "date"; date: string })[] = [];
   for (const msg of messages) {
     const d = new Date(msg.created_at).toLocaleDateString("en-IN", {
       day: "numeric",
@@ -165,11 +167,8 @@ export function ConversationThread({
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-white px-4 py-3">
         <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="text-gray-400 hover:text-gray-600 md:hidden"
-          >
-            ← 
+          <button onClick={onBack} className="text-gray-400 hover:text-gray-600 md:hidden">
+            ←
           </button>
           <div>
             <div className="flex items-center gap-2">
@@ -177,21 +176,14 @@ export function ConversationThread({
               {convo?.status && <StatusBadge status={convo.status} />}
             </div>
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-gray-400">
-                {convo?.contacts?.phone}
-              </span>
-              <span className={window.color}>
-                {window.label}
-              </span>
+              <span className="text-gray-400">{convo?.contacts?.phone}</span>
+              <span className={window.color}>{window.label}</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {convo?.labels?.map((l) => (
-            <span
-              key={l}
-              className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
-            >
+            <span key={l} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
               {l}
             </span>
           ))}
@@ -225,20 +217,14 @@ export function ConversationThread({
           <div className="mx-auto max-w-2xl space-y-2">
             {messagesWithSeparators.map((item, i) =>
               "type" in item && item.type === "date" ? (
-                <div
-                  key={`date-${i}`}
-                  className="flex justify-center py-2"
-                >
+                <div key={`date-${i}`} className="flex justify-center py-2">
                   <span className="rounded-lg bg-white/80 px-3 py-1 text-xs text-gray-500 shadow-sm">
                     {item.date}
                   </span>
                 </div>
               ) : (
-                <MessageBubble
-                  key={(item as Message).id}
-                  message={item as Message}
-                />
-              ),
+                <MessageBubble key={(item as Message).id} message={item as Message} />
+              )
             )}
             <div ref={bottomRef} />
           </div>

@@ -10,7 +10,13 @@ type ViewMode = "kanban" | "table";
 
 const DEFAULT_COLUMNS = ["new", "confirmed", "in_progress", "completed", "cancelled"];
 const FOOD_COLUMNS = ["new", "preparing", "ready", "out_for_delivery", "delivered"];
-const HEALTHCARE_COLUMNS = ["scheduled", "checked_in", "in_consultation", "prescription_sent", "completed"];
+const HEALTHCARE_COLUMNS = [
+  "scheduled",
+  "checked_in",
+  "in_consultation",
+  "prescription_sent",
+  "completed",
+];
 
 function getColumns(industry: string | null): string[] {
   switch (industry) {
@@ -32,11 +38,7 @@ export default function OrdersPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: ws } = await supabase
-      .from("workspaces")
-      .select("industry")
-      .limit(1)
-      .single();
+    const { data: ws } = await supabase.from("workspaces").select("industry").limit(1).single();
     setIndustry(ws?.industry ?? null);
 
     const { data } = await supabase
@@ -56,9 +58,7 @@ export default function OrdersPage() {
   const columns = getColumns(industry);
 
   async function handleDrop(orderId: string, newStatus: string) {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
-    );
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
   }
 
@@ -114,7 +114,7 @@ export default function OrdersPage() {
                     if (id) handleDrop(id, col);
                   }}
                 >
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold capitalize text-gray-700">
+                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700 capitalize">
                     {col.replace(/_/g, " ")}
                     <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-normal text-gray-500">
                       {colOrders.length}
@@ -125,9 +125,7 @@ export default function OrdersPage() {
                       <div
                         key={order.id}
                         draggable
-                        onDragStart={(e) =>
-                          e.dataTransfer.setData("orderId", order.id)
-                        }
+                        onDragStart={(e) => e.dataTransfer.setData("orderId", order.id)}
                       >
                         <OrderCard order={order} compact />
                       </div>
@@ -155,23 +153,17 @@ export default function OrdersPage() {
                   <tr
                     key={o.id}
                     className="cursor-pointer border-b last:border-0 hover:bg-gray-50"
-                    onClick={() =>
-                      (window.location.href = `/orders/${o.id}`)
-                    }
+                    onClick={() => (window.location.href = `/orders/${o.id}`)}
                   >
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {o.order_number}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {o.title ?? o.order_type}
-                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{o.order_number}</td>
+                    <td className="px-4 py-3 text-gray-600">{o.title ?? o.order_type}</td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600">
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 capitalize">
                         {o.status.replace(/_/g, " ")}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600">
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 capitalize">
                         {o.payment_status}
                       </span>
                     </td>

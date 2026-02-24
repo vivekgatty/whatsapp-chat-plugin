@@ -6,13 +6,9 @@ import { ConversationThread } from "./components/ConversationThread";
 import { ContactPanel } from "./components/ContactPanel";
 
 export default function InboxPage() {
-  const [activeConversationId, setActiveConversationId] = useState<
-    string | null
-  >(null);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [activeContactId, setActiveContactId] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<
-    "list" | "thread" | "contact"
-  >("list");
+  const [mobileView, setMobileView] = useState<"list" | "thread" | "contact">("list");
 
   function handleSelectConversation(convoId: string, contactId: string) {
     setActiveConversationId(convoId);
@@ -26,10 +22,7 @@ export default function InboxPage() {
       <div
         className={`w-full flex-shrink-0 md:block md:w-80 ${mobileView !== "list" ? "hidden" : ""}`}
       >
-        <ConversationList
-          activeId={activeConversationId}
-          onSelect={handleSelectConversation}
-        />
+        <ConversationList activeId={activeConversationId} onSelect={handleSelectConversation} />
       </div>
 
       {/* Middle: Thread */}

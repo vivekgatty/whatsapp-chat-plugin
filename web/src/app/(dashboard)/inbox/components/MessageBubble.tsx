@@ -66,9 +66,7 @@ export function MessageBubble({ message }: Props) {
 
         {/* Text content */}
         {(message.message_type === "text" || message.content) && (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed">
-            {message.content}
-          </p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         )}
 
         {/* Image */}
@@ -80,9 +78,7 @@ export function MessageBubble({ message }: Props) {
               alt={message.caption ?? "Image"}
               className="max-h-60 rounded-lg"
             />
-            {message.caption && (
-              <p className="mt-1 text-sm">{message.caption}</p>
-            )}
+            {message.caption && <p className="mt-1 text-sm">{message.caption}</p>}
           </div>
         )}
 
@@ -103,9 +99,7 @@ export function MessageBubble({ message }: Props) {
           <div className="text-sm">
             📍 {message.location_name ?? `${message.latitude}, ${message.longitude}`}
             {message.location_address && (
-              <p className="text-xs text-gray-500">
-                {message.location_address}
-              </p>
+              <p className="text-xs text-gray-500">{message.location_address}</p>
             )}
           </div>
         )}
@@ -114,9 +108,7 @@ export function MessageBubble({ message }: Props) {
         {(message.message_type === "audio" ||
           message.message_type === "video" ||
           message.message_type === "sticker") && (
-          <p className="text-sm text-gray-500 italic">
-            [{message.message_type}]
-          </p>
+          <p className="text-sm text-gray-500 italic">[{message.message_type}]</p>
         )}
 
         {/* Reaction */}
@@ -136,9 +128,7 @@ export function MessageBubble({ message }: Props) {
 
         {/* Error */}
         {message.error_message && (
-          <p className="mt-1 text-xs text-red-500">
-            ⚠ {message.error_message}
-          </p>
+          <p className="mt-1 text-xs text-red-500">⚠ {message.error_message}</p>
         )}
       </div>
     </div>

@@ -9,9 +9,7 @@ import { ContactPanel } from "../components/ContactPanel";
 export default function ConversationDetailPage() {
   const params = useParams<{ conversationId: string }>();
   const [activeContactId, setActiveContactId] = useState<string | null>(null);
-  const [mobileView, setMobileView] = useState<
-    "list" | "thread" | "contact"
-  >("thread");
+  const [mobileView, setMobileView] = useState<"list" | "thread" | "contact">("thread");
 
   return (
     <div className="flex h-full">

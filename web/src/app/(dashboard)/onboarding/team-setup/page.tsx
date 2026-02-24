@@ -61,12 +61,8 @@ export default function TeamSetupPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <OnboardingProgress currentStep={3} totalSteps={5} />
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">
-        Invite your team
-      </h1>
-      <p className="mb-8 text-gray-600">
-        Add your staff who will handle customer conversations.
-      </p>
+      <h1 className="mb-2 text-2xl font-bold text-gray-900">Invite your team</h1>
+      <p className="mb-8 text-gray-600">Add your staff who will handle customer conversations.</p>
 
       {/* Add invite form */}
       <div className="mb-4 flex gap-2">
@@ -76,7 +72,7 @@ export default function TeamSetupPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="agent@business.com"
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAdd())}
-          className="flex-1 rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+          className="flex-1 rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
         />
         <select
           value={role}
@@ -98,16 +94,14 @@ export default function TeamSetupPage() {
 
       {/* Role explanation */}
       <div className="mb-6 rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
-        <strong>Agents</strong> can see and reply to conversations.{" "}
-        <strong>Admins</strong> can also change settings and manage the team.
+        <strong>Agents</strong> can see and reply to conversations. <strong>Admins</strong> can also
+        change settings and manage the team.
       </div>
 
       {/* Pending invites */}
       {invites.length > 0 && (
         <div className="mb-6 space-y-2">
-          <p className="text-sm font-medium text-gray-700">
-            Pending invites ({invites.length})
-          </p>
+          <p className="text-sm font-medium text-gray-700">Pending invites ({invites.length})</p>
           {invites.map((inv, idx) => (
             <div
               key={inv.email}
@@ -143,7 +137,9 @@ export default function TeamSetupPage() {
           disabled={saving || invites.length === 0}
           className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
         >
-          {saving ? "Sending invites…" : `Send ${invites.length || ""} invite${invites.length !== 1 ? "s" : ""} & continue`}
+          {saving
+            ? "Sending invites…"
+            : `Send ${invites.length || ""} invite${invites.length !== 1 ? "s" : ""} & continue`}
         </button>
       </div>
     </div>

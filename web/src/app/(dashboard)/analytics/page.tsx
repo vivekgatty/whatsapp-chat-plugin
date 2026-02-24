@@ -22,9 +22,7 @@ export default function AnalyticsPage() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const since = new Date(Date.now() - days * 86400000)
-      .toISOString()
-      .split("T")[0];
+    const since = new Date(Date.now() - days * 86400000).toISOString().split("T")[0];
 
     const { data: snapshots } = await supabase
       .from("analytics_daily")
@@ -59,7 +57,9 @@ export default function AnalyticsPage() {
   const frtValues = current.filter((d) => d.avg_first_response_seconds > 0);
   const avgFrt =
     frtValues.length > 0
-      ? Math.round(frtValues.reduce((a, d) => a + d.avg_first_response_seconds, 0) / frtValues.length)
+      ? Math.round(
+          frtValues.reduce((a, d) => a + d.avg_first_response_seconds, 0) / frtValues.length
+        )
       : 0;
   const avgFrtMins = Math.round(avgFrt / 60);
 
@@ -118,9 +118,7 @@ export default function AnalyticsPage() {
               key={r}
               onClick={() => setRange(r)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                range === r
-                  ? "bg-green-100 text-green-700"
-                  : "text-gray-500 hover:bg-gray-100"
+                range === r ? "bg-green-100 text-green-700" : "text-gray-500 hover:bg-gray-100"
               }`}
             >
               {r === "7d" ? "7 Days" : r === "30d" ? "30 Days" : "90 Days"}
@@ -142,14 +140,9 @@ export default function AnalyticsPage() {
             {/* KPI Cards */}
             <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {KPIs.map((kpi) => (
-                <div
-                  key={kpi.label}
-                  className="rounded-xl border bg-white p-4"
-                >
+                <div key={kpi.label} className="rounded-xl border bg-white p-4">
                   <p className="text-xs text-gray-500">{kpi.label}</p>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
-                    {kpi.value}
-                  </p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">{kpi.value}</p>
                   {kpi.change && (
                     <p
                       className={`mt-1 text-xs font-medium ${
@@ -167,15 +160,10 @@ export default function AnalyticsPage() {
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Conversations chart */}
               <div className="rounded-xl border bg-white p-5">
-                <h3 className="mb-4 font-semibold text-gray-900">
-                  Conversations Over Time
-                </h3>
+                <h3 className="mb-4 font-semibold text-gray-900">Conversations Over Time</h3>
                 <div className="space-y-2">
                   {current.map((d) => {
-                    const maxVal = Math.max(
-                      ...current.map((x) => x.new_conversations),
-                      1,
-                    );
+                    const maxVal = Math.max(...current.map((x) => x.new_conversations), 1);
                     const pct = (d.new_conversations / maxVal) * 100;
                     return (
                       <div key={d.date} className="flex items-center gap-2">
@@ -202,15 +190,13 @@ export default function AnalyticsPage() {
 
               {/* Messages chart */}
               <div className="rounded-xl border bg-white p-5">
-                <h3 className="mb-4 font-semibold text-gray-900">
-                  Messages: Sent vs Received
-                </h3>
+                <h3 className="mb-4 font-semibold text-gray-900">Messages: Sent vs Received</h3>
                 <div className="space-y-2">
                   {current.map((d) => {
                     const total = d.messages_received + d.messages_sent;
                     const maxTotal = Math.max(
                       ...current.map((x) => x.messages_received + x.messages_sent),
-                      1,
+                      1
                     );
                     const recvPct = (d.messages_received / maxTotal) * 100;
                     const sentPct = (d.messages_sent / maxTotal) * 100;
@@ -243,28 +229,21 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="mt-3 flex gap-4 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-blue-400" />{" "}
-                    Received
+                    <span className="h-2 w-2 rounded-full bg-blue-400" /> Received
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-green-400" />{" "}
-                    Sent
+                    <span className="h-2 w-2 rounded-full bg-green-400" /> Sent
                   </span>
                 </div>
               </div>
 
               {/* Revenue trend */}
               <div className="rounded-xl border bg-white p-5">
-                <h3 className="mb-4 font-semibold text-gray-900">
-                  Revenue Trend
-                </h3>
+                <h3 className="mb-4 font-semibold text-gray-900">Revenue Trend</h3>
                 <div className="space-y-2">
                   {current.map((d) => {
                     const rev = Number(d.revenue_logged);
-                    const maxRev = Math.max(
-                      ...current.map((x) => Number(x.revenue_logged)),
-                      1,
-                    );
+                    const maxRev = Math.max(...current.map((x) => Number(x.revenue_logged)), 1);
                     const pct = (rev / maxRev) * 100;
                     return (
                       <div key={d.date} className="flex items-center gap-2">
@@ -291,9 +270,7 @@ export default function AnalyticsPage() {
 
               {/* Contact funnel */}
               <div className="rounded-xl border bg-white p-5">
-                <h3 className="mb-4 font-semibold text-gray-900">
-                  Summary
-                </h3>
+                <h3 className="mb-4 font-semibold text-gray-900">Summary</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Total messages</span>
@@ -301,15 +278,21 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Automations triggered</span>
-                    <span className="font-medium">{sum(current, "automations_triggered").toLocaleString()}</span>
+                    <span className="font-medium">
+                      {sum(current, "automations_triggered").toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Templates sent</span>
-                    <span className="font-medium">{sum(current, "templates_sent").toLocaleString()}</span>
+                    <span className="font-medium">
+                      {sum(current, "templates_sent").toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Orders completed</span>
-                    <span className="font-medium">{sum(current, "orders_completed").toLocaleString()}</span>
+                    <span className="font-medium">
+                      {sum(current, "orders_completed").toLocaleString()}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -317,8 +300,7 @@ export default function AnalyticsPage() {
 
             {data.length === 0 && (
               <div className="mt-8 text-center text-sm text-gray-500">
-                No analytics data yet. Data populates automatically as
-                conversations happen.
+                No analytics data yet. Data populates automatically as conversations happen.
               </div>
             )}
           </>

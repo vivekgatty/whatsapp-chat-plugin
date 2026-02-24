@@ -37,9 +37,7 @@ export default function TeamSettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-6 text-xl font-bold text-gray-900">
-        Team Members
-      </h1>
+      <h1 className="mb-6 text-xl font-bold text-gray-900">Team Members</h1>
 
       {/* Invite form */}
       <div className="mb-6 rounded-xl border bg-white p-5">
@@ -50,7 +48,7 @@ export default function TeamSettingsPage() {
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
             placeholder="agent@business.com"
-            className="flex-1 rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className="flex-1 rounded-lg border px-4 py-2.5 text-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
           />
           <select
             value={inviteRole}
@@ -79,26 +77,17 @@ export default function TeamSettingsPage() {
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-green-600" />
         </div>
       ) : agents.length === 0 ? (
-        <p className="text-sm text-gray-500">
-          No team members yet. You&apos;re the only one here.
-        </p>
+        <p className="text-sm text-gray-500">No team members yet. You&apos;re the only one here.</p>
       ) : (
         <div className="space-y-3">
           {agents.map((agent) => (
-            <div
-              key={agent.id}
-              className="flex items-center gap-4 rounded-xl border bg-white p-4"
-            >
+            <div key={agent.id} className="flex items-center gap-4 rounded-xl border bg-white p-4">
               <ContactAvatar name={agent.display_name} size="md" />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">
-                    {agent.display_name}
-                  </span>
+                  <span className="font-medium text-gray-900">{agent.display_name}</span>
                   <StatusBadge status={agent.role} />
-                  {agent.is_online && (
-                    <span className="h-2 w-2 rounded-full bg-green-500" />
-                  )}
+                  {agent.is_online && <span className="h-2 w-2 rounded-full bg-green-500" />}
                 </div>
                 <p className="text-sm text-gray-500">{agent.email}</p>
                 {agent.last_seen_at && (
