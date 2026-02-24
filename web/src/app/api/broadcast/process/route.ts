@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireFeatureAccess } from "@/lib/feature-access";
+import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
@@ -9,9 +8,12 @@ const BATCH_DELAY_MS = 1000;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function POST(req: NextRequest) {
-  const access = await requireFeatureAccess(req, "BROADCASTS");
-  if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: access.status });
+export async function POST(req: Request) {
+  const secret = process.env.BROADCAST_PROCESS_SECRET || "";
+  const provided = req.headers.get("x-broadcast-secret") || "";
+  if (!secret || provided !== secret) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
 
   const db = getSupabaseAdmin();
   let sent = 0;
@@ -19,8 +21,7 @@ export async function POST(req: NextRequest) {
   for (;;) {
     const { data: pending, error } = await db
       .from("broadcast_queue")
-      .select("id,workspace_id,business_id,to_number,payload")
-      .eq("workspace_id", access.workspaceId)
+      .select("id,business_id,to_number,payload")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(BATCH_SIZE);

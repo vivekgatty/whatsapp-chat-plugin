@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import supabaseAdmin from "@/lib/supabaseAdmin";
-import { requireFeatureAccess } from "@/lib/feature-access";
 
 export const runtime = "nodejs";
 
@@ -104,7 +103,7 @@ async function safeRevenue(db: ReturnType<typeof supabaseAdmin>, businessId: str
       const { data } = await db
         .from(c.table)
         .select(`id,${c.amount},created_at,business_id`)
-         .eq("workspace_id", businessId)
+        .eq("business_id", businessId)
         .gte("created_at", start)
         .lte("created_at", end);
 
@@ -171,15 +170,19 @@ async function sendWhatsAppText(to: string, body: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    const access = await requireFeatureAccess(req, "DAILY_REPORT");
-    if (!access.ok) return NextResponse.json({ ok: false, error: access.error }, { status: access.status });
+    const cronSecret = process.env.CRON_SECRET;
+    const provided = req.headers.get("x-cron-secret") || req.nextUrl.searchParams.get("secret");
+    if (cronSecret && provided !== cronSecret) {
+      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    }
 
     const db = supabaseAdmin();
 
     const { data: business } = await db
       .from("businesses")
       .select("id,name,timezone,wa_number,whatsapp_cc,whatsapp_number")
-      .eq("id", access.workspaceId)
+      .order("created_at", { ascending: true })
+      .limit(1)
       .maybeSingle<BusinessRow>();
 
     if (!business?.id) {
@@ -196,7 +199,7 @@ export async function GET(req: NextRequest) {
     const already = await db
       .from("analytics")
       .select("id", { head: true, count: "exact" })
-       .eq("workspace_id", business.id)
+      .eq("business_id", business.id)
       .eq("event_type", "daily_summary_sent")
       .eq("meta->>date", date);
 
@@ -206,13 +209,13 @@ export async function GET(req: NextRequest) {
 
     const { start, end } = startEndUtcForDateInTimezone(date, timezone);
 
-    const newConversations = await safeCount(db, "conversations", [["workspace_id", business.id]], start, end);
-    const messagesReceived = await safeCount(db, "messages", [["workspace_id", business.id], ["direction", "inbound"]], start, end);
-    const resolved = await safeCount(db, "conversations", [["workspace_id", business.id], ["status", "resolved"]], start, end);
-    const open = await safeCount(db, "conversations", [["workspace_id", business.id], ["status", "open"]]);
+    const newConversations = await safeCount(db, "conversations", [["business_id", business.id]], start, end);
+    const messagesReceived = await safeCount(db, "messages", [["business_id", business.id], ["direction", "inbound"]], start, end);
+    const resolved = await safeCount(db, "conversations", [["business_id", business.id], ["status", "resolved"]], start, end);
+    const open = await safeCount(db, "conversations", [["business_id", business.id], ["status", "open"]]);
 
-    const newContacts = await safeCount(db, "contacts", [["workspace_id", business.id]], start, end);
-    const activeContacts = await safeCount(db, "contacts", [["workspace_id", business.id], ["is_active", true]]);
+    const newContacts = await safeCount(db, "contacts", [["business_id", business.id]], start, end);
+    const activeContacts = await safeCount(db, "contacts", [["business_id", business.id], ["is_active", true]]);
 
     const { orders, revenue } = await safeRevenue(db, business.id, start, end);
 
@@ -221,7 +224,7 @@ export async function GET(req: NextRequest) {
       const { data } = await db
         .from("follow_ups")
         .select("contact_name,waiting_hours")
-         .eq("workspace_id", business.id)
+        .eq("business_id", business.id)
         .eq("status", "pending")
         .order("waiting_hours", { ascending: false })
         .limit(8);
@@ -232,7 +235,7 @@ export async function GET(req: NextRequest) {
 
     const pendingLines = pending.map((row) => `• ${row.contact_name || "Unknown"} — waiting ${Number(row.waiting_hours || 0)}h`);
 
-    const automationCount = await safeCount(db, "automation_logs", [["workspace_id", business.id]], start, end);
+    const automationCount = await safeCount(db, "automation_logs", [["business_id", business.id]], start, end);
 
     const msg = buildMessage({
       businessName: business.name || "Workspace",
@@ -257,7 +260,7 @@ export async function GET(req: NextRequest) {
     const providerResponse = await sendWhatsAppText(ownerNumber, msg);
 
     await db.from("analytics").insert({
-      workspace_id: business.id,
+      business_id: business.id,
       event_type: "daily_summary_sent",
       meta: { date, timezone, owner_number: ownerNumber, provider: "whatsapp_cloud" },
     });
