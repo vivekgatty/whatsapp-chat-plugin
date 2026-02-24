@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
+import RealtimeStatusChips from "@/components/RealtimeStatusChips";
 
 const links = [
   { href: "/dashboard/overview", label: "Overview" },
@@ -45,7 +46,7 @@ export default function GlobalTopBar() {
           })}
         </nav>
 
-        {/* Intentionally no Sign out button */}
+        <RealtimeStatusChips />
       </div>
     </header>
   );
