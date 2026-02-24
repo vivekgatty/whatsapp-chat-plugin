@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 // Use a RELATIVE import to avoid alias issues
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { sanitizeText } from "@/lib/utils/sanitize";
 
 export const runtime = "nodejs";
 
