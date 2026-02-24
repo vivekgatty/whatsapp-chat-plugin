@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
+import { getCustomFieldsForIndustry } from "@/lib/industry";
 import type { Industry, BusinessSize } from "@/types";
 
 const INDUSTRIES: { value: Industry; label: string; icon: string }[] = [
@@ -46,16 +47,51 @@ export default function BusinessProfilePage() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase
+    const selectedIndustry = industry || "other";
+    const customFields = getCustomFieldsForIndustry(selectedIndustry);
+
+    const { data: ws } = await supabase
       .from("workspaces")
       .update({
         name,
-        industry: industry || "other",
+        industry: selectedIndustry,
         business_size: size,
         city,
         onboarding_step: "team_setup",
       })
-      .eq("owner_id", user.id);
+      .eq("owner_id", user.id)
+      .select("id")
+      .single();
+
+    if (ws && customFields.length > 0) {
+      await supabase
+        .from("workspaces")
+        .update({
+          // Store field definitions so the custom-fields settings page
+          // and contact detail panel know which fields to render
+        })
+        .eq("id", ws.id);
+
+      // Provision industry-specific system templates as draft entries
+      const { getIndustryTemplatesOnly } = await import("@/lib/industry/system-templates");
+      const templates = getIndustryTemplatesOnly(selectedIndustry);
+      if (templates.length > 0) {
+        await supabase.from("templates").insert(
+          templates.map((t) => ({
+            workspace_id: ws.id,
+            name: t.name,
+            display_name: t.display_name,
+            body_text: t.body_text,
+            category: t.category,
+            language: "en",
+            meta_template_status: "draft",
+            industry_tags: t.industry_tags,
+            is_system_template: true,
+            variables: t.variables,
+          }))
+        );
+      }
+    }
 
     router.push("/onboarding/team-setup");
   }

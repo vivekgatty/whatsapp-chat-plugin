@@ -5,89 +5,29 @@ import { useRouter } from "next/navigation";
 import { OnboardingProgress } from "@/components/onboarding/OnboardingProgress";
 import { WhatsAppPreview } from "@/components/shared/WhatsAppPreview";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
+import { getSystemTemplatesForIndustry, type SystemTemplate } from "@/lib/industry";
 
-interface SystemTemplate {
+interface PickableTemplate {
   name: string;
+  displayName: string;
   body: string;
   category: string;
 }
 
-const INDUSTRY_TEMPLATES: Record<string, SystemTemplate[]> = {
-  food: [
-    {
-      name: "order_confirmation",
-      body: "Hi {{1}}! Your order #{{2}} has been received and is being prepared. Estimated time: {{3}} minutes. 🍕",
-      category: "UTILITY",
-    },
-    {
-      name: "delivery_update",
-      body: "Great news {{1}}! Your order is out for delivery. Track here: {{2}}",
-      category: "UTILITY",
-    },
-    {
-      name: "welcome_food",
-      body: "Welcome to {{1}}! 🎉 Order your favourite meals directly on WhatsApp. Reply MENU to see today's specials.",
-      category: "MARKETING",
-    },
-  ],
-  healthcare: [
-    {
-      name: "appointment_reminder",
-      body: "Hi {{1}}, this is a reminder for your appointment with {{2}} on {{3}}. Reply CONFIRM to confirm or RESCHEDULE to change.",
-      category: "UTILITY",
-    },
-    {
-      name: "prescription_ready",
-      body: "Hi {{1}}, your prescription from Dr. {{2}} is ready. You can collect it from the reception.",
-      category: "UTILITY",
-    },
-    {
-      name: "health_checkup",
-      body: "Hi {{1}}, it's time for your annual health checkup! Book your slot: {{2}}",
-      category: "MARKETING",
-    },
-  ],
-  retail: [
-    {
-      name: "order_shipped",
-      body: "Hi {{1}}! Your order #{{2}} has been shipped. Track it here: {{3}} 📦",
-      category: "UTILITY",
-    },
-    {
-      name: "back_in_stock",
-      body: "Great news {{1}}! {{2}} is back in stock. Get yours before it sells out: {{3}}",
-      category: "MARKETING",
-    },
-    {
-      name: "order_thank_you",
-      body: "Thank you for your order {{1}}! 🙏 We're packing it with care. You'll receive tracking details shortly.",
-      category: "UTILITY",
-    },
-  ],
-  default: [
-    {
-      name: "welcome_message",
-      body: "Hi {{1}}, thank you for reaching out to {{2}}! We'll get back to you shortly. 🙏",
-      category: "UTILITY",
-    },
-    {
-      name: "follow_up",
-      body: "Hi {{1}}, just checking in! Is there anything else we can help you with?",
-      category: "UTILITY",
-    },
-    {
-      name: "promotion",
-      body: "Hi {{1}}! We have an exciting offer for you: {{2}}. Valid till {{3}}. Reply to know more!",
-      category: "MARKETING",
-    },
-  ],
-};
+function toPickable(t: SystemTemplate): PickableTemplate {
+  return {
+    name: t.name,
+    displayName: t.display_name,
+    body: t.body_text,
+    category: t.category,
+  };
+}
 
 export default function FirstTemplatePage() {
   const router = useRouter();
   const [templateBody, setTemplateBody] = useState("");
   const [templateName, setTemplateName] = useState("");
-  const [templates, setTemplates] = useState<SystemTemplate[]>([]);
+  const [templates, setTemplates] = useState<PickableTemplate[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -102,13 +42,14 @@ export default function FirstTemplatePage() {
         .select("industry")
         .eq("owner_id", user.id)
         .single();
-      const industry = ws?.industry ?? "default";
-      setTemplates(INDUSTRY_TEMPLATES[industry] ?? INDUSTRY_TEMPLATES.default);
+      const industry = ws?.industry ?? "other";
+      const libTemplates = getSystemTemplatesForIndustry(industry);
+      setTemplates(libTemplates.slice(0, 6).map(toPickable));
     }
     loadIndustry();
   }, []);
 
-  function selectTemplate(t: SystemTemplate) {
+  function selectTemplate(t: PickableTemplate) {
     setTemplateName(t.name);
     setTemplateBody(t.body);
   }
@@ -154,7 +95,7 @@ export default function FirstTemplatePage() {
         your own.
       </p>
 
-      {/* Pre-built templates */}
+      {/* Pre-built templates from industry library */}
       <div className="mb-8">
         <p className="mb-3 text-sm font-medium text-gray-700">Recommended for your industry</p>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -169,7 +110,8 @@ export default function FirstTemplatePage() {
                   : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
               }`}
             >
-              <div className="mb-2 flex items-center gap-2">
+              <div className="mb-1 text-xs font-medium text-gray-900">{t.displayName}</div>
+              <div className="mb-2">
                 <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
                   {t.category}
                 </span>
