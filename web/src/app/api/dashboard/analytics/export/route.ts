@@ -4,7 +4,7 @@ export const revalidate = 0;
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServer } from "../../../../../lib/supabaseServer";
-import { getSupabaseAdmin } from "../../../../../lib/supabaseAdmin";
+import { loadAnalyticsSnapshots } from "@/lib/analyticsSnapshots";
 
 function clampDays(sp: URLSearchParams) {
   const raw = sp.get("days");
@@ -68,16 +68,7 @@ export async function GET(req: NextRequest) {
     }
 
     const days = clampDays(url.searchParams);
-    const admin = getSupabaseAdmin();
-
-    const { data: daily } = await admin.rpc("daily_analytics", {
-      p_widget_id: widgetId,
-      p_days: days,
-    });
-    const { data: by_page } = await admin.rpc("page_analytics", {
-      p_widget_id: widgetId,
-      p_days: days,
-    });
+    const { daily, by_page } = await loadAnalyticsSnapshots(widgetId, days);
 
     const lines: string[] = [];
     lines.push("Daily");
