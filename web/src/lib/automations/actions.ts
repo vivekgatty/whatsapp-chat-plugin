@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { sendTextMessage, sendTemplateMessage } from "@/lib/meta/api";
+import { MetaAPIClient } from "@/lib/meta/api";
+import { decryptToken } from "@/lib/utils/encryption";
 import type { AutomationAction } from "@/types";
 
 interface ActionContext {
@@ -7,6 +8,18 @@ interface ActionContext {
   contactId?: string;
   conversationId?: string;
   triggerData?: Record<string, unknown>;
+}
+
+async function getMetaClient(workspaceId: string): Promise<MetaAPIClient | null> {
+  const db = supabaseAdmin();
+  const { data: connection } = await db
+    .from("whatsapp_connections")
+    .select("phone_number_id, access_token")
+    .eq("workspace_id", workspaceId)
+    .single();
+
+  if (!connection) return null;
+  return new MetaAPIClient(decryptToken(connection.access_token), connection.phone_number_id);
 }
 
 export async function executeAction(
@@ -20,25 +33,15 @@ export async function executeAction(
       const message = action.message as string | undefined;
       if (!message || !context.contactId) break;
 
-      const { data: connection } = await db
-        .from("whatsapp_connections")
-        .select("phone_number_id, access_token")
-        .eq("workspace_id", context.workspaceId)
-        .single();
-
+      const client = await getMetaClient(context.workspaceId);
       const { data: contact } = await db
         .from("contacts")
         .select("wa_id")
         .eq("id", context.contactId)
         .single();
 
-      if (connection && contact) {
-        await sendTextMessage(
-          connection.phone_number_id,
-          connection.access_token,
-          contact.wa_id,
-          message
-        );
+      if (client && contact) {
+        await client.sendText(contact.wa_id, message);
       }
       break;
     }
@@ -54,26 +57,30 @@ export async function executeAction(
         .eq("id", templateId)
         .single();
 
-      const { data: connection } = await db
-        .from("whatsapp_connections")
-        .select("phone_number_id, access_token")
-        .eq("workspace_id", context.workspaceId)
-        .single();
-
+      const client = await getMetaClient(context.workspaceId);
       const { data: contact } = await db
         .from("contacts")
         .select("wa_id")
         .eq("id", context.contactId)
         .single();
 
-      if (template && connection && contact) {
-        await sendTemplateMessage(
-          connection.phone_number_id,
-          connection.access_token,
+      if (template && client && contact) {
+        const vals = Object.values(variables ?? {});
+        const components =
+          vals.length > 0
+            ? [
+                {
+                  type: "body",
+                  parameters: vals.map((v) => ({ type: "text", text: v })),
+                },
+              ]
+            : [];
+
+        await client.sendTemplate(
           contact.wa_id,
           template.meta_template_name,
           template.language,
-          Object.values(variables ?? {})
+          components
         );
       }
       break;
