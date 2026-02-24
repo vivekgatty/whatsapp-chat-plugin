@@ -16,17 +16,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "invalid_signature" }, { status: 401 });
   }
 
-  const internalSecret = process.env.INTERNAL_WEBHOOK_QUEUE_SECRET || "";
-  const queueUrl = new URL("/api/webhooks/meta/process", req.url).toString();
-  fetch(queueUrl, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-internal-secret": internalSecret,
-    },
-    body: payload,
-  }).catch(() => {});
-
-  // Immediate ACK for webhook provider; heavy processing is asynchronous
-  return NextResponse.json({ ok: true, accepted: true }, { status: 202 });
+  // Process events here (intentionally not logging payload to avoid sensitive data leakage)
+  return NextResponse.json({ ok: true });
 }
