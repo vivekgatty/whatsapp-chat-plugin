@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
+import RealtimeStatusChips from "@/components/RealtimeStatusChips";
 
 const links = [
   { href: "/dashboard/overview", label: "Overview" },
@@ -33,7 +34,7 @@ export default function GlobalTopBar() {
                 key={l.href}
                 href={l.href}
                 className={[
-                  "rounded-md border px-3 py-1.5 text-xs",
+                  "rounded-md border px-3 py-1.5 text-xs min-h-[44px] inline-flex items-center",
                   active
                     ? "border-slate-700 bg-slate-800 text-slate-100"
                     : "border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800",
@@ -45,7 +46,7 @@ export default function GlobalTopBar() {
           })}
         </nav>
 
-        {/* Intentionally no Sign out button */}
+        <RealtimeStatusChips />
       </div>
     </header>
   );

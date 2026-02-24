@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const runtime = "nodejs";
 
-function buildWidgetJs(serverCfg: Record<string, any>): string {
+function buildWidgetJs(serverCfg: Record<string, unknown>): string {
   const INJECT = JSON.stringify(serverCfg || {});
   return `(()=>{try{
 if(typeof window==='undefined'||typeof document==='undefined'){return;}
@@ -42,6 +42,7 @@ function pick(key, fallback){
 // Initial config from data/query/server (remote config merges later)
 CFG = {
   id:              pick('id', null),
+  workspace_slug:  pick('workspaceSlug', pick('id', null)),
   wa_number:       pick('waNumber', null),
   theme_color:     pick('themeColor', '#10b981'),
   icon:            pick('icon', 'whatsapp'),
@@ -58,17 +59,24 @@ CFG = {
 function applyRemote(remote){
   try{
     if(!remote) return;
+    var waRemote  = remote.waNumber       != null ? remote.waNumber       : remote.wa_number;
+    var ctaRemote = remote.ctaText        != null ? remote.ctaText        : remote.cta_text;
+    var pmRemote  = remote.prefillMessage != null ? remote.prefillMessage : remote.prefill_message;
+    var tcRemote  = remote.themeColor     != null ? remote.themeColor     : remote.theme_color;
+    var rnRemote  = remote.requireName    != null ? remote.requireName    : remote.require_name;
+    var rmRemote  = remote.requireMessage != null ? remote.requireMessage : remote.require_message;
     // only apply if NOT overridden by data-* or query
-    if(!hasDsOrQp('waNumber')       && remote.waNumber       != null) CFG.wa_number       = remote.waNumber;
-    if(!hasDsOrQp('themeColor')     && remote.themeColor     != null) CFG.theme_color     = remote.themeColor;
-    if(!hasDsOrQp('icon')           && remote.icon           != null) CFG.icon            = remote.icon;
-    if(!hasDsOrQp('ctaText')        && remote.ctaText        != null) CFG.cta_text        = remote.ctaText;
-    if(!hasDsOrQp('prefillMessage') && remote.prefillMessage != null) CFG.prefill_message = remote.prefillMessage;
-    if(!hasDsOrQp('position')       && remote.position       != null) CFG.position        = remote.position;
-    if(!hasDsOrQp('prechat')        && remote.prechat        != null) CFG.prechat         = remote.prechat;
-    if(!hasDsOrQp('requireName')    && remote.requireName    != null) CFG.require_name    = !!remote.requireName;
-    if(!hasDsOrQp('requireMessage') && remote.requireMessage != null) CFG.require_message = !!remote.requireMessage;
-    if(!hasDsOrQp('v')              && remote.v              != null) CFG.v               = remote.v;
+    if(!hasDsOrQp('waNumber')       && waRemote  != null) CFG.wa_number       = waRemote;
+    if(!hasDsOrQp('themeColor')     && tcRemote  != null) CFG.theme_color     = tcRemote;
+    if(!hasDsOrQp('icon')           && remote.icon != null) CFG.icon          = remote.icon;
+    if(!hasDsOrQp('ctaText')        && ctaRemote != null) CFG.cta_text        = ctaRemote;
+    if(!hasDsOrQp('prefillMessage') && pmRemote  != null) CFG.prefill_message = pmRemote;
+    if(!hasDsOrQp('position')       && remote.position != null) CFG.position  = remote.position;
+    if(!hasDsOrQp('prechat')        && remote.prechat != null) CFG.prechat    = remote.prechat;
+    if(!hasDsOrQp('requireName')    && rnRemote != null) CFG.require_name     = !!rnRemote;
+    if(!hasDsOrQp('requireMessage') && rmRemote != null) CFG.require_message  = !!rmRemote;
+    if(!hasDsOrQp('v')              && remote.v != null) CFG.v                = remote.v;
+    if(!hasDsOrQp('id')             && remote.id != null) CFG.id              = remote.id;
   }catch(e){}
 }
 
@@ -130,7 +138,7 @@ function initUI(){
   btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.52 3.48A11.5 11.5 0 0 0 2.1 16.9L1 22.5l5.72-1.5A11.5 11.5 0 0 0 20.52 3.48Zm-8.9 15.87a9.5 9.5 0 1 1 7.18-2.8 9.47 9.47 0 0 1-7.18 2.8Zm5.01-6.73c-.27-.13-1.58-.78-1.82-.86s-.42-.13-.6.13-.69.86-.84 1.04-.31.2-.57.07a7.75 7.75 0 0 1-2.24-1.38 8.4 8.4 0 0 1-1.56-1.93c-.16-.27 0-.41.12-.54.12-.12.27-.31.4-.47.13-.16.18-.27.27-.45.09-.18.04-.34-.02-.47-.07-.13-.6-1.45-.82-1.99-.22-.53-.44-.46-.6-.46h-.51c-.16 0-.41.06-.62.31s-.81.79-.81 1.93c0 1.14.83 2.24.95 2.39a9.54 9.54 0 0 0 3.5 3.3c.49.27.87.43 1.17.55.49.18.94.16 1.29.1.39-.06 1.2-.49 1.37-.96.17-.47.17-.87.12-.96-.05-.09-.22-.15-.49-.28Z"/></svg>';
 
   // === prechat panel (if enabled) ===
-  var panel = null, nameInput = null, msgInput = null, submitBtn = null;
+  var panel = null, nameInput = null, phoneInput = null, msgInput = null, submitBtn = null;
   if(String(CFG.prechat).toLowerCase()==='on'){
     panel = document.createElement('div');
     panel.setAttribute('role','dialog');
@@ -160,6 +168,17 @@ function initUI(){
     ].join(';');
     panel.appendChild(nameInput);
 
+    phoneInput = document.createElement('input');
+    phoneInput.type = 'tel';
+    phoneInput.placeholder = 'Your phone';
+    phoneInput.setAttribute('data-wcp-phone','');
+    phoneInput.style.cssText = [
+      'width:100%','box-sizing:border-box','margin:0 0 10px 0',
+      'padding:10px 12px','border-radius:10px','border:1px solid #21304a',
+      'background:#0f172a','color:#e5ecf5','outline:none'
+    ].join(';');
+    panel.appendChild(phoneInput);
+
     msgInput = document.createElement('textarea');
     msgInput.placeholder = "Hi! I'd like to know more.";
     msgInput.setAttribute('data-wcp-message','');
@@ -186,6 +205,7 @@ function initUI(){
 
   function readNameMessage(){
     var name = '';
+    var phone = '';
     var msg  = '';
     try{
       if(nameInput && typeof nameInput.value==='string' && nameInput.value.trim()){
@@ -194,6 +214,13 @@ function initUI(){
         var ns = ['input[data-wcp-name]','input[name="wcp_name"]','input[placeholder="Your name"]','input[aria-label="Your name"]'];
         for(var i=0;i<ns.length;i++){ var n=document.querySelector(ns[i]); if(n && n.value && n.value.trim()){ name=n.value.trim(); break; } }
       }
+      if(phoneInput && typeof phoneInput.value==='string' && phoneInput.value.trim()){
+        phone = phoneInput.value.trim();
+      }else{
+        var ps = ['input[data-wcp-phone]','input[name="wcp_phone"]','input[type="tel"]'];
+        for(var p=0;p<ps.length;p++){ var ph=document.querySelector(ps[p]); if(ph && ph.value && ph.value.trim()){ phone=ph.value.trim(); break; } }
+      }
+
       if(msgInput && typeof msgInput.value==='string' && msgInput.value.trim()){
         msg = msgInput.value;
       }else{
@@ -202,17 +229,41 @@ function initUI(){
       }
     }catch(e){}
     if(!msg){ msg = CFG.prefill_message || ''; }
-    return { name:name, message:msg };
+    return { name:name, phone:phone, message:msg };
+  }
+
+  function conversationKey(){
+    return 'cm_conv_started_' + String(CFG.id || CFG.workspace_slug || 'widget');
+  }
+
+  function hasConversationStarted(){
+    try{ return localStorage.getItem(conversationKey()) === '1'; }catch(e){ return false; }
+  }
+
+  function markConversationStarted(){
+    try{ localStorage.setItem(conversationKey(),'1'); }catch(e){}
   }
 
   function sendLead(){
     try{
       if(!CFG || !CFG.id){ return; }
       var vals = readNameMessage();
+      var isFirstConversation = !hasConversationStarted();
+      if(isFirstConversation){
+        sendAnalytics('conversation_started', { source: 'widget', has_name: !!vals.name, has_phone: !!vals.phone });
+        markConversationStarted();
+      }
       fetch((_apiBase||'') + '/api/track-lead?wid=' + encodeURIComponent(CFG.id), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: vals.name || '', message: vals.message || '', source: 'widget' })
+        body: JSON.stringify({
+          name: vals.name || '',
+          phone: vals.phone || '',
+          message: vals.message || '',
+          source: 'widget',
+          opt_in_source: 'website_widget',
+          conversation_started: isFirstConversation
+        })
       });
     }catch(e){}
   }
@@ -227,7 +278,7 @@ function initUI(){
   // Bubble click
   btn.onclick = function(){
     try{
-      sendAnalytics('open', {});
+      sendAnalytics('click', {});
       if(String(CFG.prechat).toLowerCase()==='on' && panel){
         panel.style.display = (panel.style.display==='none' || !panel.style.display) ? 'block' : 'none';
         if(panel.style.display==='block' && msgInput && !msgInput.value){ msgInput.value = CFG.prefill_message || ''; }
@@ -256,13 +307,20 @@ function initUI(){
 // Fetch remote config (non-blocking fail-safe), then init UI
 (function(){
   try{
-    if(!CFG || !CFG.id){ initUI(); return; }
-    var url = ((_apiBase||'')) + '/api/widget-config/' + encodeURIComponent(CFG.id);
-    if(CFG.v != null){ url += '?v=' + encodeURIComponent(CFG.v); }
-    fetch(url, { method:'GET' })
+    if(!CFG || (!CFG.id && !CFG.workspace_slug)){ initUI(); return; }
+    var slugOrId = CFG.workspace_slug || CFG.id;
+    var q = CFG.v != null ? ('?v=' + encodeURIComponent(CFG.v)) : '';
+    var urlPublic = ((_apiBase||'')) + '/api/public/widget/' + encodeURIComponent(slugOrId) + q;
+    var urlLegacy = CFG.id ? (((_apiBase||'')) + '/api/widget-config/' + encodeURIComponent(CFG.id) + q) : null;
+
+    fetch(urlPublic, { method:'GET' })
       .then(function(r){ return r.json().catch(function(){ return {}; }); })
       .then(function(j){
-        if(j && j.ok && j.config){ applyRemote(j.config); }
+        if(j && j.ok && (j.config || j.widget)){ applyRemote(j.config || j.widget); return; }
+        if(!urlLegacy){ return; }
+        return fetch(urlLegacy, { method:'GET' })
+          .then(function(r2){ return r2.json().catch(function(){ return {}; }); })
+          .then(function(j2){ if(j2 && j2.ok && (j2.config || j2.widget)){ applyRemote(j2.config || j2.widget); } });
       })
       .catch(function(){})
       .finally(function(){ initUI(); });
@@ -272,16 +330,18 @@ function initUI(){
 }
 
 export async function GET(req: Request) {
-  let serverCfg: Record<string, any> = {};
+  const serverCfg: Record<string, unknown> = {};
   try {
     const u = new URL(req.url);
     const id = u.searchParams.get("id");
     const prechat = u.searchParams.get("prechat");
     const waNumber = u.searchParams.get("waNumber");
+    const workspaceSlug = u.searchParams.get("workspaceSlug");
     if (id) serverCfg.id = id;
+    if (workspaceSlug) serverCfg.workspaceSlug = workspaceSlug;
     if (prechat) serverCfg.prechat = prechat;
     if (waNumber) serverCfg.waNumber = waNumber;
-  } catch (_) {}
+  } catch {}
 
   const js = buildWidgetJs(serverCfg);
   return new NextResponse(js, {
