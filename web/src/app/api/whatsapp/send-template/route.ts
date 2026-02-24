@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { MetaAPIClient } from "@/lib/meta/api";
 import { decryptToken } from "@/lib/utils/encryption";
+import { checkAndIncrementUsage } from "@/lib/billing/usage";
 
 export async function POST(request: Request) {
   try {
@@ -46,6 +47,17 @@ export async function POST(request: Request) {
 
     if (!contact || !template || !connection) {
       return NextResponse.json({ error: "Missing required data" }, { status: 400 });
+    }
+
+    const { allowed, usage } = await checkAndIncrementUsage(supabase, agent.workspace_id);
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          error: "Conversation limit exceeded. Upgrade your plan.",
+          usage,
+        },
+        { status: 429 }
+      );
     }
 
     const components =

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { MetaAPIClient } from "@/lib/meta/api";
 import { decryptToken } from "@/lib/utils/encryption";
+import { incrementInboundUsage } from "@/lib/billing/usage";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // GET: Meta webhook verification (called once during setup)
@@ -244,6 +245,9 @@ async function findOrCreateConversation(
         total_conversations: (contact.total_conversations ?? 0) + 1,
       })
       .eq("id", contact.id);
+
+    // Track inbound conversation usage (never blocks)
+    await incrementInboundUsage(supabase, workspaceId);
   }
 
   return newConvo;

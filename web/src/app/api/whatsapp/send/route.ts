@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { MetaAPIClient } from "@/lib/meta/api";
 import { decryptToken } from "@/lib/utils/encryption";
+import { checkAndIncrementUsage } from "@/lib/billing/usage";
 
 export async function POST(request: Request) {
   try {
@@ -52,6 +53,17 @@ export async function POST(request: Request) {
 
     if (!recipientPhone) {
       return NextResponse.json({ error: "No recipient phone number" }, { status: 400 });
+    }
+
+    const { allowed, usage } = await checkAndIncrementUsage(supabase, agent.workspace_id);
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          error: "Conversation limit exceeded. Upgrade your plan to continue sending.",
+          usage,
+        },
+        { status: 429 }
+      );
     }
 
     const client = new MetaAPIClient(
