@@ -84,6 +84,13 @@ async function safeCount(
   }
 }
 
+
+function numberField(row: unknown, key: string): number {
+  if (!row || typeof row !== "object") return 0;
+  const value = Reflect.get(row, key);
+  return Number(value || 0);
+}
+
 async function safeRevenue(db: ReturnType<typeof supabaseAdmin>, businessId: string, start: string, end: string): Promise<{ orders: number; revenue: number }> {
   const candidates: Array<{ table: string; amount: string }> = [
     { table: "orders", amount: "amount" },
@@ -102,7 +109,7 @@ async function safeRevenue(db: ReturnType<typeof supabaseAdmin>, businessId: str
 
       if (Array.isArray(data)) {
         const orders = data.length;
-        const revenue = data.reduce((acc, row) => acc + Number((row as Record<string, unknown>)?.[c.amount] || 0), 0);
+        const revenue = data.reduce((acc, row) => acc + numberField(row, c.amount), 0);
         return { orders, revenue };
       }
     } catch {}
@@ -212,17 +219,21 @@ export async function GET(req: NextRequest) {
 
     const { orders, revenue } = await safeRevenue(db, business.id, start, end);
 
-    const { data: pending } = await db
-      .from("follow_ups")
-      .select("contact_name,waiting_hours")
-      .eq("business_id", business.id)
-      .eq("status", "pending")
-      .order("waiting_hours", { ascending: false })
-      .limit(8)
-      .throwOnError()
-      .catch(() => ({ data: [] as Array<{ contact_name?: string | null; waiting_hours?: number | null }> }));
+    let pending: Array<{ contact_name?: string | null; waiting_hours?: number | null }> = [];
+    try {
+      const { data } = await db
+        .from("follow_ups")
+        .select("contact_name,waiting_hours")
+        .eq("business_id", business.id)
+        .eq("status", "pending")
+        .order("waiting_hours", { ascending: false })
+        .limit(8);
+      pending = data ?? [];
+    } catch {
+      pending = [];
+    }
 
-    const pendingLines = (pending || []).map((row) => `• ${row.contact_name || "Unknown"} — waiting ${Number(row.waiting_hours || 0)}h`);
+    const pendingLines = pending.map((row) => `• ${row.contact_name || "Unknown"} — waiting ${Number(row.waiting_hours || 0)}h`);
 
     const automationCount = await safeCount(db, "automation_logs", [["business_id", business.id]], start, end);
 
