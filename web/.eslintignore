@@ -1,0 +1,13 @@
+# Generated files
+.next/
+node_modules/
+public/
+dist/
+out/
+
+# Supabase generated types
+src/types/supabase.ts
+
+# Auto-generated files
+*.generated.ts
+*.generated.js

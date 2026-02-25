@@ -31,9 +31,14 @@ async function getUser() {
   return user;
 }
 
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SKEY = process.env.SUPABASE_SERVICE_ROLE!; // service role (server only)
-const admin = createClient(URL, SKEY, { auth: { persistSession: false } });
+function getAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE || "";
+  if (!url || !serviceRole) {
+    throw new Error("Supabase env missing: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE");
+  }
+  return createClient(url, serviceRole, { auth: { persistSession: false } });
+}
 
 const TABLE = "businesses";
 
@@ -72,7 +77,7 @@ export async function GET() {
   const user = await getUser();
   if (!user) return NextResponse.json({ ok: true, business: defaults });
 
-  const { data, error } = await admin
+  const { data, error } = await getAdmin()
     .from(TABLE)
     .select("*")
     .eq("owner_id", user.id)
@@ -112,7 +117,7 @@ export async function POST(req: NextRequest) {
   const payload = { owner_id: user.id, ...row };
 
   // Upsert by owner_id (matches unique index businesses_owner_id_key)
-  const { data, error } = await admin
+  const { data, error } = await getAdmin()
     .from(TABLE)
     .upsert(payload, { onConflict: "owner_id" })
     .select("*")

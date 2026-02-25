@@ -1,0 +1,10 @@
+# Auto-resolve lockfile conflicts by always taking the incoming version
+package-lock.json merge=ours
+yarn.lock merge=ours
+pnpm-lock.yaml merge=ours
+
+# Config files — always take the newer (incoming) version
+web/vercel.json merge=theirs
+vercel.json merge=theirs
+next.config.js merge=theirs
+next.config.ts merge=theirs
