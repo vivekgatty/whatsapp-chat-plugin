@@ -20,43 +20,28 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: false, error: "verification_failed" }, { status: 403 });
 }
 
-function processWebhookAsync(input: {
-  body: Record<string, unknown>;
-  signature: string;
-  requestUrl: string;
-}) {
+export async function POST(req: NextRequest) {
   const appSecret = process.env.META_APP_SECRET || "";
-  const internalSecret = process.env.INTERNAL_WEBHOOK_QUEUE_SECRET || "";
-
-  if (!appSecret || !internalSecret) return Promise.resolve();
-
-  const payload = JSON.stringify(input.body || {});
-  if (!verifyWebhookSignature(payload, input.signature, appSecret)) {
-    return Promise.resolve();
+  if (!appSecret) {
+    return NextResponse.json({ ok: false, error: "META_APP_SECRET missing" }, { status: 500 });
   }
 
-  const processUrl = new URL("/api/webhooks/meta/process", input.requestUrl).toString();
-  return fetch(processUrl, {
+  const payload = await req.text();
+  const signature = req.headers.get("x-hub-signature-256") || "";
+  if (!verifyWebhookSignature(payload, signature, appSecret)) {
+    return NextResponse.json({ ok: false, error: "invalid_signature" }, { status: 401 });
+  }
+
+  const internalSecret = process.env.INTERNAL_WEBHOOK_QUEUE_SECRET || "";
+  const processUrl = new URL("/api/webhooks/meta/process", req.url).toString();
+  fetch(processUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "x-internal-secret": internalSecret,
     },
     body: payload,
-  }).then(() => undefined);
-}
+  }).catch(() => {});
 
-export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-  const signature = req.headers.get("x-hub-signature-256") || "";
-
-  // Return 200 FIRST, then process async
-  const response = NextResponse.json({ status: "ok" }, { status: 200 });
-
-  // Non-blocking background processing
-  processWebhookAsync({ body, signature, requestUrl: req.url }).catch((err: unknown) =>
-    console.error("Webhook error:", err),
-  );
-
-  return response;
+  return NextResponse.json({ ok: true, accepted: true }, { status: 202 });
 }

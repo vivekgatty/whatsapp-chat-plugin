@@ -11,8 +11,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,md,json,html,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,md,json,html,yml,yaml}\"",
     "lint:ci": "next lint --max-warnings=0",
-    "type-check": "tsc --noEmit",
-    "sync": "gh repo sync && gh pr update-branch --auto"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",

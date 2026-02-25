@@ -9,14 +9,6 @@ const nextConfig = {
     // Likewise, don't fail builds on TS errors during active development
     ignoreBuildErrors: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: "/",
-        destination: "/landing.html",
-      },
-    ];
-  },
 };
 
 module.exports = nextConfig;

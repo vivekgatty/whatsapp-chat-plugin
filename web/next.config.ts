@@ -10,14 +10,6 @@ const nextConfig: NextConfig = {
     // Likewise, don't fail builds on TS errors during active development
     ignoreBuildErrors: true,
   },
-  async rewrites() {
-    return [
-      {
-        source: "/",
-        destination: "/landing.html",
-      },
-    ];
-  },
   // Pin Turbopack root to this web/ folder so it ignores the parent lockfile
   turbopack: {
     root: __dirname,
