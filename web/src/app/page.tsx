@@ -8,17 +8,21 @@ export default function Page() {
   const [status, setStatus] =
     useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false } }
-  );
-
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setStatus("error");
+      return;
+    }
+
     setStatus("sending");
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
