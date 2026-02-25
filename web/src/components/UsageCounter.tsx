@@ -8,11 +8,6 @@ import { createClient } from "@supabase/supabase-js";
  * - NEW: Maps signed-in user -> unique widget via /api/me/widget-id
  *         and rewrites the "Widget ID" card on the Overview page.
  */
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL as string,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
-);
-
 export default function UsageCounter() {
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +135,11 @@ export default function UsageCounter() {
     // ---------------------------------------
     const mapAndRewriteWidgetId = async () => {
       try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (!supabaseUrl || !supabaseAnonKey) return;
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
         const { data } = await supabase.auth.getUser();
         const user = data?.user;
         if (!user) return; // not signed in

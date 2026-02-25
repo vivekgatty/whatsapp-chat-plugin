@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/reports/daily-summary",
+      "schedule": "30 14 * * *"
+    },
+    {
+      "path": "/api/templates/sync-meta",
+      "schedule": "0 */4 * * *"
+    }
+  ]
+}

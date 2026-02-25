@@ -2,13 +2,14 @@
 import { NextResponse } from "next/server";
 // Use a RELATIVE import to avoid alias issues
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { sanitizeText } from "@/lib/utils/sanitize";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   try {
     const u = new URL(req.url);
-    const body = await req.json().catch(() => ({}) as any);
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
 
     const wid =
       body.wid ||
@@ -17,16 +18,26 @@ export async function POST(req: Request) {
       body.id ||
       u.searchParams.get("id");
 
-    const name = String(body.name ?? body.wcp_name ?? "").slice(0, 100);
-    const message = String(body.message ?? body.wcp_message ?? "").slice(0, 1000);
-    const source = String(body.source ?? "widget");
+    // Keep both raw extraction (main branch style) + sanitized normalization (security hardening branch)
+    const rawName = String(body.name ?? body.wcp_name ?? "").slice(0, 100);
+    const rawMessage = String(body.message ?? body.wcp_message ?? "").slice(0, 1000);
+    const rawPhone = String(body.phone ?? body.wcp_phone ?? "").slice(0, 30);
+    const rawSource = String(body.source ?? "widget");
+    const rawOptInSource = String(body.opt_in_source ?? "website_widget");
+
+    const name = sanitizeText(rawName, 100);
+    const message = sanitizeText(rawMessage, 1000);
+    const phone = sanitizeText(rawPhone, 30);
+    const source = sanitizeText(rawSource, 40) || "widget";
+    const opt_in_source = sanitizeText(rawOptInSource, 50) || "website_widget";
+    const conversation_started = Boolean(body.conversation_started ?? false);
 
     if (!wid) {
       return NextResponse.json({ ok: false, warn: "missing wid" }, { status: 200 });
     }
 
     // Widget -> business (graceful: allow 0 rows and use DEFAULT_BUSINESS_ID)
-    const { data: widget, error: werr } = await getSupabaseAdmin()
+    const { data: widget } = await getSupabaseAdmin()
       .from("widgets")
       .select("id,business_id")
       .eq("id", wid)
@@ -50,9 +61,35 @@ export async function POST(req: Request) {
       name,
       message,
       source,
+      phone: phone || null,
     });
     if (lerr) {
       return NextResponse.json({ ok: false, warn: lerr.message }, { status: 200 });
+    }
+
+
+
+    // Best-effort CRM contact creation on first conversation start from widget
+    if (conversation_started) {
+      const admin = getSupabaseAdmin();
+      const baseContact = {
+        business_id,
+        widget_id: wid,
+        name: name || null,
+        phone: phone || null,
+      };
+
+      // Attempt with explicit opt-in/source fields first
+      const { error: c1 } = await admin.from("contacts").insert({
+        ...baseContact,
+        opt_in_source,
+        source,
+      });
+
+      // Fallback for narrower schemas
+      if (c1) {
+        await admin.from("contacts").insert(baseContact);
+      }
     }
 
     // Record 'lead' analytics (best-effort)
@@ -60,7 +97,7 @@ export async function POST(req: Request) {
       business_id,
       widget_id: wid,
       event_type: "lead",
-      meta: { source },
+      meta: { source, conversation_started, opt_in_source },
     });
 
     // Optional webhook (accept legacy env name too)
@@ -75,13 +112,17 @@ export async function POST(req: Request) {
           name,
           message,
           source,
+          phone,
+          opt_in_source,
+          conversation_started,
           created_at: new Date().toISOString(),
         }),
       }).catch(() => {});
     }
 
     return NextResponse.json({ ok: true }, { status: 200 });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 200 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ ok: false, error: message }, { status: 200 });
   }
 }

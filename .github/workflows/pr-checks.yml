@@ -1,0 +1,29 @@
+name: PR Conflict Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-mergeable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.email "codex@chatmadi.com"
+          git config user.name "Codex Bot"
+
+      - name: Test merge with main
+        run: |
+          git fetch origin main
+          git merge origin/main --no-commit --no-ff || {
+            echo "❌ Merge conflict detected. Aborting."
+            git merge --abort
+            exit 1
+          }
+          git merge --abort
+          echo "✅ No conflicts with main"
